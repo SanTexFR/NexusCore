@@ -1,0 +1,42 @@
+# LIST OF DATABASES THAT VAR-SQL CAN USE
+# REMOVE THE "main" DATABASE IF YOU DON'T WANT A DEFAULT
+databases:
+  main:
+    host: 'localhost'
+    port: 3306
+    username: 'root'
+    password: 'root'
+    database: 'exemple'
+
+# THREAD
+thread:
+  # USED FOR THE VAR DATA SERIALIZATION / DESERIALIZATION
+  var:
+    # RECOMMENDED: 6-8+
+    amount: 1
+    queue-size: 512
+  # USED FOR THE ENTIRE UTILS CLASS
+  utils:
+    # RECOMMENDED: 2
+    amount: 1
+    queue-size: 128
+  # USED FOR ALL CORE-EVENT(ASYNC) LISTENERS
+  listeners:
+    # RECOMMENDED: 1 PER 12 PLAYERS
+    amount: 1
+    # RECOMMENDED: 240 PER 10 PLAYERS
+    queue-size: 240
+
+cache:
+  # TIME BEFORE EACH MEMORY LEAK CLEANUP (IN TICK)
+  cleanupInterval: 6000
+  # MAX OFFLINE PLAYER (UUID & NAME) IN CACHE
+  # RECOMMENDED: [100 - 500+]
+  maxOfflineCache: 100
+
+# RATE IN TICK (MUST BE BETWEEN 1 AND 100)
+# RECOMMENDED: 20+
+performanceTrackerGuiUpdateRate: 20
+
+# CAN CHANGE HOW MINECRAFT WILL REACT TO EVENTS
+enableCustomAsyncBukkitEventApi: false
