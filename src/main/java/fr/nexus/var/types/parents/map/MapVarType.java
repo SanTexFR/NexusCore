@@ -139,7 +139,7 @@ public class MapVarType<T,T2>extends VarVersion implements Vars,CollectionUtils{
             futures.add(combinedFuture);
         }
 
-        // Quand toutes les clés et valeurs sont sérialisées, on construit le ByteBuffer final
+        // Quand toutes les clés et valeurs sont sérialisées, on construit le ByteBuffer final.
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                 .thenApply(v -> {
                     int length = 0;
@@ -187,7 +187,7 @@ public class MapVarType<T,T2>extends VarVersion implements Vars,CollectionUtils{
 
             CompletableFuture<Void> future = this.keyVarType.deserializeAsync(keyBytes)
                     .thenCombine(this.valueVarType.deserializeAsync(valueBytes), (key, value) -> {
-                        map.put((T) key, (T2) value);
+                        map.put(key,value);
                         return null;
                     });
 

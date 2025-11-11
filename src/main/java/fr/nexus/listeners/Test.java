@@ -4,6 +4,7 @@ import fr.nexus.listeners.events.CoreBlockBreakEvent;
 import fr.nexus.listeners.events.CoreBlockPlaceEvent;
 import org.bukkit.Material;
 
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class Test{
     static{
         Listeners.registerAsync(
@@ -14,11 +15,10 @@ public class Test{
                     return getBlockValue(coreEvent.getBukkitEvent().getBlock().getType());
                 },
                 null,
-                ((coreEvent, value) ->{
+                ((coreEvent, value) ->
                     coreEvent.getBukkitEvent().getPlayer().sendMessage(
                             "Bien déroulé: "+value
-                    );
-                })
+                    ))
         );
 
         Listeners.registerAsync(
@@ -29,9 +29,8 @@ public class Test{
                     return getBlockValue(coreEvent.getBukkitEvent().getBlock().getType());
                 },
                 null,
-                (coreEvent, syncValue) -> {
-                    coreEvent.getBukkitEvent().getPlayer().sendMessage("Bien déroulé: "+syncValue);
-                }
+                (coreEvent, syncValue) ->
+                    coreEvent.getBukkitEvent().getPlayer().sendMessage("Bien déroulé: "+syncValue)
         );
     }
     private static int getBlockValue(Material material) {

@@ -1,25 +1,21 @@
 package fr.nexus.command;
 
 import fr.nexus.Core;
+import fr.nexus.logger.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandMap;
-import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.BiConsumer;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public class CommandCreator{
-//    private static final@NotNull Map<@NotNull String,@NotNull CommandCreator>commandsWithCreator=new HashMap<>();
-//    private static final@NotNull Set<@NotNull String>commands=new HashSet<>();
+    //VARIABLES(STATICS)
+    private static final@NotNull Logger logger=new Logger(Core.getInstance(),CommandCreator.class);
 
-    //VARIABLES
+    //VARIABLES(INSTANCES)
     protected@NotNull String command;
     protected@Nullable BiConsumer<@NotNull CommandSenderHandler,@NotNull String@NotNull[]>action;
 
@@ -49,10 +45,8 @@ public class CommandCreator{
             CommandMap commandMap=(CommandMap) commandMapField.get(Bukkit.getServer());
 
             commandMap.register(Core.getInstance().getName(),new CommandHandler(this));
-//            commands.add(this.command);
-//            commandsWithCreator.put(this.command,this);
         }catch(Exception e){
-            e.printStackTrace();
+            logger.severe("error when performing the command: {}, error: {}",this.command,e.getMessage());
         }
     }
 

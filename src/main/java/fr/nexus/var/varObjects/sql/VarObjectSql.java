@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 
-@SuppressWarnings({"unused","UnusedReturnValue","deprecation"})
+@SuppressWarnings({"unused","UnusedReturnValue"})
 public abstract class VarObjectSql<R>extends VarObjectBackend<R>{
     //CONSTRUCTOR
     protected<T extends VarObjectSql<R>>VarObjectSql(@NotNull Class<T>clazz, @NotNull R reference, @NotNull String db, @NotNull String table, @NotNull String path, @NotNull VarSql var){

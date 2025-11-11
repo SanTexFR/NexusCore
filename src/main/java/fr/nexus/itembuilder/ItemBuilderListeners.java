@@ -11,6 +11,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -30,15 +31,9 @@ public class ItemBuilderListeners{
     private static void onPrepareEnchant(PrepareItemEnchantEvent event){
         ItemStack item = event.getItem();
 
-        // Vérifie si l’item est bloqué
         Boolean unnameable = ItemBuilder.getNbt(item, PersistentDataType.BOOLEAN, "Unenchantable");
         if (unnameable != null && unnameable) {
-            // Supprime les options d’enchantement proposées
-            for (int i = 0; i < event.getOffers().length; i++) {
-                event.getOffers()[i] = null;
-            }
-
-            // Optionnel : feedback visuel (empêche les clics aussi)
+            Arrays.fill(event.getOffers(), null);
             event.setCancelled(true);
         }
     }

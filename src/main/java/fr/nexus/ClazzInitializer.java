@@ -1,6 +1,7 @@
 package fr.nexus;
 
 import com.google.common.reflect.ClassPath;
+import fr.nexus.logger.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -14,6 +15,10 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public class ClazzInitializer{
+    //VARIABLES (STATICS)
+    private static final Logger logger=new Logger(Core.getInstance(),ClazzInitializer.class);
+
+    //METHODS (STATICS)
     public static void initialize(){
         getAllClassesInPackage().forEach(ClazzInitializer::initializeClass);
     }
@@ -57,6 +62,8 @@ public class ClazzInitializer{
             }
 
             jarFile.close();
-        }catch(IOException e){}return packages;
+        }catch(IOException e){
+            logger.severe("{}",e.getMessage());
+        }return packages;
     }
 }

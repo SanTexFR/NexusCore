@@ -1,5 +1,6 @@
 package fr.nexus;
 
+import fr.nexus.logger.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.Callable;
@@ -13,6 +14,7 @@ import java.util.concurrent.locks.LockSupport;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public final class ThreadPool implements Executor {
+    private static final Logger logger=new Logger(Core.getInstance(),ThreadPool.class);
     private static final long PARK_NANOS = 200_000L;
 
     private volatile boolean shutdown = false;
@@ -20,8 +22,10 @@ public final class ThreadPool implements Executor {
     private final Thread[] threads;
     private final MpmcQueue<Runnable> queue;
     private final ConcurrentQueue parkQueue = new ConcurrentQueue();
+    private final String prefix;
 
     public ThreadPool(int workerThreads, int queueCapacity, String prefix, int priority) {
+        this.prefix=prefix;
         this.threads = new Thread[workerThreads + 1]; // +1 = dispatcher
         this.queue = new MpmcQueue<>(queueCapacity);
 
@@ -42,6 +46,10 @@ public final class ThreadPool implements Executor {
         }
     }
 
+    public String getPrefix(){
+        return this.prefix;
+    }
+
     @Override
     public void execute(@NotNull Runnable task) {
         if (shutdown || !queue.offer(task)) {
@@ -49,7 +57,7 @@ public final class ThreadPool implements Executor {
             try {
                 task.run();
             } catch (Throwable t) {
-                t.printStackTrace();
+                logger.severe("execute issue ("+getPrefix()+"): {}",t.getMessage());
             }
             return;
         }
@@ -102,7 +110,7 @@ public final class ThreadPool implements Executor {
             try {
                 r.run();
             } catch (Throwable e) {
-                e.printStackTrace();
+                logger.severe("awaitTermination issue ("+getPrefix()+"): {}",e.getMessage());
             }
         }
         return allJoined;
@@ -123,7 +131,7 @@ public final class ThreadPool implements Executor {
                     try {
                         task.run();
                     } catch (Throwable t) {
-                        t.printStackTrace();
+                        logger.severe("worker issue ("+pool.getPrefix()+"): {}",t.getMessage());
                     }
                     continue;
                 }

@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 
-@SuppressWarnings({"unused","UnusedReturnValue","deprecation"})
+@SuppressWarnings({"unused","UnusedReturnValue"})
 public abstract class VarObjectFile<R>extends VarObjectBackend<R> {
     //CONSTRUCTOR
     protected<T extends VarObjectFile<R>> VarObjectFile(@NotNull Class<T>clazz, @NotNull R reference, @NotNull Plugin plugin, @NotNull String varPath, @NotNull VarFile var){

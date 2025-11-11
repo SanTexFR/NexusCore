@@ -1,8 +1,6 @@
 package fr.nexus.listeners.events;
 
-import fr.nexus.Core;
 import fr.nexus.listeners.Listeners;
-import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.Tag;
