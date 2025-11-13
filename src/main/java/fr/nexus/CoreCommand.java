@@ -8,6 +8,11 @@ import fr.nexus.listeners.core.CoreInitializeEvent;
 import fr.nexus.performanceTracker.PerformanceTrackerGui;
 import fr.nexus.utils.Utils;
 import fr.nexus.var.Var;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
@@ -46,7 +51,8 @@ public class CoreCommand {
                                     }
                                     
                                     cacheSize(c,args[1]);
-                                }default->c.sendMessage("§cCommande incorrecte. (/core <config,cachesize>)");
+                                }case"version"->version(c);
+                                default->c.sendMessage("§cCommande incorrecte. (/core <config,cachesize,version>)");
                             }
                         })
                         .ifPlayer(p->{
@@ -77,13 +83,14 @@ public class CoreCommand {
                                     }
 
                                     cacheSize(p,args[1]);
-                                }default->p.sendMessage("§cCommande incorrecte. (/core <config,performance>)");
+                                }case"version"->version(p);
+                                default->p.sendMessage("§cCommande incorrecte. (/core <performance,config,cachesize,version>)");
                             }
                         })
                 ).perform();
 
         TabCompleterHandler.create("core").addDisplay(sender->
-            ()->Set.of("performance","config","cachesize")).perform();
+            ()->Set.of("performance","config","cachesize","version")).perform();
 
         TabCompleterHandler.create("core").addArg(sender->()->"config").addDisplay(sender->
                 ()->Set.of("reload")).perform();
@@ -127,5 +134,33 @@ public class CoreCommand {
                 s.sendMessage("§e - OfflinePlayerNames: "+Utils.offlinePlayerNameCache.size());
             }default->s.sendMessage("§cVeuillez indiquez un argument valide. (/core cachesize <var,gui,utils>)");
         }
+    }
+    private static void version(@NotNull CommandSender s){
+        s.sendMessage("Vérification de la version, veuillez patienter...");
+        Bukkit.getScheduler().runTaskAsynchronously(Core.getInstance(),()->{
+            try{
+                final String latestTag=Updater.getLatestTag();
+                final String currentVersion=Core.getInstance().getPluginMeta().getVersion();
+                if(Updater.isNewerVersion(Updater.getLatestTag(),currentVersion)){
+                    Bukkit.getScheduler().runTask(Core.getInstance(),()->{
+                        final String url="https://github.com/"+Updater.USER+"/"+Updater.REPO+"/releases/latest";
+                        final Component message=Component.text("Téléchargement: ", NamedTextColor.YELLOW)
+                                .append(Component.text(url,NamedTextColor.GOLD)
+                                        .hoverEvent(HoverEvent.showText(Component.text("Clique pour ouvrir",NamedTextColor.YELLOW)))
+                                        .clickEvent(ClickEvent.openUrl(url)));
+
+                        s.sendMessage("§e Une nouvelle version de NexusCore est disponible !");
+                        s.sendMessage("§e Version installée: §6v"+currentVersion);
+                        s.sendMessage("§e Nouvelle version: §6"+latestTag);
+                        s.sendMessage(message);
+                    });
+                }else{
+                    s.sendMessage("§e Dernière version installée !");
+                    s.sendMessage("§e Version installée: §6v"+currentVersion);
+                }
+            }catch(Exception ex){
+                s.sendMessage("§cImpossible de vérifier les mises à jour: "+ex.getMessage());
+            }
+        });
     }
 }

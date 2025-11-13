@@ -56,6 +56,9 @@ public final class Core extends JavaPlugin{
         Bukkit.getPluginManager().callEvent(new CoreInitializeEvent());
         Listeners.register(CoreReloadEvent.class,Listeners::onCoreReload);
 
+        //UPDATER
+        Updater.checkForUpdates();
+
         //TEST
         //Bukkit.getScheduler().runTaskLater(getInstance(),Core::testFile,40L);
         //Listeners.register(PlayerJoinEvent.class,Core::onPlayerJoin);
