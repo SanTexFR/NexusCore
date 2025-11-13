@@ -1,9 +1,9 @@
 package fr.nexus;
 
-import fr.nexus.listeners.core.CoreDisableEvent;
-import fr.nexus.listeners.core.CoreInitializeEvent;
-import fr.nexus.listeners.core.CoreReloadEvent;
-import fr.nexus.listeners.Listeners;
+import fr.nexus.api.listeners.core.CoreDisableEvent;
+import fr.nexus.api.listeners.core.CoreInitializeEvent;
+import fr.nexus.api.listeners.core.CoreReloadEvent;
+import fr.nexus.api.listeners.Listeners;
 import fr.nexus.system.ClazzInitializer;
 import fr.nexus.system.Logger;
 import fr.nexus.system.ThreadPool;

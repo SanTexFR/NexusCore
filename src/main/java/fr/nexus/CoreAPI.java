@@ -1,10 +1,10 @@
 package fr.nexus;
 
-import fr.nexus.listeners.server.ServerLoadEarlyEvent;
-import fr.nexus.listeners.server.ServerStopEvent;
-import fr.nexus.listeners.server.ServerStartEvent;
+import fr.nexus.api.listeners.server.ServerLoadEarlyEvent;
+import fr.nexus.api.listeners.server.ServerStopEvent;
+import fr.nexus.api.listeners.server.ServerStartEvent;
 import fr.nexus.system.Logger;
-import fr.nexus.performanceTracker.PerformanceTracker;
+import fr.nexus.system.internal.performanceTracker.PerformanceTracker;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 
