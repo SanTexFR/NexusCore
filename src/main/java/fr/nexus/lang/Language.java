@@ -1,7 +1,7 @@
 package fr.nexus.lang;
 
 import fr.nexus.Core;
-import fr.nexus.logger.Logger;
+import fr.nexus.system.Logger;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.plugin.Plugin;

@@ -1,6 +1,6 @@
-package fr.nexus;
+package fr.nexus.system;
 
-import fr.nexus.logger.Logger;
+import fr.nexus.Core;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 

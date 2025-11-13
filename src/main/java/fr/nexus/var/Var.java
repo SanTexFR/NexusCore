@@ -1,7 +1,7 @@
 package fr.nexus.var;
 
 import fr.nexus.Core;
-import fr.nexus.ThreadPool;
+import fr.nexus.system.ThreadPool;
 import fr.nexus.listeners.core.CoreDisableEvent;
 import fr.nexus.listeners.core.CoreInitializeEvent;
 import fr.nexus.listeners.core.CoreReloadEvent;

@@ -1,7 +1,7 @@
 package fr.nexus.listeners;
 
 import fr.nexus.Core;
-import fr.nexus.ThreadPool;
+import fr.nexus.system.ThreadPool;
 import fr.nexus.listeners.core.CoreReloadEvent;
 import fr.nexus.listeners.events.CoreEvent;
 import fr.nexus.performanceTracker.PerformanceTracker;

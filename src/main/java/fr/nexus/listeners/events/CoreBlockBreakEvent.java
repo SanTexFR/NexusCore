@@ -43,6 +43,8 @@ public class CoreBlockBreakEvent extends CoreEvent<BlockBreakEvent>{
             if(this.item.getType().getMaxDurability()>0)
                 this.item.damage(1,e.getPlayer());
         }return true;
+
+        //CASSER UN ANCIEN DEBRIS NE LE LOOT PAS, DU MOINS AVEC LE HAMMER DU CODE MAIN EN MAIN
     }
     @Override
     public@NotNull Object getKey() {

@@ -6,6 +6,7 @@ import fr.nexus.gui.GuiManager;
 import fr.nexus.listeners.Listeners;
 import fr.nexus.listeners.core.CoreInitializeEvent;
 import fr.nexus.performanceTracker.PerformanceTrackerGui;
+import fr.nexus.system.Updater;
 import fr.nexus.utils.Utils;
 import fr.nexus.var.Var;
 import net.kyori.adventure.text.Component;
@@ -139,7 +140,7 @@ public class CoreCommand {
         s.sendMessage("Vérification de la version, veuillez patienter...");
         Bukkit.getScheduler().runTaskAsynchronously(Core.getInstance(),()->{
             try{
-                final String latestTag=Updater.getLatestTag();
+                final String latestTag= Updater.getLatestTag();
                 final String currentVersion=Core.getInstance().getPluginMeta().getVersion();
                 if(Updater.isNewerVersion(Updater.getLatestTag(),currentVersion)){
                     Bukkit.getScheduler().runTask(Core.getInstance(),()->{

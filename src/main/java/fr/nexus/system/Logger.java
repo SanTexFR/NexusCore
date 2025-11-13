@@ -1,4 +1,4 @@
-package fr.nexus.logger;
+package fr.nexus.system;
 
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;

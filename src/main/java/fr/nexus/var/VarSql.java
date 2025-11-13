@@ -6,7 +6,7 @@ import fr.nexus.Core;
 import fr.nexus.performanceTracker.PerformanceTracker;
 import fr.nexus.listeners.Listeners;
 import fr.nexus.listeners.server.ServerStopEvent;
-import fr.nexus.logger.Logger;
+import fr.nexus.system.Logger;
 import it.unimi.dsi.fastutil.Function;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.bukkit.configuration.ConfigurationSection;

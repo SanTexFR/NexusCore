@@ -1,7 +1,7 @@
-package fr.nexus;
+package fr.nexus.system;
 
 import com.google.common.reflect.ClassPath;
-import fr.nexus.logger.Logger;
+import fr.nexus.Core;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;

@@ -3,7 +3,7 @@ package fr.nexus;
 import fr.nexus.listeners.server.ServerLoadEarlyEvent;
 import fr.nexus.listeners.server.ServerStopEvent;
 import fr.nexus.listeners.server.ServerStartEvent;
-import fr.nexus.logger.Logger;
+import fr.nexus.system.Logger;
 import fr.nexus.performanceTracker.PerformanceTracker;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;

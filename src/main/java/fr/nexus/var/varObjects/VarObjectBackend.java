@@ -5,7 +5,7 @@ import fr.nexus.listeners.core.CoreReloadEvent;
 import fr.nexus.listeners.Listeners;
 import fr.nexus.listeners.server.ServerStartEvent;
 import fr.nexus.listeners.server.ServerStopEvent;
-import fr.nexus.logger.Logger;
+import fr.nexus.system.Logger;
 import fr.nexus.var.Var;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventPriority;

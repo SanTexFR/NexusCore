@@ -1,7 +1,7 @@
 package fr.nexus.command;
 
 import fr.nexus.Core;
-import fr.nexus.logger.Logger;
+import fr.nexus.system.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandMap;
 import org.jetbrains.annotations.NotNull;
