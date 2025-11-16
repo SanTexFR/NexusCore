@@ -259,7 +259,7 @@ public sealed abstract class Var permits VarFile,VarSql{
             }
         }else removeWithoutEvent(key);
 
-        this.dirty=true;
+        setDirty(true);
 
         if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.WRAPPER,key,value));
         else Bukkit.getScheduler().runTask(Core.getInstance(),()->
@@ -331,7 +331,7 @@ public sealed abstract class Var permits VarFile,VarSql{
             }
         }else removeWithoutEvent(key);
 
-        this.dirty=true;
+        setDirty(true);
 
         if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.MAP,key,map));
         else Bukkit.getScheduler().runTask(Core.getInstance(),()->

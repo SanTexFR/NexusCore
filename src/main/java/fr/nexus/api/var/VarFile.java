@@ -2,6 +2,7 @@ package fr.nexus.api.var;
 
 import fr.nexus.system.internal.performanceTracker.PerformanceTracker;
 import it.unimi.dsi.fastutil.Function;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -171,29 +172,38 @@ public final class VarFile extends Var{
 
         PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
     }
-    public@NotNull CompletableFuture<@Nullable Void>saveAsync(){
+    public @NotNull CompletableFuture<@Nullable Void>saveAsync() {
         if(!isDirty())return CompletableFuture.completedFuture(null);
+
         setDirty(false);
 
         final Path path=super.getPath();
+
+        final Object2ObjectOpenHashMap<String,Object[]>snapshot;
         synchronized(super.data){
-            return VarSerializer.serializeDataAsync(super.data)
-                    .thenAcceptAsync(bytes->{
-                        try{
-                            if(bytes==null||bytes.length==0){
-                                Files.deleteIfExists(path);
-                                return;
-                            }
-
-                            Files.createDirectories(super.getPath().getParent());
-                            Files.write(path, bytes);
-                        }catch(IOException e){
-                            throw new CompletionException("Failed to save data asynchronously: "+path, e);
-                        }
-                    },Var.THREADPOOL);
+            snapshot=new it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<>(super.data);
         }
-    }
 
+        return VarSerializer.serializeDataAsync(snapshot).thenAcceptAsync(bytes->{
+            try{
+                if(bytes==null||bytes.length==0){
+                    Files.deleteIfExists(path);
+                    return;
+                }
+
+                try{
+                    Files.createDirectories(path.getParent());
+                    Files.write(path,bytes);
+                }catch(IOException e){
+                    throw new CompletionException("Failed to save data asynchronously: "+path,e);
+                }
+            }catch(CompletionException ce){
+                throw ce;
+            }catch(Throwable t){
+                throw new CompletionException(t);
+            }
+        },Var.THREADPOOL);
+    }
 
     //INNER CLASS
     private record Unload(@NotNull String path)implements Runnable{

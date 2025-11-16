@@ -19,9 +19,15 @@ public final class ItemStackType extends VarType<ItemStack>{
 
     //METHODS
     public byte@NotNull[] serializeSync(@Nullable ItemStack value) {
-        if(value==null||value.getType()==Material.AIR)return new byte[]{(byte) 0xff};
-        return addVersionToBytes(value.serializeAsBytes());
+        byte[] base;
+        if(value == null || value.getType() == Material.AIR){
+            base = new byte[]{(byte)0xff};
+        } else {
+            base = value.serializeAsBytes();
+        }
+        return addVersionToBytes(base);
     }
+
     public@NotNull ItemStack deserializeSync(byte@NotNull[]bytes){
         final VersionAndRemainder var=readVersionAndRemainder(bytes);
         return deserialize(var.version(),var.remainder());
@@ -29,6 +35,7 @@ public final class ItemStackType extends VarType<ItemStack>{
 
     private@NotNull ItemStack deserialize(int version, byte[]bytes){
         if(version==1){
+            if(bytes.length == 0) return AIR_ITEM_STACK;
             if(bytes[0]==(byte)0xff)return AIR_ITEM_STACK;
             else return ItemStack.deserializeBytes(bytes);
         }else throw createUnsupportedVersionException(version);

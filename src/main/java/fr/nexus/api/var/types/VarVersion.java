@@ -26,6 +26,9 @@ public abstract class VarVersion implements Vars{
 
     //DER
     protected@NotNull VarType.VersionAndRemainder readVersionAndRemainder(byte[]bytes){
+        if (bytes.length < Integer.BYTES)
+            throw new IllegalArgumentException("Cannot read version: byte array too short (length=" + bytes.length + ")");
+
         final int version=((bytes[0]&0xFF)<<24)|
                 ((bytes[1]&0xFF)<<16)|
                 ((bytes[2]&0xFF)<<8) |
@@ -37,6 +40,9 @@ public abstract class VarVersion implements Vars{
 
     //SER
     protected byte[]addVersionToBytes(byte[]bytes){
+        if (bytes == null || bytes.length == 0)
+            bytes = new byte[]{0};
+
         final int version=getVersion();
         final byte[]result=new byte[Integer.BYTES+bytes.length];
 

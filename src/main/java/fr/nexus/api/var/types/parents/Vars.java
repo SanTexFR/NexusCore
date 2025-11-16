@@ -15,6 +15,10 @@ public interface Vars{
         return false;
     }
 
+    default boolean needAsync(){
+        return false;
+    }
+
     //EQUAL
     default boolean equals(@NotNull Vars var){
         return getStringType().equals(var.getStringType());
