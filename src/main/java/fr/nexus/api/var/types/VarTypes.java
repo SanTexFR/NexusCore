@@ -199,6 +199,13 @@ public interface VarTypes{
     @NotNull ChunkType.ListType CHUNK_LIST=CHUNK.lists();
     @NotNull ChunkType.ArrayType CHUNK_ARRAY=CHUNK.arrays();
 
+    //DEPRECATED_MATERIAL
+    @NotNull DeprecatedMaterialType DEPRECATED_MATERIAL=new DeprecatedMaterialType();
+    @NotNull DeprecatedMaterialType.SetType DEPRECATED_MATERIAL_SET=DEPRECATED_MATERIAL.sets();
+    @NotNull DeprecatedMaterialType.LinkedSetType DEPRECATED_MATERIAL_LINKED_SET=DEPRECATED_MATERIAL.linked_sets();
+    @NotNull DeprecatedMaterialType.ListType DEPRECATED_MATERIAL_LIST=DEPRECATED_MATERIAL.lists();
+    @NotNull DeprecatedMaterialType.ArrayType DEPRECATED_MATERIAL_ARRAY=DEPRECATED_MATERIAL.arrays();
+
     //MATERIAL
     @NotNull MaterialType MATERIAL=new MaterialType();
     @NotNull MaterialType.SetType MATERIAL_SET=MATERIAL.sets();
@@ -214,11 +221,11 @@ public interface VarTypes{
     @NotNull LocationType.ArrayType LOCATION_ARRAY=LOCATION.arrays();
 
     //ITEM_STACK
-    @NotNull ItemStackType ITEM_STACK=new ItemStackType();
-    @NotNull ItemStackType.SetType ITEM_STACK_SET=ITEM_STACK.sets();
-    @NotNull ItemStackType.LinkedSetType ITEM_STACK_LINKED_SET=ITEM_STACK.linked_sets();
-    @NotNull ItemStackType.ListType ITEM_STACK_LIST=ITEM_STACK.lists();
-    @NotNull ItemStackType.ArrayType ITEM_STACK_ARRAY=ITEM_STACK.arrays();
+    @NotNull ItemStackType ITEMSTACK=new ItemStackType();
+    @NotNull ItemStackType.SetType ITEMSTACK_SET=ITEMSTACK.sets();
+    @NotNull ItemStackType.LinkedSetType ITEMSTACK_LINKED_SET=ITEMSTACK.linked_sets();
+    @NotNull ItemStackType.ListType ITEMSTACK_LIST=ITEMSTACK.lists();
+    @NotNull ItemStackType.ArrayType ITEMSTACK_ARRAY=ITEMSTACK.arrays();
 
     //INVENTORY
     @NotNull InventoryType INVENTORY=new InventoryType();

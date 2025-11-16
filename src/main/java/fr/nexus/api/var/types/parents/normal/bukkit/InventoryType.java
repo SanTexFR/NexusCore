@@ -26,7 +26,7 @@ public final class InventoryType extends VarType<Inventory>{
     public byte@NotNull[] serializeSync(@NotNull Inventory value){
         final ItemStack[]contents=value.getContents();
         Arrays.setAll(contents,i->contents[i]!=null?contents[i]:AIR_ITEM_STACK);
-        final byte[]bytes=VarTypes.ITEM_STACK_ARRAY.serializeSync(contents);
+        final byte[]bytes=VarTypes.ITEMSTACK_ARRAY.serializeSync(contents);
         final byte[]type=value.getType().name().getBytes();
         final ByteBuffer buffer=ByteBuffer.allocate(Integer.BYTES+type.length+bytes.length);
         buffer.putInt(type.length);
@@ -48,7 +48,7 @@ public final class InventoryType extends VarType<Inventory>{
             final byte[]valueBytes=new byte[buffer.remaining()];
             buffer.get(valueBytes);
             final Inventory inv=Bukkit.createInventory(null,org.bukkit.event.inventory.InventoryType.valueOf(type));
-            final ItemStack[]contents=VarTypes.ITEM_STACK_ARRAY.deserializeSync(valueBytes);
+            final ItemStack[]contents=VarTypes.ITEMSTACK_ARRAY.deserializeSync(valueBytes);
             if(contents!=null)inv.setContents(contents);
             return inv;
         }else throw createUnsupportedVersionException(version);
