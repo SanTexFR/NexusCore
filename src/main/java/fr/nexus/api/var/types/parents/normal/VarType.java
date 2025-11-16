@@ -14,7 +14,7 @@ import java.util.concurrent.CompletableFuture;
 @SuppressWarnings({"unused","UnusedReturnValue","unchecked"})
 public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars,CollectionUtils{
     //VARIABLES (STATICS)
-    private static final@NotNull Map<@NotNull String,@NotNull VarType<?>>types=new HashMap<>();
+    private static final@NotNull Map<@NotNull String,@NotNull VarSubType<?>>types=new HashMap<>();
 
     //VARIABLES (INSTANCES)
     private final@NotNull Class<@NotNull T>typeClazz;
@@ -23,12 +23,26 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     protected VarType(@NotNull Class<@NotNull T>typeClazz,int version){
         super(version);
         this.typeClazz=typeClazz;
+
         types.put(getStringType(),this);
+
+        //CONSTRUCTOR
+        final VarSubType<?>list=lists();
+        types.put(list.getStringType(),list);
+
+        final VarSubType<?>arrays=arrays();
+        types.put(arrays.getStringType(),arrays);
+
+        final VarSubType<?>sets=sets();
+        types.put(sets.getStringType(),sets);
+
+        final VarSubType<?>linked_sets=linked_sets();
+        types.put(linked_sets.getStringType(),linked_sets);
     }
 
 
     //METHODS (STATICS)
-    public static@NotNull Map<@NotNull String,@NotNull VarType<?>>getTypes(){
+    public static@NotNull Map<@NotNull String,@NotNull VarSubType<?>>getTypes(){
         return types;
     }
 

@@ -8,6 +8,10 @@ import java.util.concurrent.CompletableFuture;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public interface VarSubType<V>extends Vars{
+    default boolean isWrapper(){
+        return true;
+    }
+
     byte@NotNull[] serializeSync(@NotNull V value);
     @Nullable V deserializeSync(byte@NotNull[]bytes);
 

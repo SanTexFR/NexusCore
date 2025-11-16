@@ -73,6 +73,13 @@ public interface VarTypes{
     @NotNull ByteType.ListType BYTE_LIST=BYTE.lists();
     @NotNull ByteType.ArrayType BYTE_ARRAY=BYTE.arrays();
 
+    //BYTE_ARRAY
+    @NotNull ByteArrayType BYTEARRAY=new ByteArrayType();
+    @NotNull ByteArrayType.SetType BYTEARRAY_SET=BYTEARRAY.sets();
+    @NotNull ByteArrayType.LinkedSetType BYTEARRAY_LINKED_SET=BYTEARRAY.linked_sets();
+    @NotNull ByteArrayType.ListType BYTEARRAY_LIST=BYTEARRAY.lists();
+    @NotNull ByteArrayType.ArrayType BYTEARRAY_ARRAY=BYTEARRAY.arrays();
+
     //PATH
     @NotNull PathType PATH=new PathType();
     @NotNull PathType.SetType PATH_SET=PATH.sets();
@@ -241,7 +248,7 @@ public interface VarTypes{
     @NotNull VectorType.ListType VECTOR_LIST=VECTOR.lists();
     @NotNull VectorType.ArrayType VECTOR_ARRAY=VECTOR.arrays();
 
-    //VECTOR
+    //BOUNDING_BOX
     @NotNull BoundingBoxType BOUNDING_BOX=new BoundingBoxType();
     @NotNull BoundingBoxType.SetType BOUNDING_BOX_SET=BOUNDING_BOX.sets();
     @NotNull BoundingBoxType.LinkedSetType BOUNDING_BOX_LINKED_SET=BOUNDING_BOX.linked_sets();

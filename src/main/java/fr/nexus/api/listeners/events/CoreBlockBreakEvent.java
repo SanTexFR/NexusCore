@@ -46,6 +46,7 @@ public class CoreBlockBreakEvent extends CoreEvent<BlockBreakEvent>{
 
         //CASSER UN ANCIEN DEBRIS NE LE LOOT PAS, DU MOINS AVEC LE HAMMER DU CODE MAIN EN MAIN
         //CASSER UN BLOCK NON SOLIDE AVEC UN OUTIL EN MAIN N'ENLEVE PAS DE LA DURA
+        //AVEC UNE EPEE EN MAIN ET EN CREATIF CELA CASSE INSTANTE LE BLOCK, ETC
     }
     @Override
     public@NotNull Object getKey() {
