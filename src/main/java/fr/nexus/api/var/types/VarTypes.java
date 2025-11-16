@@ -185,6 +185,13 @@ public interface VarTypes{
     @NotNull WorldType.ListType WORLD_LIST=WORLD.lists();
     @NotNull WorldType.ArrayType WORLD_ARRAY=WORLD.arrays();
 
+    //BLOCK-DATA
+    @NotNull BlockDataType BLOCKDATA=new BlockDataType();
+    @NotNull BlockDataType.SetType BLOCKDATA_SET=BLOCKDATA.sets();
+    @NotNull BlockDataType.LinkedSetType BLOCKDATA_LINKED_SET=BLOCKDATA.linked_sets();
+    @NotNull BlockDataType.ListType BLOCKDATA_LIST=BLOCKDATA.lists();
+    @NotNull BlockDataType.ArrayType BLOCKDATA_ARRAY=BLOCKDATA.arrays();
+
     //CHUNK
     @NotNull ChunkType CHUNK=new ChunkType();
     @NotNull ChunkType.SetType CHUNK_SET=CHUNK.sets();
