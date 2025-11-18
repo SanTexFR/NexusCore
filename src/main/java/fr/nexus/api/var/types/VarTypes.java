@@ -31,12 +31,26 @@ public interface VarTypes{
     @NotNull IntegerType.ListType INTEGER_LIST=INTEGER.lists();
     @NotNull IntegerType.ArrayType INTEGER_ARRAY=INTEGER.arrays();
 
+    //INT-ARRAY
+    @NotNull IntArrayType INTARRAY=new IntArrayType();
+    @NotNull IntArrayType.SetType INTARRAY_SET=INTARRAY.sets();
+    @NotNull IntArrayType.LinkedSetType INTARRAY_LINKED_SET=INTARRAY.linked_sets();
+    @NotNull IntArrayType.ListType INTARRAY_LIST=INTARRAY.lists();
+    @NotNull IntArrayType.ArrayType INTARRAY_ARRAY=INTARRAY.arrays();
+
     //LONG
     @NotNull LongType LONG=new LongType();
     @NotNull LongType.SetType LONG_SET=LONG.sets();
     @NotNull LongType.LinkedSetType LONG_LINKED_SET=LONG.linked_sets();
     @NotNull LongType.ListType LONG_LIST=LONG.lists();
     @NotNull LongType.ArrayType LONG_ARRAY=LONG.arrays();
+
+    //LONG-ARRAY
+    @NotNull LongArrayType LONGARRAY=new LongArrayType();
+    @NotNull LongArrayType.SetType LONGARRAY_SET=LONGARRAY.sets();
+    @NotNull LongArrayType.LinkedSetType LONGARRAY_LINKED_SET=LONGARRAY.linked_sets();
+    @NotNull LongArrayType.ListType LONGARRAY_LIST=LONGARRAY.lists();
+    @NotNull LongArrayType.ArrayType LONGARRAY_ARRAY=LONGARRAY.arrays();
 
     //SHORT
     @NotNull ShortType SHORT=new ShortType();
@@ -45,12 +59,26 @@ public interface VarTypes{
     @NotNull ShortType.ListType SHORT_LIST=SHORT.lists();
     @NotNull ShortType.ArrayType SHORT_ARRAY=SHORT.arrays();
 
+    //SHORT-ARRAY
+    @NotNull ShortArrayType SHORTARRAY=new ShortArrayType();
+    @NotNull ShortArrayType.SetType SHORTARRAY_SET=SHORTARRAY.sets();
+    @NotNull ShortArrayType.LinkedSetType SHORTARRAY_LINKED_SET=SHORTARRAY.linked_sets();
+    @NotNull ShortArrayType.ListType SHORTARRAY_LIST=SHORTARRAY.lists();
+    @NotNull ShortArrayType.ArrayType SHORTARRAY_ARRAY=SHORTARRAY.arrays();
+
     //FLOAT
     @NotNull FloatType FLOAT=new FloatType();
     @NotNull FloatType.SetType FLOAT_SET=FLOAT.sets();
     @NotNull FloatType.LinkedSetType FLOAT_LINKED_SET=FLOAT.linked_sets();
     @NotNull FloatType.ListType FLOAT_LIST=FLOAT.lists();
     @NotNull FloatType.ArrayType FLOAT_ARRAY=FLOAT.arrays();
+
+    //FLOAT-ARRAY
+    @NotNull FloatArrayType FLOATARRAY=new FloatArrayType();
+    @NotNull FloatArrayType.SetType FLOATARRAY_SET=FLOATARRAY.sets();
+    @NotNull FloatArrayType.LinkedSetType FLOATARRAY_LINKED_SET=FLOATARRAY.linked_sets();
+    @NotNull FloatArrayType.ListType FLOATARRAY_LIST=FLOATARRAY.lists();
+    @NotNull FloatArrayType.ArrayType FLOATARRAY_ARRAY=FLOATARRAY.arrays();
 
     //DOUBLE
     @NotNull DoubleType DOUBLE=new DoubleType();
@@ -59,12 +87,26 @@ public interface VarTypes{
     @NotNull DoubleType.ListType DOUBLE_LIST=DOUBLE.lists();
     @NotNull DoubleType.ArrayType DOUBLE_ARRAY=DOUBLE.arrays();
 
+    //DOUBLE-ARRAY
+    @NotNull DoubleArrayType DOUBLEARRAY=new DoubleArrayType();
+    @NotNull DoubleArrayType.SetType DOUBLEARRAY_SET=DOUBLEARRAY.sets();
+    @NotNull DoubleArrayType.LinkedSetType DOUBLEARRAY_LINKED_SET=DOUBLEARRAY.linked_sets();
+    @NotNull DoubleArrayType.ListType DOUBLEARRAY_LIST=DOUBLEARRAY.lists();
+    @NotNull DoubleArrayType.ArrayType DOUBLEARRAY_ARRAY=DOUBLEARRAY.arrays();
+
     //CHARACTER
-    @NotNull CharType CHAR=new CharType();
-    @NotNull CharType.SetType CHAR_SET=CHAR.sets();
-    @NotNull CharType.LinkedSetType CHAR_LINKED_SET=CHAR.linked_sets();
-    @NotNull CharType.ListType CHAR_LIST=CHAR.lists();
-    @NotNull CharType.ArrayType CHAR_ARRAY=CHAR.arrays();
+    @NotNull CharacterType CHARACTER=new CharacterType();
+    @NotNull CharacterType.SetType CHARACTER_SET=CHARACTER.sets();
+    @NotNull CharacterType.LinkedSetType CHARACTER_LINKED_SET=CHARACTER.linked_sets();
+    @NotNull CharacterType.ListType CHARACTER_LIST=CHARACTER.lists();
+    @NotNull CharacterType.ArrayType CHARACTER_ARRAY=CHARACTER.arrays();
+
+    //CHAR-ARRAY
+    @NotNull CharArrayType CHARARRAY=new CharArrayType();
+    @NotNull CharArrayType.SetType CHARARRAY_SET=CHARARRAY.sets();
+    @NotNull CharArrayType.LinkedSetType CHARARRAY_LINKED_SET=CHARARRAY.linked_sets();
+    @NotNull CharArrayType.ListType CHARARRAY_LIST=CHARARRAY.lists();
+    @NotNull CharArrayType.ArrayType CHARARRAY_ARRAY=CHARARRAY.arrays();
 
     //BYTE
     @NotNull ByteType BYTE=new ByteType();
@@ -93,6 +135,13 @@ public interface VarTypes{
     @NotNull BooleanType.LinkedSetType BOOLEAN_LINKED_SET=BOOLEAN.linked_sets();
     @NotNull BooleanType.ListType BOOLEAN_LIST=BOOLEAN.lists();
     @NotNull BooleanType.ArrayType BOOLEAN_ARRAY=BOOLEAN.arrays();
+
+    //BOOLEAN-ARRAY
+    @NotNull BooleanArrayType BOOLEANARRAY=new BooleanArrayType();
+    @NotNull BooleanArrayType.SetType BOOLEANARRAY_SET=BOOLEANARRAY.sets();
+    @NotNull BooleanArrayType.LinkedSetType BOOLEANARRAY_LINKED_SET=BOOLEANARRAY.linked_sets();
+    @NotNull BooleanArrayType.ListType BOOLEANARRAY_LIST=BOOLEANARRAY.lists();
+    @NotNull BooleanArrayType.ArrayType BOOLEANARRAY_ARRAY=BOOLEANARRAY.arrays();
 
 
 

@@ -4,9 +4,9 @@ import fr.nexus.api.var.types.parents.normal.VarType;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class CharType extends VarType<Character>{
+public final class CharacterType extends VarType<Character>{
     //CONSTRUCTOR
-    public CharType(){
+    public CharacterType(){
         super(Character.class,1);
     }
 
