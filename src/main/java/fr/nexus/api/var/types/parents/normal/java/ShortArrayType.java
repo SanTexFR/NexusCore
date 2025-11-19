@@ -10,49 +10,54 @@ public final class ShortArrayType extends VarType<short[]> {
     }
 
     @Override
-    public byte @NotNull [] serializeSync(short @NotNull [] value) {
+    public byte@NotNull[]serializeSync(short @NotNull[]value){
+        byte[]lenBytes=IntegerType.toVarInt(value.length);
 
-        int length = value.length;
-        byte[] data = new byte[4 + length * 2]; // 4 bytes pour length + 2 bytes par short
+        byte[][]encodedShorts=new byte[value.length][];
+        int totalSize=lenBytes.length;
 
-        // store length
-        data[0] = (byte) (length >>> 24);
-        data[1] = (byte) (length >>> 16);
-        data[2] = (byte) (length >>> 8);
-        data[3] = (byte) (length);
-
-        int pos = 4;
-
-        for (short v : value) {
-            data[pos++] = (byte) ((v >>> 8) & 0xFF);
-            data[pos++] = (byte) (v & 0xFF);
+        for(int i=0;i<value.length;i++){
+            final int zig=(value[i]<<1)^(value[i]>>15);
+            encodedShorts[i]=IntegerType.toVarInt(zig);
+            totalSize+=encodedShorts[i].length;
         }
 
-        return addVersionToBytes(data);
+        final byte[]out=new byte[totalSize];
+        int pos=0;
+
+        System.arraycopy(lenBytes,0,out,pos,lenBytes.length);
+        pos+=lenBytes.length;
+
+        for(final byte[]b:encodedShorts){
+            System.arraycopy(b,0,out,pos,b.length);
+            pos+=b.length;
+        }
+
+        return addVersionToBytes(out);
     }
 
     @Override
-    public short @NotNull [] deserializeSync(byte @NotNull [] bytes) {
-        VersionAndRemainder var = readVersionAndRemainder(bytes);
-        return deserialize(var.version(), var.remainder());
+    public short @NotNull[]deserializeSync(byte@NotNull[]bytes){
+        final VersionAndRemainder var=readVersionAndRemainder(bytes);
+        return deserialize(var.version(),var.remainder());
     }
 
-    private short @NotNull [] deserialize(int version, byte[] bytes) {
-        if (version != 1)
-            throw createUnsupportedVersionException(version);
+    private short@NotNull[]deserialize(int version,byte[]bytes){
+        if(version!=1)throw createUnsupportedVersionException(version);
 
-        int length =
-                ((bytes[0] & 0xFF) << 24) |
-                        ((bytes[1] & 0xFF) << 16) |
-                        ((bytes[2] & 0xFF) << 8) |
-                        (bytes[3] & 0xFF);
+        int offset=0;
+
+        final int[]lenRes=IntArrayType.fromVarIntWithOffset(bytes,offset);
+        int length=lenRes[0];
+        offset=lenRes[1];
 
         short[] result = new short[length];
 
-        int pos = 4;
-
-        for (int i = 0; i < length; i++) {
-            result[i] = (short) (((bytes[pos++] & 0xFF) << 8) | (bytes[pos++] & 0xFF));
+        for(int i=0;i<length;i++){
+            final int[]sr=IntArrayType.fromVarIntWithOffset(bytes,offset);
+            final int zig=sr[0];
+            result[i]=(short)((zig>>>1)^-(zig&1));
+            offset=sr[1];
         }
 
         return result;

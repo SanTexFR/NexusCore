@@ -12,11 +12,9 @@ public final class ShortType extends VarType<Short>{
 
 
     //METHODS
-    public byte@NotNull[] serializeSync(@NotNull Short value){
-        return addVersionToBytes(new byte[]{
-                (byte)((value>>>8)&0xFF),
-                (byte)(value&0xFF)
-        });
+    public byte@NotNull[]serializeSync(@NotNull Short value){
+        final int zig=(value<<1)^(value>>15);
+        return addVersionToBytes(IntegerType.toVarInt(zig));
     }
     public@NotNull Short deserializeSync(byte@NotNull[]bytes){
         final VersionAndRemainder var=readVersionAndRemainder(bytes);
@@ -24,7 +22,11 @@ public final class ShortType extends VarType<Short>{
     }
 
     private@NotNull Short deserialize(int version,byte[]bytes){
-        if(version==1)return (short)(((bytes[0]&0xFF)<<8)|(bytes[1]&0xFF));
-        else throw createUnsupportedVersionException(version);
+        if (version != 1)
+            throw createUnsupportedVersionException(version);
+
+        final int[]res=IntArrayType.fromVarIntWithOffset(bytes,0);
+        int zig=res[0];
+        return(short)((zig>>>1)^-(zig&1));
     }
 }
