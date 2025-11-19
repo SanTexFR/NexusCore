@@ -11,7 +11,7 @@ public final class IntArrayType extends VarType<int[]>{
 
     @Override
     public byte@NotNull[]serializeSync(int @NotNull[]value){
-        final byte[]len=VarIntUtils.toVarInt(value.length);
+        final byte[]len=IntegerType.toVarInt(value.length);
 
         final byte[]temp=new byte[len.length+value.length*5];
         int pos=0;
@@ -20,7 +20,7 @@ public final class IntArrayType extends VarType<int[]>{
         pos+=len.length;
 
         for(final int v:value){
-            byte[]vi=VarIntUtils.toVarInt(v);
+            byte[]vi=IntegerType.toVarInt(v);
             System.arraycopy(vi,0,temp,pos,vi.length);
             pos+=vi.length;
         }
