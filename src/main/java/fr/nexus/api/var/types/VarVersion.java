@@ -2,65 +2,79 @@ package fr.nexus.api.var.types;
 
 import fr.nexus.api.var.types.parents.Vars;
 import fr.nexus.api.var.types.parents.normal.VarType;
+import fr.nexus.utils.VarIntUtils;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Arrays;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public abstract class VarVersion implements Vars{
-    //VARIABLES (INSTANCES)
     private final int version;
 
-    //CONSTRUCTOR
     public VarVersion(int version){
         this.version=version;
     }
 
-
-    //METHODS
-
-    //VERSION
     public int getVersion(){
         return this.version;
     }
 
-    //DER
-    protected@NotNull VarType.VersionAndRemainder readVersionAndRemainder(byte[]bytes){
-        if (bytes.length < Integer.BYTES)
-            throw new IllegalArgumentException("Cannot read version: byte array too short (length=" + bytes.length + ")");
+    protected @NotNull VarType.VersionAndRemainder readVersionAndRemainder(byte[]bytes){
+        if(bytes==null||bytes.length==0)
+            throw new IllegalArgumentException("Cannot read version: empty byte array");
 
-        final int version=((bytes[0]&0xFF)<<24)|
-                ((bytes[1]&0xFF)<<16)|
-                ((bytes[2]&0xFF)<<8) |
-                (bytes[3]&0xFF);
+        int value=0;
+        int position=0;
+        int index=0;
 
-        return new VarType.VersionAndRemainder(version,Arrays.copyOfRange(bytes,Integer.BYTES,bytes.length));
+        while(true){
+            if(index>=bytes.length)
+                throw new IllegalArgumentException("Invalid VarInt: truncated");
+
+            final byte b=bytes[index];
+            value|=(b&0x7F)<<position;
+
+            if((b&0x80)==0)
+                break;
+
+            position+=7;
+            index++;
+
+            if(position>=32)
+                throw new RuntimeException("VarInt too long");
+        }
+
+        index++;
+
+        final byte[]remainder;
+        if(index>=bytes.length)
+            remainder=new byte[0];
+        else {
+            remainder=new byte[bytes.length-index];
+            System.arraycopy(bytes,index,remainder,0,remainder.length);
+        }
+
+        return new VarType.VersionAndRemainder(value,remainder);
     }
-    public record VersionAndRemainder(int version,byte[]remainder){}
 
-    //SER
-    protected byte[]addVersionToBytes(byte[]bytes){
-        if (bytes == null || bytes.length == 0)
-            bytes = new byte[]{0};
+    protected byte[]addVersionToBytes(byte[] bytes) {
+        if(bytes==null)bytes=new byte[0];
 
-        final int version=getVersion();
-        final byte[]result=new byte[Integer.BYTES+bytes.length];
+        final byte[]versionBytes=VarIntUtils.toVarInt(version);
 
-        result[0]=(byte)(version>>>24);
-        result[1]=(byte)(version>>>16);
-        result[2]=(byte)(version>>>8);
-        result[3]=(byte)(version);
+        final byte[]result=new byte[versionBytes.length + bytes.length];
 
-        System.arraycopy(bytes,0,result,Integer.BYTES,bytes.length);
+        System.arraycopy(versionBytes,0,result,0,versionBytes.length);
+
+        System.arraycopy(bytes,0,result,versionBytes.length,bytes.length);
 
         return result;
     }
 
-    //THROW
-    protected@NotNull UnsupportedOperationException createUnsupportedVersionException(int unsupportedVersion){
-        return new UnsupportedOperationException("unsupported version for type: '"+
-                getStringType()+"' | unsupported_version: '"+
-                unsupportedVersion+"' | current_version: '"+
-                getVersion()+"'");
+    protected @NotNull UnsupportedOperationException createUnsupportedVersionException(int unsupportedVersion) {
+        return new UnsupportedOperationException("unsupported version for type: '" +
+                getStringType() + "' | unsupported_version: '" +
+                unsupportedVersion + "' | current_version: '" +
+                getVersion() + "'");
     }
+
+    public record VersionAndRemainder(int version,byte[]remainder){}
 }
