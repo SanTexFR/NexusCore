@@ -4,63 +4,82 @@ import fr.nexus.api.var.types.parents.normal.VarType;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
-public final class LongArrayType extends VarType<long[]> {
-
-    public LongArrayType() {
-        super(long[].class, 1);
+public final class LongArrayType extends VarType<long[]>{
+    public LongArrayType(){
+        super(long[].class,1);
     }
 
     @Override
-    public byte @NotNull [] serializeSync(long @NotNull [] value) {
+    public byte@NotNull[]serializeSync(long @NotNull[]value) {
+        final byte[]lenBytes=IntegerType.toVarInt(value.length);
 
-        int length = value.length;
-        byte[] data = new byte[4 + length * 8]; // 4 bytes pour length + 8 bytes par long
+        int total=lenBytes.length;
+        final byte[][]encoded=new byte[value.length][];
 
-        // store length
-        data[0] = (byte) (length >>> 24);
-        data[1] = (byte) (length >>> 16);
-        data[2] = (byte) (length >>> 8);
-        data[3] = (byte) (length);
-
-        int pos = 4;
-
-        for (long v : value) {
-            for (int i = 0; i < 8; i++) {
-                data[pos++] = (byte) (v >>> (8 * (7 - i)));
-            }
+        for(int i=0;i<value.length;i++){
+            encoded[i]=LongType.toVarLong(value[i]);
+            total+=encoded[i].length;
         }
 
-        return addVersionToBytes(data);
+        final byte[]out=new byte[total];
+        int pos=0;
+
+        System.arraycopy(lenBytes,0,out,pos,lenBytes.length);
+        pos+=lenBytes.length;
+
+        for(final byte[]e:encoded){
+            System.arraycopy(e,0,out,pos,e.length);
+            pos+=e.length;
+        }
+
+        return addVersionToBytes(out);
     }
 
     @Override
-    public long @NotNull [] deserializeSync(byte @NotNull [] bytes) {
-        VersionAndRemainder var = readVersionAndRemainder(bytes);
-        return deserialize(var.version(), var.remainder());
+    public long@NotNull[]deserializeSync(byte @NotNull[]bytes){
+        final VersionAndRemainder var=readVersionAndRemainder(bytes);
+        return deserialize(var.version(),var.remainder());
     }
 
-    private long @NotNull [] deserialize(int version, byte[] bytes) {
-        if (version != 1)
-            throw createUnsupportedVersionException(version);
+    private long @NotNull[]deserialize(int version,byte[]bytes){
+        if(version!=1)throw createUnsupportedVersionException(version);
 
-        int length =
-                ((bytes[0] & 0xFF) << 24) |
-                        ((bytes[1] & 0xFF) << 16) |
-                        ((bytes[2] & 0xFF) << 8) |
-                        (bytes[3] & 0xFF);
+        int offset=0;
 
-        long[] result = new long[length];
+        final int[]lenResult=IntArrayType.fromVarIntWithOffset(bytes,offset);
+        int length=lenResult[0];
+        offset=lenResult[1];
 
-        int pos = 4;
-
-        for (int i = 0; i < length; i++) {
-            long value = 0;
-            for (int j = 0; j < 8; j++) {
-                value = (value << 8) | (bytes[pos++] & 0xFF);
-            }
-            result[i] = value;
+        final long[]result=new long[length];
+        for(int i=0;i<length;i++){
+            long[]lr=fromVarLongWithOffset(bytes,offset);
+            result[i]=lr[0];
+            offset=(int)lr[1];
         }
 
         return result;
     }
+
+    public static long[]fromVarLongWithOffset(byte[]bytes,int offset){
+        long value=0;
+        int position=0;
+        int index=offset;
+
+        while(index<bytes.length){
+            final byte b=bytes[index++];
+
+            value|=(long)(b&0x7F)<<position;
+
+            if((b&0x80)==0)
+                return new long[]{value,index};
+
+            position+=7;
+
+            if(position>=64)
+                throw new RuntimeException("VarLong trop long");
+        }
+
+        throw new IllegalArgumentException("VarLong invalide ou tronqué");
+    }
+
 }

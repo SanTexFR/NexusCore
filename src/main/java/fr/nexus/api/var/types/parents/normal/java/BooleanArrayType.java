@@ -27,7 +27,6 @@ public final class BooleanArrayType extends VarType<boolean[]>{
         for(int i=0;i<byteCount;i++){
             byte b=0;
             for(int bit=0;bit<8;bit++){
-
                 final int idx=i*8+bit;
                 if(idx>=length)break;
 

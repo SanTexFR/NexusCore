@@ -1,7 +1,6 @@
 package fr.nexus.api.var.types.parents.normal.java;
 
 import fr.nexus.api.var.types.parents.normal.VarType;
-import fr.nexus.utils.VarIntUtils;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
@@ -58,7 +57,7 @@ public final class IntArrayType extends VarType<int[]>{
 
         return result;
     }
-    private static int[] fromVarIntWithOffset(byte[]bytes,int offset){
+    public static int[]fromVarIntWithOffset(byte[]bytes,int offset){
         int value=0;
         int position=0;
         int index=offset;

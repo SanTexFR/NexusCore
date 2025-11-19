@@ -3,32 +3,61 @@ package fr.nexus.api.var.types.parents.normal.java;
 import fr.nexus.api.var.types.parents.normal.VarType;
 import org.jetbrains.annotations.NotNull;
 
-@SuppressWarnings({"unused","UnusedReturnValue"})
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public final class LongType extends VarType<Long>{
-    //CONSTRUCTOR
     public LongType(){
         super(Long.class,1);
     }
 
-
-    //METHODS
-    public byte@NotNull[] serializeSync(@NotNull Long value){
-        final byte[]bytes=new byte[8];
-        for(int i=0;i<8;i++)
-            bytes[i]=(byte)(value>>>(8*(7-i)));
-        return addVersionToBytes(bytes);
+    @Override
+    public byte@NotNull[]serializeSync(@NotNull Long value){
+        final byte[]encoded=toVarLong(value);
+        return addVersionToBytes(encoded);
     }
-    public@NotNull Long deserializeSync(byte@NotNull[]bytes){
+
+    @Override
+    public@NotNull Long deserializeSync(byte @NotNull[]bytes){
         final VersionAndRemainder var=readVersionAndRemainder(bytes);
         return deserialize(var.version(),var.remainder());
     }
 
-    private@NotNull Long deserialize(int version,byte[]bytes){
-        if(version==1){
-            long value=0;
-            for(int i=0;i<8;i++)
-                value=(value<<8)|(bytes[i]&0xFF);
-            return value;
-        }else throw createUnsupportedVersionException(version);
+    private @NotNull Long deserialize(int version,byte[]bytes){
+        if(version!=1)throw createUnsupportedVersionException(version);
+
+        return fromVarLong(bytes);
+    }
+
+    public static byte[]toVarLong(long value) {
+        final byte[]buffer=new byte[10];
+        int index=0;
+        while((value&~0x7FL)!=0){
+            buffer[index++]=(byte)((value&0x7FL)|0x80L);
+            value>>>=7;
+        }
+
+        buffer[index++]=(byte)value;
+
+        final byte[]result=new byte[index];
+        System.arraycopy(buffer,0,result,0,index);
+        return result;
+    }
+
+    public static long fromVarLong(byte[]bytes){
+        long value=0;
+        int position=0;
+
+        for(int i=0;i<bytes.length;i++){
+            long b=bytes[i]&0x7FL;
+            value|=(b<<position);
+
+            if((bytes[i]&0x80)==0)
+                return value;
+
+            position+=7;
+
+            if(position>=64)throw new RuntimeException("VarLong trop long");
+        }
+
+        throw new IllegalArgumentException("VarLong invalide ou tronqué");
     }
 }

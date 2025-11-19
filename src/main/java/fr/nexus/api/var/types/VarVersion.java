@@ -2,7 +2,7 @@ package fr.nexus.api.var.types;
 
 import fr.nexus.api.var.types.parents.Vars;
 import fr.nexus.api.var.types.parents.normal.VarType;
-import fr.nexus.utils.VarIntUtils;
+import fr.nexus.api.var.types.parents.normal.java.IntegerType;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
@@ -58,7 +58,7 @@ public abstract class VarVersion implements Vars{
     protected byte[]addVersionToBytes(byte[] bytes) {
         if(bytes==null)bytes=new byte[0];
 
-        final byte[]versionBytes=VarIntUtils.toVarInt(version);
+        final byte[]versionBytes=IntegerType.toVarInt(version);
 
         final byte[]result=new byte[versionBytes.length + bytes.length];
 
