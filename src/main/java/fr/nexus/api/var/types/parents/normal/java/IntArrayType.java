@@ -1,67 +1,82 @@
 package fr.nexus.api.var.types.parents.normal.java;
 
 import fr.nexus.api.var.types.parents.normal.VarType;
+import fr.nexus.utils.VarIntUtils;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
-public final class IntArrayType extends VarType<int[]> {
-
+public final class IntArrayType extends VarType<int[]>{
     public IntArrayType() {
         super(int[].class, 1);
     }
 
     @Override
-    public byte @NotNull [] serializeSync(int @NotNull [] value) {
+    public byte@NotNull[]serializeSync(int @NotNull[]value){
+        final byte[]len=VarIntUtils.toVarInt(value.length);
 
-        int length = value.length;
-        byte[] data = new byte[4 + length * 4]; // 4 bytes pour length + 4 bytes par int
+        final byte[]temp=new byte[len.length+value.length*5];
+        int pos=0;
 
-        // write length
-        data[0] = (byte) (length >>> 24);
-        data[1] = (byte) (length >>> 16);
-        data[2] = (byte) (length >>> 8);
-        data[3] = (byte) (length);
+        System.arraycopy(len,0,temp,pos,len.length);
+        pos+=len.length;
 
-        int pos = 4;
-
-        for (int v : value) {
-            data[pos++] = (byte) (v >>> 24);
-            data[pos++] = (byte) (v >>> 16);
-            data[pos++] = (byte) (v >>> 8);
-            data[pos++] = (byte) v;
+        for(final int v:value){
+            byte[]vi=VarIntUtils.toVarInt(v);
+            System.arraycopy(vi,0,temp,pos,vi.length);
+            pos+=vi.length;
         }
 
-        return addVersionToBytes(data);
+        final byte[]result=new byte[pos];
+        System.arraycopy(temp,0,result,0,pos);
+
+        return addVersionToBytes(result);
     }
+
 
     @Override
-    public int @NotNull [] deserializeSync(byte @NotNull [] bytes) {
-        VersionAndRemainder var = readVersionAndRemainder(bytes);
-        return deserialize(var.version(), var.remainder());
+    public int@NotNull[]deserializeSync(byte @NotNull[]bytes){
+        final VersionAndRemainder var=readVersionAndRemainder(bytes);
+        return deserialize(var.version(),var.remainder());
     }
 
-    private int @NotNull [] deserialize(int version, byte[] bytes) {
-        if (version != 1)
+    private int@NotNull[]deserialize(int version,byte[]bytes){
+        if(version!=1)
             throw createUnsupportedVersionException(version);
 
-        int length =
-                ((bytes[0] & 0xFF) << 24) |
-                        ((bytes[1] & 0xFF) << 16) |
-                        ((bytes[2] & 0xFF) << 8) |
-                        (bytes[3] & 0xFF);
+        int index=0;
 
-        int[] result = new int[length];
+        final int[]lenRead=fromVarIntWithOffset(bytes,index);
+        final int length=lenRead[0];
+        index=lenRead[1];
 
-        int pos = 4;
-
-        for (int i = 0; i < length; i++) {
-            result[i] =
-                    ((bytes[pos++] & 0xFF) << 24) |
-                            ((bytes[pos++] & 0xFF) << 16) |
-                            ((bytes[pos++] & 0xFF) << 8)  |
-                            (bytes[pos++] & 0xFF);
+        final int[]result=new int[length];
+        for(int i=0;i<length;i++){
+            int[]v=fromVarIntWithOffset(bytes,index);
+            result[i]=v[0];
+            index=v[1];
         }
 
         return result;
+    }
+    private static int[] fromVarIntWithOffset(byte[]bytes,int offset){
+        int value=0;
+        int position=0;
+        int index=offset;
+
+        while(index<bytes.length){
+            final byte b=bytes[index++];
+
+            value|=(b&0x7F)<<position;
+
+            if((b&0x80)==0)
+                return new int[]{value,index};
+
+            position+=7;
+
+            if(position>=32)
+                throw new RuntimeException("VarInt trop long");
+        }
+
+        throw new IllegalArgumentException("VarInt invalide ou tronqué");
     }
 }

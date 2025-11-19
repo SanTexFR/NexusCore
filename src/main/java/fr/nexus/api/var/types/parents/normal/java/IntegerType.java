@@ -1,6 +1,7 @@
 package fr.nexus.api.var.types.parents.normal.java;
 
 import fr.nexus.api.var.types.parents.normal.VarType;
+import fr.nexus.utils.VarIntUtils;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
@@ -10,16 +11,10 @@ public final class IntegerType extends VarType<Integer>{
         super(Integer.class,1);
     }
 
-
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull Integer value){
         final int v=value;
-        return addVersionToBytes(new byte[]{
-                (byte)(v>>>24),
-                (byte)(v>>>16),
-                (byte)(v>>>8),
-                (byte)v
-        });
+        return addVersionToBytes(VarIntUtils.toVarInt(VarIntUtils.zigZagEncode(v)));
     }
     public@NotNull Integer deserializeSync(byte@NotNull[]bytes){
         final VersionAndRemainder var=readVersionAndRemainder(bytes);
@@ -28,10 +23,7 @@ public final class IntegerType extends VarType<Integer>{
 
     private@NotNull Integer deserialize(int version,byte[]bytes){
         if(version==1){
-            return((bytes[0]&0xFF)<<24)|
-                    ((bytes[1]&0xFF)<<16)|
-                    ((bytes[2]&0xFF)<<8)|
-                    (bytes[3]&0xFF);
+            return VarIntUtils.zigZagDecode(VarIntUtils.fromVarInt(bytes));
         }else throw createUnsupportedVersionException(version);
     }
 }
