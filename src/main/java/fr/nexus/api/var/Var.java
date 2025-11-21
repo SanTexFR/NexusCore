@@ -13,7 +13,6 @@ import fr.nexus.api.var.types.VarSubType;
 import fr.nexus.api.var.types.parents.Vars;
 import fr.nexus.api.var.types.parents.map.MapType;
 import fr.nexus.api.var.types.parents.map.MapVarType;
-import it.unimi.dsi.fastutil.Function;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
@@ -29,6 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 @SuppressWarnings({"unused","UnusedReturnValue","unchecked"})
 public sealed abstract class Var permits VarFile,VarSql{
@@ -52,7 +52,7 @@ public sealed abstract class Var permits VarFile,VarSql{
     private final@NotNull Path path;
     private boolean dirty;
 
-    private final@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded;
+    private final@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>> shouldStayLoaded;
 
     private final@NotNull Cleaner.Cleanable cleanable;
 
@@ -98,7 +98,7 @@ public sealed abstract class Var permits VarFile,VarSql{
                     continue;
                 }
 
-                var.shouldStayLoaded.get(var).thenAccept(bool->{
+                var.shouldStayLoaded.apply(var).thenAccept(bool->{
                     if(!bool)shouldStayLoadedVars.remove(var);
 
                     if(remaining.decrementAndGet()==0)cleanupVars();
@@ -251,11 +251,15 @@ public sealed abstract class Var permits VarFile,VarSql{
      * @param <V> le type de la valeur
      */
     public<V>void setValue(@NotNull VarSubType<V>type,@NotNull String key,@Nullable V value){
+        setValue(type,key,value,true);
+    }
+    public<V>void setValue(@NotNull VarSubType<V>type,@NotNull String key,@Nullable V value,boolean isPersistent){
         final long nanoTime=System.nanoTime();
 
         if(value!=null){
             synchronized(this.data){
-                this.data.put(key,new Object[]{value,type});
+                if(isPersistent)this.data.put(key,new Object[]{value,type});
+                else this.data.put(key,new Object[]{value,type,null});
             }
         }else removeWithoutEvent(key);
 
@@ -323,11 +327,15 @@ public sealed abstract class Var permits VarFile,VarSql{
      * @param <M> type de la map
      */
     public<T,T2,M extends Map<T,T2>>void putMap(@NotNull MapType<M> mapType,@NotNull VarSubType<T>keyType,@NotNull VarSubType<T2>valueType,@NotNull String key,@Nullable M map){
+        putMap(mapType,keyType,valueType,key,map,true);
+    }
+    public<T,T2,M extends Map<T,T2>>void putMap(@NotNull MapType<M> mapType,@NotNull VarSubType<T>keyType,@NotNull VarSubType<T2>valueType,@NotNull String key,@Nullable M map,boolean isPersistent){
         final long nanoTime=System.nanoTime();
 
         if(map!=null){
             synchronized(this.data){
-                data.put(key,new Object[]{map,new MapVarType<>(mapType,keyType,valueType)});
+                if(isPersistent)data.put(key,new Object[]{map,new MapVarType<>(mapType,keyType,valueType)});
+                else data.put(key,new Object[]{map,new MapVarType<>(mapType,keyType,valueType),null});
             }
         }else removeWithoutEvent(key);
 

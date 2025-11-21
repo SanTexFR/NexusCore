@@ -123,6 +123,8 @@ class VarSerializer{
                 try {
                     for (Map.Entry<String, Object[]> entry : subList) {
                         final Object[] objects = entry.getValue();
+                        if(objects.length>2)continue;
+
                         final Vars vars = (Vars) objects[1];
                         final String key = entry.getKey();
 
