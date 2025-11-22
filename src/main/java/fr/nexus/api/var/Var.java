@@ -199,6 +199,12 @@ public sealed abstract class Var permits VarFile,VarSql{
         }
 
     }
+
+    public void clear(){
+        setDirty(true);
+
+        this.data.clear();
+    }
     /**
      * Vérifie si une clé donnée est présente dans cette instance.
      *

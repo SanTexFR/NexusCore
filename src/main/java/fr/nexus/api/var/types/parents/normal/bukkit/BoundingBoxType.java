@@ -15,7 +15,7 @@ public final class BoundingBoxType extends VarType<BoundingBox>{
 
     //METHODS
     public byte@NotNull[]serializeSync(@NotNull BoundingBox value){
-        return VarTypes.DOUBLE_ARRAY.serializeSync(new Double[]{value.getMinX(),value.getMinY(),value.getMinZ(), value.getMaxX(),value.getMaxY(),value.getMaxZ()});
+        return VarTypes.DOUBLEARRAY.serializeSync(new double[]{value.getMinX(),value.getMinY(),value.getMinZ(), value.getMaxX(),value.getMaxY(),value.getMaxZ()});
     }
     public@NotNull BoundingBox deserializeSync(byte@NotNull[]bytes){
         final VersionAndRemainder var=readVersionAndRemainder(bytes);
@@ -24,8 +24,8 @@ public final class BoundingBoxType extends VarType<BoundingBox>{
 
     private@NotNull BoundingBox deserialize(int version,byte[]bytes){
         if(version==1){
-            final Double[]array=VarTypes.DOUBLE_ARRAY.deserializeSync(bytes);
-            if(array!=null)return new BoundingBox(array[0],array[1],array[2],array[3],array[4],array[5]);
+            final double[]array=VarTypes.DOUBLEARRAY.deserializeSync(bytes);
+            return new BoundingBox(array[0],array[1],array[2],array[3],array[4],array[5]);
         }throw createUnsupportedVersionException(version);
     }
 }

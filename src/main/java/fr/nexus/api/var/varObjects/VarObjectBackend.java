@@ -185,10 +185,10 @@ public abstract class VarObjectBackend<R>{
     private record Unload(@NotNull Var var,@NotNull String path,@NotNull AtomicBoolean atomicBool)implements Runnable{
         @Override
         public void run(){
-            if(!atomicBool.get())var.saveSync();
-
-            var.unload();
-            varObjects.remove(path);
+            if(!atomicBool.get())var.saveAsync().thenAccept(v->{
+                var.unload();
+                varObjects.remove(path);
+            });
         }
     }
 }

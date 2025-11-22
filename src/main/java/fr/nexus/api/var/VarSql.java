@@ -7,7 +7,6 @@ import fr.nexus.system.internal.performanceTracker.PerformanceTracker;
 import fr.nexus.api.listeners.Listeners;
 import fr.nexus.api.listeners.server.ServerStopEvent;
 import fr.nexus.system.Logger;
-import it.unimi.dsi.fastutil.Function;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.bukkit.configuration.ConfigurationSection;
 import org.jetbrains.annotations.NotNull;
@@ -19,6 +18,8 @@ import java.nio.file.Path;
 import java.sql.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class VarSql extends Var{
@@ -35,7 +36,7 @@ public final class VarSql extends Var{
     private final@NotNull String database,tableName,dataPath;
 
     //CONSTRUCTOR
-    private VarSql(@NotNull Path path,@NotNull String database,@NotNull String tableName,@NotNull String dataPath,@NotNull Runnable closeRunnable,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded){
+    private VarSql(@NotNull Path path,@NotNull String database,@NotNull String tableName,@NotNull String dataPath,@NotNull Runnable closeRunnable,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded,@Nullable Consumer<@NotNull Var>notCachedConsumer){
         super(path,closeRunnable,shouldStayLoaded);
         this.database=database;
         this.tableName=tableName;
@@ -52,9 +53,9 @@ public final class VarSql extends Var{
 
     @Deprecated
     public static@NotNull VarSql getVarSync(@NotNull String database,@NotNull String tableName,@NotNull String path){
-        return getVarSync(database,tableName,path,null);
+        return getVarSync(database,tableName,path,null,null,null);
     }
-    public static@NotNull VarSql getVarSync(@NotNull String database,@NotNull String tableName,@NotNull String path,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded){
+    public static@NotNull VarSql getVarSync(@NotNull String database,@NotNull String tableName,@NotNull String path,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>> shouldStayLoaded,@Nullable Consumer<@NotNull Var> notCachedConsumer,@Nullable Runnable unloadRunnable){
         final long nanoTime=System.nanoTime();
 
         final HikariDataSource hikari;
@@ -84,7 +85,7 @@ public final class VarSql extends Var{
             return(VarSql)async.join();
         }
 
-        final VarSql var=new VarSql(fullPath,database,tableName,path,new Unload(key),shouldStayLoaded);
+        final VarSql var=new VarSql(fullPath,database,tableName,path,new Unload(key,unloadRunnable),shouldStayLoaded,notCachedConsumer);
         try{
             checkOrCreateTable(hikari,tableName);
 
@@ -94,6 +95,7 @@ public final class VarSql extends Var{
 
             synchronized(vars){
                 vars.put(key,new WeakReference<>(var));
+                if(notCachedConsumer!=null)notCachedConsumer.accept(var);
             }
 
             PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getVarSync",System.nanoTime()-nanoTime);
@@ -104,9 +106,9 @@ public final class VarSql extends Var{
         }
     }
     public static@NotNull CompletableFuture<@NotNull VarSql>getVarAsync(@NotNull String database,@NotNull String tableName,@NotNull String path){
-        return getVarAsync(database,tableName,path,null);
+        return getVarAsync(database,tableName,path,null,null,null);
     }
-    public static@NotNull CompletableFuture<@NotNull VarSql>getVarAsync(@NotNull String database,@NotNull String tableName,@NotNull String path,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded){
+    public static@NotNull CompletableFuture<@NotNull VarSql>getVarAsync(@NotNull String database,@NotNull String tableName,@NotNull String path,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded,@Nullable Consumer<@NotNull Var>notCachedConsumer,@Nullable Runnable unloadRunnable){
         final HikariDataSource hikari;
         synchronized(dataSources){
             hikari=dataSources.get(database);
@@ -125,7 +127,7 @@ public final class VarSql extends Var{
         }
         if(async!=null)return async.thenApply(var->(VarSql) var);
 
-        final VarSql var=new VarSql(fullPath,database,tableName,path,new Unload(key),shouldStayLoaded);
+        final VarSql var=new VarSql(fullPath,database,tableName,path,new Unload(key,unloadRunnable),shouldStayLoaded,notCachedConsumer);
 
         final CompletableFuture<VarSql>future=CompletableFuture
                 .runAsync(()->{
@@ -160,6 +162,7 @@ public final class VarSql extends Var{
             if(ex==null){
                 synchronized(vars){
                     vars.put(key,new WeakReference<>(var));
+                    if(notCachedConsumer!=null)notCachedConsumer.accept(var);
                 }
             }
         });
@@ -347,12 +350,14 @@ public final class VarSql extends Var{
 
 
     //INNER CLASS
-    private record Unload(@NotNull String path)implements Runnable{
+    private record Unload(@NotNull String path,@Nullable Runnable unloadRunnable)implements Runnable{
         @Override
         public void run(){
             synchronized(vars){
                 vars.remove(path);
             }
+
+            if(unloadRunnable!=null)unloadRunnable.run();
         }
     }
 }

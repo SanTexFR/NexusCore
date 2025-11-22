@@ -15,7 +15,7 @@ public final class InstantType extends VarType<Instant>{
 
 
     //METHODS
-    public byte@NotNull[] serializeSync(@NotNull Instant value){
+    public byte@NotNull[]serializeSync(@NotNull Instant value){
         return addVersionToBytes(VarTypes.LONG.serializeSync(value.toEpochMilli()));
     }
     public@NotNull Instant deserializeSync(byte@NotNull[]bytes){

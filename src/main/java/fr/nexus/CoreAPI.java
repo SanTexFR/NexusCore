@@ -53,17 +53,19 @@ public class CoreAPI{
         }
 
         //START-EVENT
-        final long nanoTime=System.nanoTime();
+        Bukkit.getScheduler().runTaskLater(Core.getInstance(),()->{
+            final long nanoTime=System.nanoTime();
 
-        if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new ServerStartEvent());
-        else Bukkit.getScheduler().runTask(Core.getInstance(),()->
-                Bukkit.getPluginManager().callEvent(new ServerStartEvent()));
+            if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new ServerStartEvent());
+            else Bukkit.getScheduler().runTask(Core.getInstance(),()->
+                    Bukkit.getPluginManager().callEvent(new ServerStartEvent()));
 
-        PerformanceTracker.increment(PerformanceTracker.Types.LISTENER,"ServerStartEvent",System.nanoTime()-nanoTime);
+            PerformanceTracker.increment(PerformanceTracker.Types.LISTENER,"ServerStartEvent",System.nanoTime()-nanoTime);
 
 
-        state=State.STARTED;
-        logger.info("✅ CoreAPI.start() exécuté avec succès !");
+            state=State.STARTED;
+            logger.info("✅ CoreAPI.start() exécuté avec succès !");
+        },1L);
     }
     /**
      * Arrête l'API et déclenche {@link ServerStopEvent}.

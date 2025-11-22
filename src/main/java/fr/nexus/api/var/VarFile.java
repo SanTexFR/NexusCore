@@ -1,7 +1,6 @@
 package fr.nexus.api.var;
 
 import fr.nexus.system.internal.performanceTracker.PerformanceTracker;
-import it.unimi.dsi.fastutil.Function;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -13,11 +12,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class VarFile extends Var{
     //CONSTRUCTOR
-    private VarFile(@NotNull Path path,@NotNull Runnable closeRunnable,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded){
+    private VarFile(@NotNull Path path,@NotNull Runnable closeRunnable,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>> shouldStayLoaded){
         super(path,closeRunnable,shouldStayLoaded);
     }
 
@@ -25,9 +26,9 @@ public final class VarFile extends Var{
     //METHODS (STATICS)
     @Deprecated
     public static@NotNull VarFile getVarSync(@NotNull Plugin plugin,@NotNull String key){
-        return getVarSync(plugin,key,null);
+        return getVarSync(plugin,key,null,null,null);
     }
-    public static@NotNull VarFile getVarSync(@NotNull Plugin plugin,@NotNull String key,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded){
+    public static@NotNull VarFile getVarSync(@NotNull Plugin plugin,@NotNull String key,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded,@Nullable Consumer<@NotNull Var>notCachedConsumer,@Nullable Runnable unloadRunnable){
         final long nanoTime=System.nanoTime();
 
         final Path path=getVarPath(plugin,key);
@@ -49,7 +50,7 @@ public final class VarFile extends Var{
             return(VarFile)async.join();
         }
 
-        final VarFile var=new VarFile(path,new Unload(key),shouldStayLoaded);
+        final VarFile var=new VarFile(path,new Unload(key,unloadRunnable),shouldStayLoaded);
 
         if(Files.exists(path)){
             try{
@@ -64,6 +65,7 @@ public final class VarFile extends Var{
 
         synchronized(vars){
             vars.put(completePath,new WeakReference<>(var));
+            if(notCachedConsumer!=null)notCachedConsumer.accept(var);
         }
 
         PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getVarSync",System.nanoTime()-nanoTime);
@@ -71,9 +73,9 @@ public final class VarFile extends Var{
         return var;
     }
     public static @NotNull CompletableFuture<@NotNull VarFile>getVarAsync(@NotNull Plugin plugin,@NotNull String key){
-        return getVarAsync(plugin,key,null);
+        return getVarAsync(plugin,key,null,null,null);
     }
-    public static @NotNull CompletableFuture<@NotNull VarFile>getVarAsync(@NotNull Plugin plugin,@NotNull String key,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded){
+    public static @NotNull CompletableFuture<@NotNull VarFile>getVarAsync(@NotNull Plugin plugin,@NotNull String key,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded,@Nullable Consumer<@NotNull Var> notCachedConsumer,@Nullable Runnable unloadRunnable){
         final Path path=getVarPath(plugin,key);
         final String completePath=String.join("/","file",path.toString());
 
@@ -86,7 +88,7 @@ public final class VarFile extends Var{
         }
         if(existing!=null)return existing.thenApply(var->(VarFile)var);
 
-        final VarFile var=new VarFile(path,new Unload(key),shouldStayLoaded);
+        final VarFile var=new VarFile(path,new Unload(key,unloadRunnable),shouldStayLoaded);
         final CompletableFuture<VarFile>future;
 
         if(Files.exists(path)){
@@ -114,6 +116,7 @@ public final class VarFile extends Var{
                 if(ex==null){
                     synchronized(vars){
                         vars.put(completePath,new WeakReference<>(var));
+                        if(notCachedConsumer!=null)notCachedConsumer.accept(var);
                     }
                 }
             });
@@ -121,6 +124,7 @@ public final class VarFile extends Var{
             future=CompletableFuture.completedFuture(var);
             synchronized(vars){
                 vars.put(completePath,new WeakReference<>(var));
+                if(notCachedConsumer!=null)notCachedConsumer.accept(var);
             }
         }
 
@@ -206,12 +210,14 @@ public final class VarFile extends Var{
     }
 
     //INNER CLASS
-    private record Unload(@NotNull String path)implements Runnable{
+    private record Unload(@NotNull String path,@Nullable Runnable unloadRunnable)implements Runnable{
         @Override
         public void run(){
             synchronized(vars){
                 vars.remove(path);
             }
+
+            if(unloadRunnable!=null)unloadRunnable.run();
         }
     }
 }

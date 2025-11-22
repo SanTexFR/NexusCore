@@ -58,9 +58,9 @@ public abstract class VarVersion implements Vars{
     protected byte[]addVersionToBytes(byte[] bytes) {
         if(bytes==null)bytes=new byte[0];
 
-        final byte[]versionBytes=IntegerType.toVarInt(version);
+        final byte[]versionBytes=IntegerType.toVarInt(this.version);
 
-        final byte[]result=new byte[versionBytes.length + bytes.length];
+        final byte[]result=new byte[versionBytes.length+bytes.length];
 
         System.arraycopy(versionBytes,0,result,0,versionBytes.length);
 
