@@ -1,4 +1,4 @@
-package fr.nexus.api.var.types.parents.normal.bukkit;
+package fr.nexus.api.var.types.parents.normal.bukkit.itemstack;
 
 import fr.nexus.api.var.types.parents.normal.VarType;
 import org.bukkit.Material;
@@ -9,7 +9,15 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class ItemStackType extends VarType<ItemStack>{
     //VARIABLES (STATICS)
-    private static final @NotNull ItemStack AIR_ITEM_STACK=new ItemStack(Material.AIR);
+    private static final ItemStackAccessor ACCESSOR = detectAccessor();
+    private static ItemStackAccessor detectAccessor() {
+        try {
+            Class.forName("io.papermc.paper.threadedregions.scheduler.Scheduler");
+            return new FoliaItemStackAccessor();
+        } catch (ClassNotFoundException e) {
+            return new PaperItemStackAccessor();
+        }
+    }
 
     //CONSTRUCTOR
     public ItemStackType(){
@@ -19,13 +27,7 @@ public final class ItemStackType extends VarType<ItemStack>{
 
     //METHODS
     public byte@NotNull[] serializeSync(@Nullable ItemStack value) {
-        byte[] base;
-        if(value == null || value.getType() == Material.AIR){
-            base = new byte[]{(byte)0xff};
-        } else {
-            base = value.serializeAsBytes();
-        }
-        return addVersionToBytes(base);
+        return addVersionToBytes(ACCESSOR.serializeSync(value));
     }
 
     public@NotNull ItemStack deserializeSync(byte@NotNull[]bytes){
@@ -35,9 +37,7 @@ public final class ItemStackType extends VarType<ItemStack>{
 
     private@NotNull ItemStack deserialize(int version, byte[]bytes){
         if(version==1){
-            if(bytes.length == 0) return AIR_ITEM_STACK;
-            if(bytes[0]==(byte)0xff)return AIR_ITEM_STACK;
-            else return ItemStack.deserializeBytes(bytes);
+            return ACCESSOR.deserializeSync(bytes);
         }else throw createUnsupportedVersionException(version);
     }
 }

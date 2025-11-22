@@ -84,8 +84,6 @@ public class Listeners implements Listener{
         final String key=buildKey(eventClass,priority);
 
         pluginManager.registerEvent(eventClass,listener,priority,(l,event)->{
-            if(!eventClass.isInstance(event))return;
-
             final List<Consumer<?extends Event>>consumers=syncEventsRegistered.get(key);
             if(consumers==null)return;
 
@@ -122,7 +120,7 @@ public class Listeners implements Listener{
 
         final PluginManager pm=Core.getInstance().getServer().getPluginManager();
         pm.registerEvent(bukkitEventClass,Core.getListeners(),EventPriority.HIGHEST,(listener,event)->{
-            if(!customAsyncBukkitEventEnabled||!bukkitEventClass.isInstance(event))return;
+            if(!customAsyncBukkitEventEnabled)return;
             final B bukkitEvent=bukkitEventClass.cast(event);
 
             final CoreEvent<?>coreEvent=coreEventConstructor.apply(bukkitEvent);

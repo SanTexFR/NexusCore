@@ -4,3 +4,4 @@ main: fr.nexus.Core
 api-version: '1.21'
 load: STARTUP
 authors: [ SanTexFR ]
+folia-supported: true
