@@ -1,4 +1,4 @@
-package fr.nexus.api.var.types.parents.normal.bukkit.location;
+package fr.nexus.api.var.types.parents.normal.bukkit;
 
 import fr.nexus.api.var.types.VarTypes;
 import fr.nexus.api.var.types.parents.normal.VarType;
@@ -10,17 +10,6 @@ import java.nio.ByteBuffer;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class LocationType extends VarType<Location>{
-    private static final LocationAccessor ACCESSOR = detectAccessor();
-
-    private static LocationAccessor detectAccessor() {
-        try {
-            Class.forName("io.papermc.paper.threadedregions.scheduler.Scheduler");
-            return new FoliaLocationAccessor();
-        } catch (ClassNotFoundException e) {
-            return new PaperLocationAccessor();
-        }
-    }
-
     //CONSTRUCTOR
     public LocationType(){
         super(Location.class,1);
@@ -29,7 +18,7 @@ public final class LocationType extends VarType<Location>{
 
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull Location value){
-        final byte[]serializedWorld=VarTypes.WORLD.serializeSync(ACCESSOR.safeCopy(value).getWorld());
+        final byte[]serializedWorld=VarTypes.WORLD.serializeSync(value.getWorld());
         final ByteBuffer buffer=ByteBuffer.allocate(Integer.BYTES+Double.BYTES*3+Float.BYTES*2+serializedWorld.length);
 
         //WORLD

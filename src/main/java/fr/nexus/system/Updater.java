@@ -18,12 +18,12 @@ public class Updater{
     
     //METHODS (STATICSà
     public static void checkForUpdates(){
-        Bukkit.getScheduler().runTaskAsynchronously(Core.getInstance(),()->{
+        Core.getServerImplementation().async().runNow(()->{
             try{
                 final String latestTag=getLatestTag();
                 final String currentVersion=Core.getInstance().getPluginMeta().getVersion();
                 if (isNewerVersion(latestTag,currentVersion)){
-                    Bukkit.getScheduler().runTask(Core.getInstance(),()->{
+                    Core.getServerImplementation().global().run(()->{
                         logger.warning("=================================================");
                         logger.warning(" Une nouvelle version de NexusCore est disponible !");
                         logger.warning(" Version installée: v{}",currentVersion);

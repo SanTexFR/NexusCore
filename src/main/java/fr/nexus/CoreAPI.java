@@ -3,15 +3,16 @@ package fr.nexus;
 import fr.nexus.api.listeners.server.ServerLoadEarlyEvent;
 import fr.nexus.api.listeners.server.ServerStopEvent;
 import fr.nexus.api.listeners.server.ServerStartEvent;
-import fr.nexus.system.Logger;
 import fr.nexus.system.internal.performanceTracker.PerformanceTracker;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.logging.Logger;
+
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public class CoreAPI{
     //VARIABLES (STATICS)
-    private static final@NotNull Logger logger=new Logger(Core.getInstance(),CoreAPI.class);
+    private static final@NotNull Logger logger=Logger.getLogger(CoreAPI.class.getName());
     private static@NotNull State state=State.NONE;
 
     //EVENTS
@@ -32,7 +33,7 @@ public class CoreAPI{
         final long nanoTime=System.nanoTime();
 
         if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new ServerLoadEarlyEvent());
-        else Bukkit.getScheduler().runTask(Core.getInstance(),()->
+        else Core.getServerImplementation().global().run(()->
                 Bukkit.getPluginManager().callEvent(new ServerLoadEarlyEvent()));
 
         PerformanceTracker.increment(PerformanceTracker.Types.LISTENER,"ServerLoadEarlyEvent",System.nanoTime()-nanoTime);
@@ -53,11 +54,11 @@ public class CoreAPI{
         }
 
         //START-EVENT
-        Bukkit.getScheduler().runTaskLater(Core.getInstance(),()->{
+        Core.getServerImplementation().global().runDelayed(()->{
             final long nanoTime=System.nanoTime();
 
             if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new ServerStartEvent());
-            else Bukkit.getScheduler().runTask(Core.getInstance(),()->
+            else Core.getServerImplementation().global().run(()->
                     Bukkit.getPluginManager().callEvent(new ServerStartEvent()));
 
             PerformanceTracker.increment(PerformanceTracker.Types.LISTENER,"ServerStartEvent",System.nanoTime()-nanoTime);
@@ -83,7 +84,7 @@ public class CoreAPI{
         final long nanoTime=System.nanoTime();
 
         if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new ServerStopEvent());
-        else Bukkit.getScheduler().runTask(Core.getInstance(),()->
+        else Core.getServerImplementation().global().run(()->
                 Bukkit.getPluginManager().callEvent(new ServerStopEvent()));
 
         PerformanceTracker.increment(PerformanceTracker.Types.LISTENER,"ServerStopEvent",System.nanoTime()-nanoTime);

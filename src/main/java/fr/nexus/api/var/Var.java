@@ -1,5 +1,6 @@
 package fr.nexus.api.var;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import fr.nexus.Core;
 import fr.nexus.system.ThreadPool;
 import fr.nexus.api.listeners.core.CoreDisableEvent;
@@ -15,7 +16,6 @@ import fr.nexus.api.var.types.parents.map.MapType;
 import fr.nexus.api.var.types.parents.map.MapVarType;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,7 +36,7 @@ public sealed abstract class Var permits VarFile,VarSql{
     public static int THREAD_AMOUNT;
     public static ThreadPool THREADPOOL;
 
-    private static@Nullable BukkitTask cleanupTask;
+    private static@Nullable TaskImplementation<?>cleanupTask;
 
     public static final@NotNull Object2ObjectOpenHashMap<@NotNull String,CompletableFuture<Var>>asyncLoads=new Object2ObjectOpenHashMap<>();
     public static final@NotNull Object2ObjectOpenHashMap<@NotNull String,WeakReference<Var>>vars=new Object2ObjectOpenHashMap<>();
@@ -85,7 +85,7 @@ public sealed abstract class Var permits VarFile,VarSql{
     private static void onCoreReload(CoreReloadEvent e){
         if(cleanupTask!=null)cleanupTask.cancel();
 
-        cleanupTask=Bukkit.getScheduler().runTaskTimer(Core.getInstance(),()->{
+        cleanupTask=Core.getServerImplementation().global().runAtFixedRate(()->{
             if(shouldStayLoadedVars.isEmpty()){
                 cleanupVars();
                 return;
@@ -229,7 +229,7 @@ public sealed abstract class Var permits VarFile,VarSql{
         }
 
         if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.NONE,key,null));
-        else Bukkit.getScheduler().runTask(Core.getInstance(),()->
+        else Core.getServerImplementation().global().run(()->
                 Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.NONE,key,null)));
 
         PerformanceTracker.increment(PerformanceTracker.Types.VAR,"remove",System.nanoTime()-nanoTime);
@@ -272,7 +272,7 @@ public sealed abstract class Var permits VarFile,VarSql{
         setDirty(true);
 
         if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.WRAPPER,key,value));
-        else Bukkit.getScheduler().runTask(Core.getInstance(),()->
+        else Core.getServerImplementation().global().run(()->
                 Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.WRAPPER,key,value)));
 
         PerformanceTracker.increment(PerformanceTracker.Types.VAR,"setValue",System.nanoTime()-nanoTime);
@@ -348,7 +348,7 @@ public sealed abstract class Var permits VarFile,VarSql{
         setDirty(true);
 
         if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.MAP,key,map));
-        else Bukkit.getScheduler().runTask(Core.getInstance(),()->
+        else Core.getServerImplementation().global().run(()->
                 Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.MAP,key,map)));
 
         PerformanceTracker.increment(PerformanceTracker.Types.VAR,"putMap",System.nanoTime()-nanoTime);

@@ -84,6 +84,8 @@ public class Listeners implements Listener{
         final String key=buildKey(eventClass,priority);
 
         pluginManager.registerEvent(eventClass,listener,priority,(l,event)->{
+            if(!eventClass.isInstance(event))return;
+
             final List<Consumer<?extends Event>>consumers=syncEventsRegistered.get(key);
             if(consumers==null)return;
 
@@ -120,7 +122,7 @@ public class Listeners implements Listener{
 
         final PluginManager pm=Core.getInstance().getServer().getPluginManager();
         pm.registerEvent(bukkitEventClass,Core.getListeners(),EventPriority.HIGHEST,(listener,event)->{
-            if(!customAsyncBukkitEventEnabled)return;
+            if(!customAsyncBukkitEventEnabled||!bukkitEventClass.isInstance(event))return;
             final B bukkitEvent=bukkitEventClass.cast(event);
 
             final CoreEvent<?>coreEvent=coreEventConstructor.apply(bukkitEvent);
@@ -157,10 +159,10 @@ public class Listeners implements Listener{
                 obj[0]=consumer.asyncConsumer.apply(coreEvent,obj[0]);
 
                 if(coreEvent.isAsyncCancelled()){
-                    Bukkit.getScheduler().runTask(Core.getInstance(),()->executeRunnablesIfNeeded(remaining,coreEvent,runnables,key));
+                    Core.getServerImplementation().global().run(()->executeRunnablesIfNeeded(remaining,coreEvent,runnables,key));
                     return;
                 }
-                Bukkit.getScheduler().runTask(Core.getInstance(),()->{
+                Core.getServerImplementation().global().run(()->{
                     if(consumer.postSyncConsumer!=null)obj[0]=consumer.postSyncConsumer.apply(coreEvent,obj[0]);
 
                     if(coreEvent.isAsyncCancelled()){

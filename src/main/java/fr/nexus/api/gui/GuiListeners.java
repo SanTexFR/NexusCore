@@ -1,17 +1,16 @@
 package fr.nexus.api.gui;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import fr.nexus.Core;
 import fr.nexus.system.internal.performanceTracker.PerformanceTracker;
 import fr.nexus.api.gui.panels.GuiPage;
 import fr.nexus.api.gui.panels.GuiSlider;
 import fr.nexus.api.listeners.Listeners;
-import org.bukkit.Bukkit;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.UUID;
 
@@ -134,7 +133,7 @@ class GuiListeners{
             if(e.getInventory().getViewers().size()==1){
                 final Gui.GuiConsumer guiConsumer=gui.getActiveGuiTickConsumer();
                 if(guiConsumer!=null&&guiConsumer.getTask()==null){
-                    final BukkitTask task=Bukkit.getScheduler().runTaskTimer(Core.getInstance(),()->{
+                    final TaskImplementation<?>task=Core.getServerImplementation().global().runAtFixedRate(()->{
                         final Gui gui2=guiConsumer.getWeakReference().get();
                         if(gui2!=null)guiConsumer.getConsumer().accept(gui2);
                     },guiConsumer.getTick(),guiConsumer.getTick());

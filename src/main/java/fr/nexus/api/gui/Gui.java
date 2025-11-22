@@ -1,5 +1,6 @@
 package fr.nexus.api.gui;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import fr.nexus.Core;
 import fr.nexus.api.gui.panels.GuiPage;
 import fr.nexus.api.gui.panels.GuiPanel;
@@ -13,7 +14,6 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -134,7 +134,7 @@ public class Gui{
         tick=Math.max(1,tick);
 
         final WeakReference<Gui>weakGui=new WeakReference<>(this);
-        final BukkitTask task=Bukkit.getScheduler().runTaskTimer(Core.getInstance(),()->{
+        final TaskImplementation<?>task=Core.getServerImplementation().global().runAtFixedRate(()->{
             final Gui gui=weakGui.get();
             if(gui!=null)consumer.accept(gui);
         },tick,tick);
@@ -158,7 +158,7 @@ public class Gui{
         tick=Math.max(1,tick);
 
         final WeakReference<Gui>weakGui=new WeakReference<>(this);
-        final BukkitTask task=this.inventory.getViewers().isEmpty()?null:Bukkit.getScheduler().runTaskTimer(Core.getInstance(),()->{
+        final TaskImplementation<?>task=this.inventory.getViewers().isEmpty()?null:Core.getServerImplementation().global().runAtFixedRate(()->{
             final Gui gui=weakGui.get();
             if(gui!=null)consumer.accept(gui);
         },tick,tick);
@@ -279,10 +279,10 @@ public class Gui{
         private final@NotNull WeakReference<@NotNull Gui>weakReference;
         private final int tick;
         private final@NotNull Consumer<@NotNull Gui>consumer;
-        private@Nullable BukkitTask task;
+        private@Nullable TaskImplementation<?>task;
 
         //CONSTRUCTOR
-        public GuiConsumer(@NotNull WeakReference<@NotNull Gui>weakReference, int tick, @NotNull Consumer<@NotNull Gui>consumer, @Nullable BukkitTask task){
+        public GuiConsumer(@NotNull WeakReference<@NotNull Gui>weakReference, int tick, @NotNull Consumer<@NotNull Gui>consumer, @Nullable TaskImplementation<?>task){
             this.weakReference=weakReference;
             this.tick=tick;
             this.consumer=consumer;
@@ -301,10 +301,10 @@ public class Gui{
             return this.consumer;
         }
 
-        public void setTask(@Nullable BukkitTask task){
+        public void setTask(@Nullable TaskImplementation<?>task){
             this.task=task;
         }
-        public@Nullable BukkitTask getTask(){
+        public@Nullable TaskImplementation<?>getTask(){
             return this.task;
         }
     }

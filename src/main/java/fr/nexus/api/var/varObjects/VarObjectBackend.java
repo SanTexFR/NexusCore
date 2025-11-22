@@ -1,5 +1,6 @@
 package fr.nexus.api.var.varObjects;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import fr.nexus.Core;
 import fr.nexus.api.listeners.core.CoreReloadEvent;
 import fr.nexus.api.listeners.Listeners;
@@ -7,9 +8,7 @@ import fr.nexus.api.listeners.server.ServerStartEvent;
 import fr.nexus.api.listeners.server.ServerStopEvent;
 import fr.nexus.system.Logger;
 import fr.nexus.api.var.Var;
-import org.bukkit.Bukkit;
 import org.bukkit.event.EventPriority;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.Cleaner;
@@ -30,7 +29,7 @@ public abstract class VarObjectBackend<R>{
     protected static final@NotNull ConcurrentHashMap<@NotNull String,@NotNull CompletableFuture<@NotNull VarObjectBackend<?>>>asyncLoads=new ConcurrentHashMap<>();
     protected static final@NotNull ConcurrentHashMap<@NotNull String,@NotNull WeakReference<@NotNull VarObjectBackend<?>>>varObjects=new ConcurrentHashMap<>();
 
-    private static BukkitTask saveTask;
+    private static TaskImplementation<?>saveTask;
     static{
         Listeners.register(ServerStartEvent.class, VarObjectBackend::onServerStart,EventPriority.LOWEST);
         Listeners.register(ServerStopEvent.class, VarObjectBackend::onServerStop,EventPriority.LOWEST);
@@ -147,7 +146,7 @@ public abstract class VarObjectBackend<R>{
     }
     private static void onServerStart(ServerStartEvent e){
         //PERIODICAL SAVE
-        saveTask=Bukkit.getScheduler().runTaskTimer(Core.getInstance(),()->{
+        saveTask=Core.getServerImplementation().global().runAtFixedRate(()->{
             final long startMillis=System.currentTimeMillis();
 
             cleanVarObjectMap();

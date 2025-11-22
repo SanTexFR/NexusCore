@@ -1,4 +1,4 @@
-package fr.nexus.api.var.types.parents.normal.bukkit.chunk;
+package fr.nexus.api.var.types.parents.normal.bukkit;
 
 import fr.nexus.api.var.types.VarTypes;
 import fr.nexus.api.var.types.parents.normal.VarType;
@@ -10,16 +10,6 @@ import java.util.concurrent.CompletableFuture;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class ChunkType extends VarType<Chunk>{
-    private static final ChunkAccessor ACCESSOR = detectAccessor();
-    private static ChunkAccessor detectAccessor() {
-        try {
-            Class.forName("io.papermc.paper.threadedregions.scheduler.Scheduler");
-            return new FoliaChunkAccessor();
-        } catch (ClassNotFoundException e) {
-            return new PaperChunkAccessor();
-        }
-    }
-
     //CONSTRUCTOR
     public ChunkType(){
         super(Chunk.class,1);
@@ -30,11 +20,16 @@ public final class ChunkType extends VarType<Chunk>{
 
     //SYNC
     public byte@NotNull[]serializeSync(@NotNull Chunk value){
-        final byte[] serializedWorld = VarTypes.WORLD.serializeSync(value.getWorld());
-        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES + serializedWorld.length + Long.BYTES);
+        final byte[]serializedWorld=VarTypes.WORLD.serializeSync(value.getWorld());
+        final ByteBuffer buffer=ByteBuffer.allocate(Integer.BYTES+serializedWorld.length+Long.BYTES);
+
+        //WORLD
         buffer.putInt(serializedWorld.length);
         buffer.put(serializedWorld);
+
+        //KEY
         buffer.putLong(value.getChunkKey());
+
         return addVersionToBytes(buffer.array());
     }
     public@NotNull Chunk deserializeSync(byte@NotNull[]bytes){
@@ -44,12 +39,10 @@ public final class ChunkType extends VarType<Chunk>{
 
     private@NotNull Chunk deserializeSync(int version, byte[]bytes){
         if(version==1){
-            final VersionAndRemainder var = readVersionAndRemainder(bytes);
-            ByteBuffer buffer = ByteBuffer.wrap(var.remainder());
-            final byte[] worldBytes = new byte[buffer.getInt()];
+            final ByteBuffer buffer=ByteBuffer.wrap(bytes);
+            final byte[]worldBytes=new byte[buffer.getInt()];
             buffer.get(worldBytes);
-            final long chunkKey = buffer.getLong();
-            return ACCESSOR.getChunkSync(worldBytes, chunkKey);
+            return VarTypes.WORLD.deserializeSync(worldBytes).getChunkAt(buffer.getLong());
         }else throw createUnsupportedVersionException(version);
     }
 
@@ -61,12 +54,22 @@ public final class ChunkType extends VarType<Chunk>{
 
     private@NotNull CompletableFuture<@NotNull Chunk>deserializeAsync(int version, byte[]bytes){
         if(version==1){
-            final VersionAndRemainder var = readVersionAndRemainder(bytes);
-            ByteBuffer buffer = ByteBuffer.wrap(var.remainder());
-            final byte[] worldBytes = new byte[buffer.getInt()];
+            final ByteBuffer buffer=ByteBuffer.wrap(bytes);
+            final byte[]worldBytes=new byte[buffer.getInt()];
             buffer.get(worldBytes);
-            final long chunkKey = buffer.getLong();
-            return ACCESSOR.getChunkAsync(worldBytes, chunkKey);
+
+            final long chunkKey=buffer.getLong();
+            final int x=(int)chunkKey;
+            final int z=(int)(chunkKey>>32);
+
+            return VarTypes.WORLD.deserializeAsync(worldBytes)
+                    .thenCompose(world->{
+                        if(world!=null)return world.getChunkAtAsync(x,z);
+
+                        final CompletableFuture<Chunk>failed=new CompletableFuture<>();
+                        failed.completeExceptionally(new NullPointerException("Deserialized world is null"));
+                        return failed;
+                    });
         }else throw createUnsupportedVersionException(version);
     }
 }

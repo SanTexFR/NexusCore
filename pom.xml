@@ -72,6 +72,16 @@
             <version>1.21.8-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.20.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.cjcrafter</groupId>
+            <artifactId>foliascheduler</artifactId>
+            <version>0.7.2</version>
+        </dependency>
 
         <dependency>
             <groupId>org.lz4</groupId>

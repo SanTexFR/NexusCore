@@ -1,5 +1,7 @@
 package fr.nexus;
 
+import com.cjcrafter.foliascheduler.FoliaCompatibility;
+import com.cjcrafter.foliascheduler.ServerImplementation;
 import fr.nexus.api.listeners.core.CoreDisableEvent;
 import fr.nexus.api.listeners.core.CoreInitializeEvent;
 import fr.nexus.api.listeners.core.CoreReloadEvent;
@@ -19,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class Core extends JavaPlugin{
     //VARIABLES (STATICS)
+    private static ServerImplementation serverImplementation;
     private static Logger logger;
     private static final int amount=1_000_000;
     public static long CLEANUP_INTERVAL;
@@ -38,6 +41,7 @@ public final class Core extends JavaPlugin{
 //        org.spigotmc.AsyncCatcher.enabled = false;
 
         //INSTANCE
+        serverImplementation=new FoliaCompatibility(this).getServerImplementation();
         instance=this;
         logger=new Logger(this,Core.class);
 
@@ -82,6 +86,9 @@ public final class Core extends JavaPlugin{
     }
 
     //METHODS (STATICS)
+    public static ServerImplementation getServerImplementation(){
+        return serverImplementation;
+    }
     public static@NotNull Core getInstance(){
         return instance;
     }
