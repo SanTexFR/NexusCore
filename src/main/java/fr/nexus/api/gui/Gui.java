@@ -249,7 +249,7 @@ public class Gui{
     }
 
     //UPDATE
-    void update(){
+    public void update(){
         if(this.background!=null){
             final Set<Integer>slots=this.guiItems.keySet();
             for(int i=0;i<this.inventory.getSize();i++)
