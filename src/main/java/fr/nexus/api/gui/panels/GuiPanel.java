@@ -208,6 +208,9 @@ public abstract sealed class GuiPanel permits GuiPage,GuiSlider{
     public abstract void previous();
     public abstract void previous(int amount);
 
+    public abstract int increments();
+    public abstract int decrements();
+
     //MAIN (UPDATE)
     public abstract void update();
 }

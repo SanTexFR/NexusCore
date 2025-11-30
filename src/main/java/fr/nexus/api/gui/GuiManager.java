@@ -1,6 +1,8 @@
 package fr.nexus.api.gui;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import fr.nexus.Core;
+import fr.nexus.api.listeners.core.CoreInitializeEvent;
 import fr.nexus.api.listeners.core.CoreReloadEvent;
 import fr.nexus.api.listeners.Listeners;
 import org.bukkit.Bukkit;
@@ -18,10 +20,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public class GuiManager{
     //VARIABLES (STATICS)
-    private static@Nullable BukkitTask cleanupTask;
+    private static@Nullable TaskImplementation<?>cleanupTask;
     public static final@NotNull Set<@NotNull Gui>guiReferences=new HashSet<>();
     public static final@NotNull ConcurrentHashMap<@NotNull Inventory,@NotNull WeakReference<Gui>>guis=new ConcurrentHashMap<>();
     static{
+        Listeners.register(CoreInitializeEvent.class,GuiManager::onCoreInitialize,EventPriority.LOWEST);
         Listeners.register(CoreReloadEvent.class,GuiManager::onCoreReload,EventPriority.LOWEST);
     }
 
@@ -57,9 +60,12 @@ public class GuiManager{
     }
 
     //LISTENER
+    private static void onCoreInitialize(CoreInitializeEvent e){
+        onCoreReload(null);
+    }
     private static void onCoreReload(CoreReloadEvent e){
         if(cleanupTask!=null)cleanupTask.cancel();
 
-        cleanupTask=Bukkit.getScheduler().runTaskTimer(Core.getInstance(),GuiManager::cleanupGuis,Core.CLEANUP_INTERVAL,Core.CLEANUP_INTERVAL);
+        cleanupTask=Core.getServerImplementation().global().runAtFixedRate(GuiManager::cleanupGuis,Core.CLEANUP_INTERVAL,Core.CLEANUP_INTERVAL);
     }
 }

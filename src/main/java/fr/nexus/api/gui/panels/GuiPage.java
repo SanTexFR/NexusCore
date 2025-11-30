@@ -109,6 +109,16 @@ public final class GuiPage extends GuiPanel{
         super.setIndex(Math.max(1,Math.min(maxIndex,index)));
     }
 
+    public int increments() {
+        final int totalPages = Math.max(1, (getGuiItemAmount() + getSlotAmount() - 1) / getSlotAmount());
+        return isRecursive() ? totalPages : Math.max(1, totalPages - getIndex()+1);
+    }
+
+    public int decrements() {
+        final int totalPages = Math.max(1, (getGuiItemAmount() + getSlotAmount() - 1) / getSlotAmount());
+        return isRecursive() ? totalPages : Math.max(1, getIndex());
+    }
+
     //UPDATE
     public void update(){
         final long nanoTime=System.nanoTime();

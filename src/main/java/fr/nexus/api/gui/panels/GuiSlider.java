@@ -190,6 +190,26 @@ public final class GuiSlider extends GuiPanel{
         else if(getIndex()<1)setIndex(size);
     }
 
+    public int increments() {
+        if (isRecursive()) return Integer.MAX_VALUE;
+
+        final int size = getGuiItemAmount();
+        final int slots = getSlotAmount();
+
+        if (size <= slots) return 0;
+
+        int remainingItems = size - getIndex() - slots + 1;
+        return Math.max(0, (int) Math.ceil((double)remainingItems / slots));
+    }
+
+    public int decrements() {
+        if (isRecursive()) return Integer.MAX_VALUE;
+
+        final int slots = getSlotAmount();
+
+        int previousItems = getIndex() - 1;
+        return Math.max(0, (int) Math.ceil((double)previousItems / slots));
+    }
 
     //UPDATE
     public void update(){

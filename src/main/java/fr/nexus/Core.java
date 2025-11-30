@@ -66,6 +66,8 @@ public final class Core extends JavaPlugin{
         //UPDATER
         Updater.checkForUpdates();
 
+        Listeners.register(CoreReloadEvent.class,Core::onCoreReload);
+
         //TEST
         //Bukkit.getScheduler().runTaskLater(getInstance(),Core::testFile,40L);
         //Listeners.register(PlayerJoinEvent.class,Core::onPlayerJoin);
@@ -114,6 +116,9 @@ public final class Core extends JavaPlugin{
         else Bukkit.getScheduler().runTask(Core.getInstance(),()->
             Bukkit.getPluginManager().callEvent(new CoreReloadEvent(safe)));
 
+    }
+    private static void onCoreReload(CoreReloadEvent e){
+        reload();
     }
     private static void reload(){
         CLEANUP_INTERVAL=getInstance().getConfig().getLong("cache.cleanupInterval",6000);

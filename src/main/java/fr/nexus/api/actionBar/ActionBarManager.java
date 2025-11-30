@@ -1,6 +1,8 @@
 package fr.nexus.api.actionBar;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import fr.nexus.Core;
+import fr.nexus.api.listeners.core.CoreInitializeEvent;
 import fr.nexus.api.listeners.core.CoreReloadEvent;
 import fr.nexus.api.listeners.Listeners;
 import org.bukkit.Bukkit;
@@ -18,10 +20,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public class ActionBarManager{
     //VARIABLES (STATICS)
-    private static@Nullable BukkitTask cleanupTask;
+    private static@Nullable TaskImplementation<?>cleanupTask;
     private static final@NotNull Set<@NotNull ActionBar>actionBarReferences=new HashSet<>();
     private static final@NotNull ConcurrentHashMap<@NotNull UUID,@NotNull WeakReference<ActionBar>>actionBars=new ConcurrentHashMap<>();
     static{
+        Listeners.register(CoreInitializeEvent.class,ActionBarManager::onCoreInitialize,EventPriority.LOWEST);
         Listeners.register(CoreReloadEvent.class,ActionBarManager::onCoreReload,EventPriority.LOWEST);
     }
 
@@ -58,9 +61,12 @@ public class ActionBarManager{
     }
 
     //LISTENER
+    private static void onCoreInitialize(CoreInitializeEvent e){
+
+    }
     private static void onCoreReload(CoreReloadEvent e){
         if(cleanupTask!=null)cleanupTask.cancel();
 
-        cleanupTask=Bukkit.getScheduler().runTaskTimer(Core.getInstance(),ActionBarManager::cleanupActionBars,Core.CLEANUP_INTERVAL,Core.CLEANUP_INTERVAL);
+        cleanupTask=Core.getServerImplementation().global().runAtFixedRate(ActionBarManager::cleanupActionBars,Core.CLEANUP_INTERVAL,Core.CLEANUP_INTERVAL);
     }
 }

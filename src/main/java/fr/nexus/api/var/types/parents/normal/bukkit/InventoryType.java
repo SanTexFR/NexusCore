@@ -12,45 +12,75 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class InventoryType extends VarType<Inventory>{
-    //VARIABLES (STATICS)
-    private static final @NotNull ItemStack AIR_ITEM_STACK=new ItemStack(Material.AIR);
+public final class InventoryType extends VarType<Inventory> {
 
-    //CONSTRUCTOR
-    public InventoryType(){
-        super(Inventory.class,1);
+    private static final @NotNull ItemStack AIR_ITEM_STACK = new ItemStack(Material.AIR);
+
+    public InventoryType() {
+        super(Inventory.class, 1);
     }
 
+    @Override
+    public byte @NotNull [] serializeSync(@NotNull Inventory value) {
+        // Taille réelle de l'inventaire
+        int size = value.getSize();
 
-    //METHODS
-    public byte@NotNull[] serializeSync(@NotNull Inventory value){
-        final ItemStack[]contents=value.getContents();
-        Arrays.setAll(contents,i->contents[i]!=null?contents[i]:AIR_ITEM_STACK);
-        final byte[]bytes=VarTypes.ITEMSTACK_ARRAY.serializeSync(contents);
-        final byte[]type=value.getType().name().getBytes();
-        final ByteBuffer buffer=ByteBuffer.allocate(Integer.BYTES+type.length+bytes.length);
-        buffer.putInt(type.length);
-        buffer.put(type);
-        buffer.put(bytes);
+        // Contenu des slots (remplace null par AIR)
+        final ItemStack[] contents = value.getContents();
+        Arrays.setAll(contents, i -> contents[i] != null ? contents[i] : AIR_ITEM_STACK);
+        final byte[] itemBytes = VarTypes.ITEMSTACK_ARRAY.serializeSync(contents);
+
+        // Type de l'inventaire (pour recréer le type si nécessaire)
+        final byte[] typeBytes = value.getType().name().getBytes();
+
+        // Allouer le buffer avec la taille stockée
+        final ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES // taille
+                + Integer.BYTES + typeBytes.length // type
+                + itemBytes.length); // contenu
+        buffer.putInt(size);
+        buffer.putInt(typeBytes.length);
+        buffer.put(typeBytes);
+        buffer.put(itemBytes);
+
         return addVersionToBytes(buffer.array());
     }
-    public@NotNull Inventory deserializeSync(byte@NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserialize(var.version(),var.remainder());
+
+    @Override
+    public @NotNull Inventory deserializeSync(byte @NotNull [] bytes) {
+        final VersionAndRemainder var = readVersionAndRemainder(bytes);
+        return deserialize(var.version(), var.remainder());
     }
 
-    private@NotNull Inventory deserialize(int version, byte[]bytes){
-        if(version==1){
-            final ByteBuffer buffer=ByteBuffer.wrap(bytes);
-            final byte[]typeBytes=new byte[buffer.getInt()];
-            buffer.get(typeBytes);
-            final String type=new String(typeBytes);
-            final byte[]valueBytes=new byte[buffer.remaining()];
-            buffer.get(valueBytes);
-            final Inventory inv=Bukkit.createInventory(null,org.bukkit.event.inventory.InventoryType.valueOf(type));
-            final ItemStack[]contents=VarTypes.ITEMSTACK_ARRAY.deserializeSync(valueBytes);
-            if(contents!=null)inv.setContents(contents);
-            return inv;
-        }else throw createUnsupportedVersionException(version);
+    private @NotNull Inventory deserialize(int version, byte[] bytes) {
+        if (version != 1) throw createUnsupportedVersionException(version);
+
+        final ByteBuffer buffer = ByteBuffer.wrap(bytes);
+
+        // Taille de l'inventaire
+        int size = buffer.getInt();
+
+        // Type de l'inventaire
+        int typeLen = buffer.getInt();
+        byte[] typeBytes = new byte[typeLen];
+        buffer.get(typeBytes);
+        String typeName = new String(typeBytes);
+
+        // Contenu des slots
+        byte[] itemBytes = new byte[buffer.remaining()];
+        buffer.get(itemBytes);
+        final ItemStack[] contents = VarTypes.ITEMSTACK_ARRAY.deserializeSync(itemBytes);
+
+        // Crée l'inventaire avec la bonne taille
+        Inventory inv = Bukkit.createInventory(null, size);
+
+        // Copie sécurisée des items
+        if (contents != null) {
+            int limit = Math.min(contents.length, inv.getSize());
+            for (int i = 0; i < limit; i++) {
+                inv.setItem(i, contents[i]);
+            }
+        }
+
+        return inv;
     }
 }

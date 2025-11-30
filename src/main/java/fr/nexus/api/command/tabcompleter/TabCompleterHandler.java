@@ -2,6 +2,7 @@ package fr.nexus.api.command.tabcompleter;
 
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Function;
@@ -13,7 +14,7 @@ public class TabCompleterHandler{
     public static final@NotNull Map<@NotNull String,@NotNull List<@NotNull TabCompleterHandler>>commandCompleter=new HashMap<>();
 
     private final@NotNull String command;
-    protected@NotNull List<@NotNull Function<@NotNull CommandSender,@NotNull Supplier<@NotNull String>>>args=new ArrayList<>();
+    protected@NotNull List<@Nullable Function<@NotNull CommandSender,@NotNull Supplier<@NotNull String>>>args=new ArrayList<>();
     protected@NotNull Set<@NotNull Function<@NotNull CommandSender,@NotNull Supplier<@NotNull Set<@NotNull String>>>>displays=new HashSet<>();
 
     //CONSTRUCTOR
@@ -27,7 +28,7 @@ public class TabCompleterHandler{
         return new TabCompleterHandler(command);
     }
 
-    public@NotNull TabCompleterHandler addArg(@NotNull Function<@NotNull CommandSender,@NotNull Supplier<@NotNull String>>arg){
+    public@NotNull TabCompleterHandler addArg(@Nullable Function<@NotNull CommandSender,@NotNull Supplier<@NotNull String>>arg){
         this.args.add(arg);
         return this;
     }

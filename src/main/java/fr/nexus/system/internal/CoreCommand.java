@@ -139,12 +139,12 @@ public class CoreCommand {
     }
     private static void version(@NotNull CommandSender s){
         s.sendMessage("Vérification de la version, veuillez patienter...");
-        Bukkit.getScheduler().runTaskAsynchronously(Core.getInstance(),()->{
+        Core.getServerImplementation().async().runNow(()->{
             try{
                 final String latestTag= Updater.getLatestTag();
                 final String currentVersion=Core.getInstance().getPluginMeta().getVersion();
                 if(Updater.isNewerVersion(Updater.getLatestTag(),currentVersion)){
-                    Bukkit.getScheduler().runTask(Core.getInstance(),()->{
+                    Core.getServerImplementation().global().run(()->{
                         final String url="https://github.com/"+Updater.USER+"/"+Updater.REPO+"/releases/latest";
                         final Component message=Component.text("Téléchargement: ", NamedTextColor.YELLOW)
                                 .append(Component.text(url,NamedTextColor.GOLD)

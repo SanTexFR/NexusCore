@@ -298,14 +298,17 @@ public class ItemBuilder{
         PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"getRandomMaterial",System.nanoTime()-nanoTime);
         return material;
     }
-    public static@NotNull List<@NotNull Material>getMaterials(){
-        final long nanoTime=System.nanoTime();
 
-        final List<Material>materials=Arrays.stream(Material.values())
+
+
+    private static final List<Material> MATERIALS;
+    static {
+        MATERIALS = Arrays.stream(Material.values())
                 .filter(Material::isItem)
                 .toList();
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"getMaterials",System.nanoTime()-nanoTime);
-        return materials;
     }
+    public static @NotNull List<@NotNull Material> getMaterials() {
+        return MATERIALS;
+    }
+
 }

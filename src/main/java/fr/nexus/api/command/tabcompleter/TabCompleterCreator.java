@@ -25,6 +25,12 @@ public class TabCompleterCreator implements org.bukkit.command.TabCompleter{
             boolean check=false;
             int index=0;
             for(final Function<CommandSender,Supplier<String>>function:completer.args){
+                if(function==null){
+                    index++;
+                    continue;
+                }
+
+
                 final String arg=function.apply(sender).get();
 
                 if(arg==null||arg.isEmpty()){
