@@ -17,7 +17,7 @@ public class PerformanceTracker{
     //METHODS (STATICS)
 
     //KEYS
-    public static @NotNull Set<@NotNull String> getMethods(@NotNull Types type) {
+    public static @NotNull Set<@NotNull String>getMethods(@NotNull Types type) {
         final ConcurrentHashMap<String, TrackerData> map = times.get(type);
         if (map != null) return map.keySet();
         return new HashSet<>();

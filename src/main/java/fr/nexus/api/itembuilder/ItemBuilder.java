@@ -43,9 +43,20 @@ public class ItemBuilder{
     public static@NotNull ItemBuilder cloneFrom(@NotNull ItemStack other){
         final long nanoTime=System.nanoTime();
 
-        final ItemBuilder builder=createItem(other.getType());
-        builder.itemStack.setItemMeta(other.getItemMeta());
+        final ItemBuilder builder = createItem(other.getType());
+        ItemMeta otherMeta = other.getItemMeta();
+        if (otherMeta != null) {
+            // Copie complète du meta
+            ItemMeta metaClone = otherMeta.clone();
 
+            // Si le displayName est un Component (Kyori), on le récupère
+            if (otherMeta.hasDisplayName()) {
+                metaClone.displayName(otherMeta.displayName()); // Adventure API
+            }
+
+            builder.itemStack.setItemMeta(metaClone);
+            builder.meta = builder.itemStack.getItemMeta(); // mise à jour du meta dans ItemBuilder
+        }
         PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"cloneFrom",System.nanoTime()-nanoTime);
         return builder;
     }

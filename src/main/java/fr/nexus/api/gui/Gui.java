@@ -2,6 +2,7 @@ package fr.nexus.api.gui;
 
 import com.cjcrafter.foliascheduler.TaskImplementation;
 import fr.nexus.Core;
+import fr.nexus.api.gui.modules.GuiBackground;
 import fr.nexus.api.gui.panels.GuiPage;
 import fr.nexus.api.gui.panels.GuiPanel;
 import fr.nexus.api.gui.panels.GuiSlider;
@@ -14,6 +15,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public class Gui{
+public class Gui implements GuiBackground{
     //VARIABLES (INSTANCES)
     private final@NotNull Inventory inventory;
 
@@ -32,6 +34,8 @@ public class Gui{
     private@Nullable Long effectiveCooldownMs;
 
     private@Nullable GuiItem background;
+
+    private final@NotNull WeakReference<Gui>weakReference;
 
     //ITEMS
     private final@NotNull ConcurrentHashMap<@NotNull Integer,@NotNull GuiItem>guiItems=new ConcurrentHashMap<>();
@@ -44,11 +48,16 @@ public class Gui{
     private@Nullable Consumer<@NotNull InventoryCloseEvent>closeEvent;
 
     //RUNNABLE
-    private@Nullable Gui.GuiConsumer activeGuiTickConsumer,globalGuiTickConsumer;
+    private@Nullable GuiConsumer activeGuiTickConsumer,globalGuiTickConsumer;
     private final@NotNull Cleaner.Cleanable cleanable;
 
     //CONSTRUCTOR
+    public Gui(int rows,@Nullable String title){
+        this(rows,title!=null?Component.text(title):null);
+    }
     public Gui(int rows,@Nullable Component title){
+        this.weakReference=new WeakReference<>(this);
+
         final int size=Math.max(1,Math.min(6,rows))*9;
         if(title==null)this.inventory=Bukkit.createInventory(null,size);
         else this.inventory=Bukkit.createInventory(null,size,title);
@@ -57,7 +66,13 @@ public class Gui{
 
         this.cleanable=Core.getCleaner().register(this,new Unload(this.globalGuiTickConsumer));
     }
+
+    public Gui(@NotNull InventoryType type,@Nullable String title){
+        this(type,title!=null?Component.text(title):null);
+    }
     public Gui(@NotNull InventoryType type,@Nullable Component title){
+        this.weakReference=new WeakReference<>(this);
+
         if(title==null)this.inventory=Bukkit.createInventory(null,type);
         else this.inventory=Bukkit.createInventory(null,type,title);
 
@@ -68,6 +83,11 @@ public class Gui{
 
 
     //METHODS (INSTANCES)
+
+    //WEAK-REFERENCE
+    public@NotNull WeakReference<Gui>getWeakReference(){
+        return this.weakReference;
+    }
 
     //INVENTORY
     public@NotNull Inventory getInventory(){
@@ -91,9 +111,23 @@ public class Gui{
     public void addGuiItem(int x,int y,@NotNull GuiItem guiItem){
         addGuiItem(x+y*9,guiItem);
     }
+    public void addGuiItem(int x,int y,@NotNull ItemStack item){
+        addGuiItem(x+y*9,new GuiItem(item));
+    }
+    public void addGuiItem(int x,int y,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
+        addGuiItem(x+y*9,new GuiItem(item,action));
+    }
+
     public void addGuiItem(int slot,@NotNull GuiItem guiItem){
         this.guiItems.put(slot,guiItem);
     }
+    public void addGuiItem(int slot,@NotNull ItemStack item){
+        addGuiItem(slot,new GuiItem(item));
+    }
+    public void addGuiItem(int slot,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
+        addGuiItem(slot,new GuiItem(item,action));
+    }
+
     public void removeGuiItem(int x,int y){
         removeGuiItem(x+y*9);
     }
@@ -123,9 +157,9 @@ public class Gui{
     //ACTION-GUI RUNNABLE
     public void setGlobalGuiTickConsumer(int tick,@DoNotStoreGui@Nullable Consumer<@NotNull Gui>consumer){
         if(this.globalGuiTickConsumer!=null){
-            if(this.globalGuiTickConsumer.task!=null){
-                this.globalGuiTickConsumer.task.cancel();
-                this.globalGuiTickConsumer.task=null;
+            if(this.globalGuiTickConsumer.getTask()!=null){
+                this.globalGuiTickConsumer.getTask().cancel();
+                this.globalGuiTickConsumer.setTask(null);
             }this.globalGuiTickConsumer=null;
         }
 
@@ -133,7 +167,7 @@ public class Gui{
 
         tick=Math.max(1,tick);
 
-        final WeakReference<Gui>weakGui=new WeakReference<>(this);
+        final WeakReference<Gui>weakGui=getWeakReference();
         final TaskImplementation<?>task=Core.getServerImplementation().global().runAtFixedRate(()->{
             final Gui gui=weakGui.get();
             if(gui!=null)consumer.accept(gui);
@@ -141,23 +175,23 @@ public class Gui{
 
         this.globalGuiTickConsumer=new GuiConsumer(weakGui,tick,consumer,task);
     }
-    @Nullable Gui.GuiConsumer getGlobalGuiTickConsumer(){
+    @Nullable GuiConsumer getGlobalGuiTickConsumer(){
         return this.globalGuiTickConsumer;
     }
 
     public void setActiveGuiTickConsumer(int tick,@DoNotStoreGui@Nullable Consumer<@NotNull Gui>consumer){
         if(this.activeGuiTickConsumer!=null){
-            if(this.activeGuiTickConsumer.task!=null){
-                this.activeGuiTickConsumer.task.cancel();
-                this.activeGuiTickConsumer.task=null;
-            }this.activeGuiTickConsumer =null;
+            if(this.activeGuiTickConsumer.getTask()!=null){
+                this.activeGuiTickConsumer.getTask().cancel();
+                this.activeGuiTickConsumer.setTask(null);
+            }this.activeGuiTickConsumer=null;
         }
 
         if(consumer==null)return;
 
         tick=Math.max(1,tick);
 
-        final WeakReference<Gui>weakGui=new WeakReference<>(this);
+        final WeakReference<Gui>weakGui=getWeakReference();
         final TaskImplementation<?>task=this.inventory.getViewers().isEmpty()?null:Core.getServerImplementation().global().runAtFixedRate(()->{
             final Gui gui=weakGui.get();
             if(gui!=null)consumer.accept(gui);
@@ -165,7 +199,7 @@ public class Gui{
 
         this.activeGuiTickConsumer=new GuiConsumer(weakGui,tick,consumer,task);
     }
-    @Nullable Gui.GuiConsumer getActiveGuiTickConsumer(){
+    @Nullable GuiConsumer getActiveGuiTickConsumer(){
         return this.activeGuiTickConsumer;
     }
 
@@ -274,46 +308,10 @@ public class Gui{
     }
 
     //INNER CLASS
-    static class GuiConsumer{
-        //VARIABLES (INSTANCES)
-        private final@NotNull WeakReference<@NotNull Gui>weakReference;
-        private final int tick;
-        private final@NotNull Consumer<@NotNull Gui>consumer;
-        private@Nullable TaskImplementation<?>task;
-
-        //CONSTRUCTOR
-        public GuiConsumer(@NotNull WeakReference<@NotNull Gui>weakReference, int tick, @NotNull Consumer<@NotNull Gui>consumer, @Nullable TaskImplementation<?>task){
-            this.weakReference=weakReference;
-            this.tick=tick;
-            this.consumer=consumer;
-            this.task=task;
-        }
-
-        //METHODS (INSTANCES)
-        public@NotNull WeakReference<@NotNull Gui>getWeakReference(){
-            return this.weakReference;
-        }
-
-        public int getTick(){
-            return this.tick;
-        }
-        public@NotNull Consumer<@NotNull Gui>getConsumer(){
-            return this.consumer;
-        }
-
-        public void setTask(@Nullable TaskImplementation<?>task){
-            this.task=task;
-        }
-        public@Nullable TaskImplementation<?>getTask(){
-            return this.task;
-        }
-    }
-
-    //INNER CLASS
-    private record Unload(@Nullable Gui.GuiConsumer consumer)implements Runnable{
+    private record Unload(@Nullable GuiConsumer consumer)implements Runnable{
         @Override
         public void run(){
-            if(consumer!=null&&consumer.task!=null)consumer.task.cancel();
+            if(consumer!=null&&consumer.getTask()!=null)consumer.getTask().cancel();
         }
     }
 }

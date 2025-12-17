@@ -285,6 +285,13 @@ public interface VarTypes{
     @NotNull ItemStackType.ListType ITEMSTACK_LIST=ITEMSTACK.lists();
     @NotNull ItemStackType.ArrayType ITEMSTACK_ARRAY=ITEMSTACK.arrays();
 
+    //GAMEMODE
+    @NotNull GameModeType GAMEMODE=new GameModeType();
+    @NotNull GameModeType.SetType GAMEMODE_SET=GAMEMODE.sets();
+    @NotNull GameModeType.LinkedSetType GAMEMODE_LINKED_SET=GAMEMODE.linked_sets();
+    @NotNull GameModeType.ListType GAMEMODE_LIST=GAMEMODE.lists();
+    @NotNull GameModeType.ArrayType GAMEMODE_ARRAY=GAMEMODE.arrays();
+
     //INVENTORY
     @NotNull InventoryType INVENTORY=new InventoryType();
     @NotNull InventoryType.SetType INVENTORY_SET=INVENTORY.sets();

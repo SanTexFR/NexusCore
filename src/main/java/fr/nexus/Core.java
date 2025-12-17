@@ -107,13 +107,17 @@ public final class Core extends JavaPlugin{
         return cleaner;
     }
 
+    //FAIRE UN MENU COMME LE MENU PERFORMANCE MAIS OU J'indique LES ENTREES SOUS FORME D'API style MATERIAL, SUPPLIER TEXT EN ... POUR EN METTRE AUTANT QUE JE VEUX DANS LA DESCRIPTION, AUSSI POUVOIR CHANGER LE TITRE DES ITEMS
+    //EMPECHER DE CUIR DES ITEMS CUSTOM ET DESENCHANTER AVEC L'iTEM BUILDER
+
     public static void reload(boolean safe){
         getInstance().reloadConfig();
+        getInstance().saveDefaultConfig();
 
         reload();
 
         if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new CoreReloadEvent(safe));
-        else Bukkit.getScheduler().runTask(Core.getInstance(),()->
+        else Core.getServerImplementation().global().run(()->
             Bukkit.getPluginManager().callEvent(new CoreReloadEvent(safe)));
 
     }

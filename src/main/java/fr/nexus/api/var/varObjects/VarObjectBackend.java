@@ -31,8 +31,8 @@ public abstract class VarObjectBackend<R>{
 
     private static TaskImplementation<?>saveTask;
     static{
-        Listeners.register(ServerStartEvent.class, VarObjectBackend::onServerStart,EventPriority.LOWEST);
-        Listeners.register(ServerStopEvent.class, VarObjectBackend::onServerStop,EventPriority.LOWEST);
+        Listeners.register(ServerStartEvent.class, VarObjectBackend::onServerStart);
+        Listeners.register(ServerStopEvent.class, VarObjectBackend::onServerStop);
     }
 
     //VARIABLES (INSTANCES)

@@ -1,14 +1,18 @@
 package fr.nexus.api.gui.panels;
 
 import fr.nexus.api.gui.GuiItem;
+import fr.nexus.api.gui.modules.GuiBackground;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public abstract sealed class GuiPanel permits GuiPage,GuiSlider{
+public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,GuiSlider{
     //VARIABLES (STATICS)
     private Inventory inventory;
     private final@NotNull List<@NotNull GuiItem>guiItems=new ArrayList<>();
@@ -111,12 +115,33 @@ public abstract sealed class GuiPanel permits GuiPage,GuiSlider{
     public void addGuiItem(@NotNull GuiItem item){
         this.guiItems.add(item);
     }
+    public void addGuiItem(@NotNull ItemStack item){
+        this.guiItems.add(new GuiItem(item));
+    }
+    public void addGuiItem(@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
+        this.guiItems.add(new GuiItem(item,action));
+    }
+
     public void addGuiItemAtSlot(int x,int y,@NotNull GuiItem item){
         addGuiItemAtSlot(y*9+x,item);
     }
+    public void addGuiItemAtSlot(int x,int y,@NotNull ItemStack item){
+        addGuiItemAtSlot(y*9+x,new GuiItem(item));
+    }
+    public void addGuiItemAtSlot(int x,int y,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
+        addGuiItemAtSlot(y*9+x,new GuiItem(item,action));
+    }
+
     public abstract void addGuiItemAtSlot(int slot,@NotNull GuiItem item);
+
     public void addGuiItemAtIndex(int index,@NotNull GuiItem item){
         this.guiItems.add(index,item);
+    }
+    public void addGuiItemAtIndex(int index,@NotNull ItemStack item){
+        this.guiItems.add(index,new GuiItem(item));
+    }
+    public void addGuiItemAtIndex(int index,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
+        this.guiItems.add(index,new GuiItem(item,action));
     }
 
     public void removeGuiItemAtSlot(int x,int y){

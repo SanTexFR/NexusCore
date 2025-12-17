@@ -6,10 +6,7 @@ import fr.nexus.system.internal.performanceTracker.PerformanceTracker;
 import fr.nexus.api.gui.panels.GuiPage;
 import fr.nexus.api.gui.panels.GuiSlider;
 import fr.nexus.api.listeners.Listeners;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
 
 import java.util.UUID;
@@ -109,7 +106,7 @@ class GuiListeners{
             if(inv.getViewers().size()-1<=0){
                 GuiManager.removeReference(gui);
 
-                final Gui.GuiConsumer guiConsumer=gui.getActiveGuiTickConsumer();
+                final GuiConsumer guiConsumer=gui.getActiveGuiTickConsumer();
                 if(guiConsumer!=null&&guiConsumer.getTask()!=null){
                     guiConsumer.getTask().cancel();
                     guiConsumer.setTask(null);
@@ -131,7 +128,7 @@ class GuiListeners{
             GuiManager.addReference(gui);
 
             if(e.getInventory().getViewers().size()==1){
-                final Gui.GuiConsumer guiConsumer=gui.getActiveGuiTickConsumer();
+                final GuiConsumer guiConsumer=gui.getActiveGuiTickConsumer();
                 if(guiConsumer!=null&&guiConsumer.getTask()==null){
                     final TaskImplementation<?>task=Core.getServerImplementation().global().runAtFixedRate(()->{
                         final Gui gui2=guiConsumer.getWeakReference().get();
