@@ -8,7 +8,6 @@ import fr.nexus.api.listeners.server.ServerStartEvent;
 import fr.nexus.api.listeners.server.ServerStopEvent;
 import fr.nexus.system.Logger;
 import fr.nexus.api.var.Var;
-import org.bukkit.event.EventPriority;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.Cleaner;

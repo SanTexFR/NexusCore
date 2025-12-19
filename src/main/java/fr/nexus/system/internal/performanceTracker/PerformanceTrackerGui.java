@@ -8,12 +8,10 @@ import fr.nexus.api.itembuilder.ItemBuilder;
 import fr.nexus.api.listeners.Listeners;
 import fr.nexus.api.listeners.core.CoreInitializeEvent;
 import fr.nexus.api.listeners.core.CoreReloadEvent;
-import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -46,38 +44,39 @@ public class PerformanceTrackerGui{
         final AtomicBoolean actualisation=new AtomicBoolean(false);
 
         //GUI
-        final Gui gui=new Gui(3,Component.text("Menu des performances"));
-        final WeakReference<Gui>weakGui=new WeakReference<>(gui);
+        final Gui gui=new Gui(3,"Menu des performances");
+        final WeakReference<Gui>weakGui=gui.getWeakReference();
 
         gui.setInventoryClickEvent(e2->e2.setCancelled(true));
-        gui.setBackground(new GuiItem(new ItemStack(Material.BLACK_STAINED_GLASS_PANE)));
+        gui.setBackground(Material.BLACK_STAINED_GLASS_PANE);
 
         gui.setEffectiveCooldownMs(500L);
 
         //GUI-PAGE
         final GuiPage guiPage=new GuiPage(1,1,7,1);
         gui.addGuiPage("pagination",guiPage);
-        guiPage.setBackground(new GuiItem(new ItemStack(Material.WHITE_STAINED_GLASS_PANE)));
+        guiPage.setBackground(Material.WHITE_STAINED_GLASS_PANE);
         reloadPrimaryItems(weakGui,guiPage,p,actualisation);
 
         //GUI PAGE-ITEM
-        gui.addGuiItem(1,2,new GuiItem(ItemBuilder.createItem(Material.ARROW).setDisplayName("←").build(),e2->{
+        gui.addGuiItem(1,2,ItemBuilder.createItem(Material.ARROW).setDisplayName("←").build(),e2->{
             if(e2.getClick().equals(ClickType.DOUBLE_CLICK))return;
             guiPage.previous();
             guiPage.update();
-        }));
-        gui.addGuiItem(7,2,new GuiItem(ItemBuilder.createItem(Material.ARROW).setDisplayName("→").build(),e2->{
+        });
+        gui.addGuiItem(7,2,ItemBuilder.createItem(Material.ARROW).setDisplayName("→").build(),e2->{
             if(e2.getClick().equals(ClickType.DOUBLE_CLICK))return;
             guiPage.next();
             guiPage.update();
-        }));
+        });
 
         //UPDATE-ITEM
         updateActualisationButton(weakGui,null,p,actualisation,2);
 
         //OTHERS
         gui.generalUpdate();
-        Bukkit.getScheduler().runTaskLater(Core.getInstance(),()->
+
+        Core.getServerImplementation().global().runDelayed(()->
                 gui.display(p),4L);
     }
     private static void reloadPrimaryItems(@NotNull WeakReference<Gui>weakGui,@NotNull GuiPage guiPage,@NotNull Player p,@NotNull AtomicBoolean actualisation){
@@ -135,8 +134,8 @@ public class PerformanceTrackerGui{
             totalAsyncMillis+=asyncMillis;
             totalAsyncSeconds+=asyncSeconds;
 
-            guiPage.addGuiItem(new GuiItem(itemBuilder.build(),e->
-                secondaryGui(gui,weakGui,type,p,actualisation)));
+            guiPage.addGuiItem(itemBuilder.build(),e->
+                secondaryGui(gui,weakGui,type,p,actualisation));
         }
 
         final ItemBuilder itemBuilder=ItemBuilder.createItem(Material.PAPER);
@@ -144,7 +143,7 @@ public class PerformanceTrackerGui{
 
         setItemBuilderLore(itemBuilder,totalSyncCount,totalSyncNanos,totalSyncMillis,totalSyncSeconds,totalAsyncCount,totalAsyncNanos,totalAsyncMillis,totalAsyncSeconds);
 
-        gui.addGuiItem(4,0,new GuiItem(itemBuilder.build()));
+        gui.addGuiItem(4,0,itemBuilder.build());
 
         gui.generalUpdate();
     }
@@ -152,18 +151,18 @@ public class PerformanceTrackerGui{
     //SECONDARY
     private static void secondaryGui(@NotNull Gui mainGui,@NotNull WeakReference<Gui>weakMainGui,@NotNull PerformanceTracker.Types type,@NotNull Player p,@NotNull AtomicBoolean actualisation){
         //GUI
-        final Gui gui=new Gui(5,Component.text("Performance: "+type.name()));
-        final WeakReference<Gui>weakGui=new WeakReference<>(gui);
+        final Gui gui=new Gui(5,"Performance: "+type.name());
+        final WeakReference<Gui>weakGui=gui.getWeakReference();
 
         gui.setInventoryClickEvent(e2->e2.setCancelled(true));
-        gui.setBackground(new GuiItem(new ItemStack(Material.BLACK_STAINED_GLASS_PANE)));
+        gui.setBackground(Material.BLACK_STAINED_GLASS_PANE);
 
         gui.setEffectiveCooldownMs(500L);
 
         //GUI-PAGE
         final GuiPage guiPage=new GuiPage(1,1,7,3);
         gui.addGuiPage("pagination",guiPage);
-        guiPage.setBackground(new GuiItem(new ItemStack(Material.WHITE_STAINED_GLASS_PANE)));
+        guiPage.setBackground(Material.WHITE_STAINED_GLASS_PANE);
         reloadSecondaryItems(weakGui,type,guiPage,p,actualisation);
 
         //GUI PAGE-ITEM

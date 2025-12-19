@@ -6,6 +6,7 @@ import fr.nexus.api.command.tabcompleter.TabCompleterHandler;
 import fr.nexus.api.gui.GuiManager;
 import fr.nexus.api.listeners.Listeners;
 import fr.nexus.api.listeners.core.CoreInitializeEvent;
+import fr.nexus.system.internal.information.InformationGui;
 import fr.nexus.system.internal.performanceTracker.PerformanceTrackerGui;
 import fr.nexus.system.Updater;
 import fr.nexus.utils.Utils;
@@ -14,7 +15,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
@@ -59,7 +59,7 @@ public class CoreCommand {
                         })
                         .ifPlayer(p->{
                             if(args.length<1){
-                                p.sendMessage("§cVeuillez indiquez un argument valide. (/core <config,performance,cachesize>)");
+                                p.sendMessage("§cVeuillez indiquez un argument valide. (/core <config,performance,cachesize,information>)");
                                 return;
                             }
 
@@ -85,14 +85,16 @@ public class CoreCommand {
                                     }
 
                                     cacheSize(p,args[1]);
-                                }case"version"->version(p);
+                                }case"information"->
+                                    InformationGui.primaryGui(p);
+                                case"version"->version(p);
                                 default->p.sendMessage("§cCommande incorrecte. (/core <performance,config,cachesize,version>)");
                             }
                         })
                 ).perform();
 
         TabCompleterHandler.create("core").addDisplay(sender->
-            ()->Set.of("performance","config","cachesize","version")).perform();
+            ()->Set.of("performance","config","cachesize","version","information")).perform();
 
         TabCompleterHandler.create("core").addArg(sender->()->"config").addDisplay(sender->
                 ()->Set.of("reload")).perform();
