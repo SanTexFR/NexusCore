@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 public interface VarTypes{
     //STRING
     @NotNull StringType STRING=new StringType();
+    @NotNull StringType.ConcurrentSetType STRING_CONCURRENT_SET=STRING.concurrent_sets();
     @NotNull StringType.SetType STRING_SET=STRING.sets();
     @NotNull StringType.LinkedSetType STRING_LINKED_SET=STRING.linked_sets();
     @NotNull StringType.ListType STRING_LIST=STRING.lists();
@@ -21,6 +22,7 @@ public interface VarTypes{
 
     //UUID
     @NotNull UUIDType UUID=new UUIDType();
+    @NotNull UUIDType.ConcurrentSetType UUID_CONCURRENT_SET=UUID.concurrent_sets();
     @NotNull UUIDType.SetType UUID_SET=UUID.sets();
     @NotNull UUIDType.LinkedSetType UUID_LINKED_SET=UUID.linked_sets();
     @NotNull UUIDType.ListType UUID_LIST=UUID.lists();
@@ -28,6 +30,7 @@ public interface VarTypes{
 
     //INTEGER
     @NotNull IntegerType INTEGER=new IntegerType();
+    @NotNull IntegerType.ConcurrentSetType INTEGER_LINKED_CONCURRENT_SET=INTEGER.concurrent_sets();
     @NotNull IntegerType.SetType INTEGER_SET=INTEGER.sets();
     @NotNull IntegerType.LinkedSetType INTEGER_LINKED_SET=INTEGER.linked_sets();
     @NotNull IntegerType.ListType INTEGER_LIST=INTEGER.lists();
@@ -35,6 +38,7 @@ public interface VarTypes{
 
     //INT-ARRAY
     @NotNull IntArrayType INTARRAY=new IntArrayType();
+    @NotNull IntArrayType.ConcurrentSetType INTARRAY_CONCURRENT_SET=INTARRAY.concurrent_sets();
     @NotNull IntArrayType.SetType INTARRAY_SET=INTARRAY.sets();
     @NotNull IntArrayType.LinkedSetType INTARRAY_LINKED_SET=INTARRAY.linked_sets();
     @NotNull IntArrayType.ListType INTARRAY_LIST=INTARRAY.lists();
@@ -42,6 +46,7 @@ public interface VarTypes{
 
     //LONG
     @NotNull LongType LONG=new LongType();
+    @NotNull LongType.ConcurrentSetType LONG_CONCURRENT_SET=LONG.concurrent_sets();
     @NotNull LongType.SetType LONG_SET=LONG.sets();
     @NotNull LongType.LinkedSetType LONG_LINKED_SET=LONG.linked_sets();
     @NotNull LongType.ListType LONG_LIST=LONG.lists();
@@ -49,6 +54,7 @@ public interface VarTypes{
 
     //LONG-ARRAY
     @NotNull LongArrayType LONGARRAY=new LongArrayType();
+    @NotNull LongArrayType.ConcurrentSetType LONGARRAY_CONCURRENT_SET=LONGARRAY.concurrent_sets();
     @NotNull LongArrayType.SetType LONGARRAY_SET=LONGARRAY.sets();
     @NotNull LongArrayType.LinkedSetType LONGARRAY_LINKED_SET=LONGARRAY.linked_sets();
     @NotNull LongArrayType.ListType LONGARRAY_LIST=LONGARRAY.lists();
@@ -56,6 +62,7 @@ public interface VarTypes{
 
     //SHORT
     @NotNull ShortType SHORT=new ShortType();
+    @NotNull ShortType.ConcurrentSetType SHORT_CONCURRENT_SET=SHORT.concurrent_sets();
     @NotNull ShortType.SetType SHORT_SET=SHORT.sets();
     @NotNull ShortType.LinkedSetType SHORT_LINKED_SET=SHORT.linked_sets();
     @NotNull ShortType.ListType SHORT_LIST=SHORT.lists();
@@ -63,6 +70,7 @@ public interface VarTypes{
 
     //SHORT-ARRAY
     @NotNull ShortArrayType SHORTARRAY=new ShortArrayType();
+    @NotNull ShortArrayType.ConcurrentSetType SHORTARRAY_CONCURRENT_SET=SHORTARRAY.concurrent_sets();
     @NotNull ShortArrayType.SetType SHORTARRAY_SET=SHORTARRAY.sets();
     @NotNull ShortArrayType.LinkedSetType SHORTARRAY_LINKED_SET=SHORTARRAY.linked_sets();
     @NotNull ShortArrayType.ListType SHORTARRAY_LIST=SHORTARRAY.lists();
@@ -70,6 +78,7 @@ public interface VarTypes{
 
     //FLOAT
     @NotNull FloatType FLOAT=new FloatType();
+    @NotNull FloatType.ConcurrentSetType FLOAT_CONCURRENT_SET=FLOAT.concurrent_sets();
     @NotNull FloatType.SetType FLOAT_SET=FLOAT.sets();
     @NotNull FloatType.LinkedSetType FLOAT_LINKED_SET=FLOAT.linked_sets();
     @NotNull FloatType.ListType FLOAT_LIST=FLOAT.lists();
@@ -77,6 +86,7 @@ public interface VarTypes{
 
     //FLOAT-ARRAY
     @NotNull FloatArrayType FLOATARRAY=new FloatArrayType();
+    @NotNull FloatArrayType.ConcurrentSetType FLOATARRAY_CONCURRENT_SET=FLOATARRAY.concurrent_sets();
     @NotNull FloatArrayType.SetType FLOATARRAY_SET=FLOATARRAY.sets();
     @NotNull FloatArrayType.LinkedSetType FLOATARRAY_LINKED_SET=FLOATARRAY.linked_sets();
     @NotNull FloatArrayType.ListType FLOATARRAY_LIST=FLOATARRAY.lists();
@@ -84,6 +94,7 @@ public interface VarTypes{
 
     //DOUBLE
     @NotNull DoubleType DOUBLE=new DoubleType();
+    @NotNull DoubleType.ConcurrentSetType DOUBLE_CONCURRENT_SET=DOUBLE.concurrent_sets();
     @NotNull DoubleType.SetType DOUBLE_SET=DOUBLE.sets();
     @NotNull DoubleType.LinkedSetType DOUBLE_LINKED_SET=DOUBLE.linked_sets();
     @NotNull DoubleType.ListType DOUBLE_LIST=DOUBLE.lists();
@@ -91,6 +102,7 @@ public interface VarTypes{
 
     //DOUBLE-ARRAY
     @NotNull DoubleArrayType DOUBLEARRAY=new DoubleArrayType();
+    @NotNull DoubleArrayType.ConcurrentSetType DOUBLEARRAY_CONCURRENT_SET=DOUBLEARRAY.concurrent_sets();
     @NotNull DoubleArrayType.SetType DOUBLEARRAY_SET=DOUBLEARRAY.sets();
     @NotNull DoubleArrayType.LinkedSetType DOUBLEARRAY_LINKED_SET=DOUBLEARRAY.linked_sets();
     @NotNull DoubleArrayType.ListType DOUBLEARRAY_LIST=DOUBLEARRAY.lists();
@@ -98,6 +110,7 @@ public interface VarTypes{
 
     //CHARACTER
     @NotNull CharacterType CHARACTER=new CharacterType();
+    @NotNull CharacterType.ConcurrentSetType CHARACTER_CONCURRENT_SET=CHARACTER.concurrent_sets();
     @NotNull CharacterType.SetType CHARACTER_SET=CHARACTER.sets();
     @NotNull CharacterType.LinkedSetType CHARACTER_LINKED_SET=CHARACTER.linked_sets();
     @NotNull CharacterType.ListType CHARACTER_LIST=CHARACTER.lists();
@@ -105,6 +118,7 @@ public interface VarTypes{
 
     //CHAR-ARRAY
     @NotNull CharArrayType CHARARRAY=new CharArrayType();
+    @NotNull CharArrayType.ConcurrentSetType CHARARRAY_CONCURRENT_SET=CHARARRAY.concurrent_sets();
     @NotNull CharArrayType.SetType CHARARRAY_SET=CHARARRAY.sets();
     @NotNull CharArrayType.LinkedSetType CHARARRAY_LINKED_SET=CHARARRAY.linked_sets();
     @NotNull CharArrayType.ListType CHARARRAY_LIST=CHARARRAY.lists();
@@ -112,6 +126,7 @@ public interface VarTypes{
 
     //BYTE
     @NotNull ByteType BYTE=new ByteType();
+    @NotNull ByteType.ConcurrentSetType BYTE_CONCURRENT_SET=BYTE.concurrent_sets();
     @NotNull ByteType.SetType BYTE_SET=BYTE.sets();
     @NotNull ByteType.LinkedSetType BYTE_LINKED_SET=BYTE.linked_sets();
     @NotNull ByteType.ListType BYTE_LIST=BYTE.lists();
@@ -119,6 +134,7 @@ public interface VarTypes{
 
     //BYTE_ARRAY
     @NotNull ByteArrayType BYTEARRAY=new ByteArrayType();
+    @NotNull ByteArrayType.ConcurrentSetType BYTEARRAY_CONCURRENT_SET=BYTEARRAY.concurrent_sets();
     @NotNull ByteArrayType.SetType BYTEARRAY_SET=BYTEARRAY.sets();
     @NotNull ByteArrayType.LinkedSetType BYTEARRAY_LINKED_SET=BYTEARRAY.linked_sets();
     @NotNull ByteArrayType.ListType BYTEARRAY_LIST=BYTEARRAY.lists();
@@ -126,6 +142,7 @@ public interface VarTypes{
 
     //PATH
     @NotNull PathType PATH=new PathType();
+    @NotNull PathType.ConcurrentSetType PATH_CONCURRENT_SET=PATH.concurrent_sets();
     @NotNull PathType.SetType PATH_SET=PATH.sets();
     @NotNull PathType.LinkedSetType PATH_LINKED_SET=PATH.linked_sets();
     @NotNull PathType.ListType PATH_LIST=PATH.lists();
@@ -133,6 +150,7 @@ public interface VarTypes{
 
     //BOOLEAN
     @NotNull BooleanType BOOLEAN=new BooleanType();
+    @NotNull BooleanType.ConcurrentSetType BOOLEAN_CONCURRENT_SET=BOOLEAN.concurrent_sets();
     @NotNull BooleanType.SetType BOOLEAN_SET=BOOLEAN.sets();
     @NotNull BooleanType.LinkedSetType BOOLEAN_LINKED_SET=BOOLEAN.linked_sets();
     @NotNull BooleanType.ListType BOOLEAN_LIST=BOOLEAN.lists();
@@ -140,6 +158,7 @@ public interface VarTypes{
 
     //BOOLEAN-ARRAY
     @NotNull BooleanArrayType BOOLEANARRAY=new BooleanArrayType();
+    @NotNull BooleanArrayType.ConcurrentSetType BOOLEANARRAY_CONCURRENT_SET=BOOLEANARRAY.concurrent_sets();
     @NotNull BooleanArrayType.SetType BOOLEANARRAY_SET=BOOLEANARRAY.sets();
     @NotNull BooleanArrayType.LinkedSetType BOOLEANARRAY_LINKED_SET=BOOLEANARRAY.linked_sets();
     @NotNull BooleanArrayType.ListType BOOLEANARRAY_LIST=BOOLEANARRAY.lists();
@@ -154,6 +173,7 @@ public interface VarTypes{
 
     //DATE
     @NotNull DateType DATE=new DateType();
+    @NotNull DateType.ConcurrentSetType DATE_CONCURRENT_SET=DATE.concurrent_sets();
     @NotNull DateType.SetType DATE_SET=DATE.sets();
     @NotNull DateType.LinkedSetType DATE_LINKED_SET=DATE.linked_sets();
     @NotNull DateType.ListType DATE_LIST=DATE.lists();
@@ -161,6 +181,7 @@ public interface VarTypes{
 
     //INSTANT
     @NotNull InstantType INSTANT=new InstantType();
+    @NotNull InstantType.ConcurrentSetType INSTANT_CONCURRENT_SET=INSTANT.concurrent_sets();
     @NotNull InstantType.SetType INSTANT_SET=INSTANT.sets();
     @NotNull InstantType.LinkedSetType INSTANT_LINKED_SET=INSTANT.linked_sets();
     @NotNull InstantType.ListType INSTANT_LIST=INSTANT.lists();
@@ -168,6 +189,7 @@ public interface VarTypes{
 
     //LOCAL_DATE
     @NotNull LocalDateType LOCAL_DATE=new LocalDateType();
+    @NotNull LocalDateType.ConcurrentSetType LOCAL_DATE_CONCURRENT_SET=LOCAL_DATE.concurrent_sets();
     @NotNull LocalDateType.SetType LOCAL_DATE_SET=LOCAL_DATE.sets();
     @NotNull LocalDateType.LinkedSetType LOCAL_DATE_LINKED_SET=LOCAL_DATE.linked_sets();
     @NotNull LocalDateType.ListType LOCAL_DATE_LIST=LOCAL_DATE.lists();
@@ -175,6 +197,7 @@ public interface VarTypes{
 
     //LOCAL_DATE_TIME
     @NotNull LocalDateTimeType LOCAL_DATE_TIME=new LocalDateTimeType();
+    @NotNull LocalDateTimeType.ConcurrentSetType LOCAL_DATE_TIME_CONCURRENT_SET=LOCAL_DATE_TIME.concurrent_sets();
     @NotNull LocalDateTimeType.SetType LOCAL_DATE_TIME_SET=LOCAL_DATE_TIME.sets();
     @NotNull LocalDateTimeType.LinkedSetType LOCAL_DATE_TIME_LINKED_SET=LOCAL_DATE_TIME.linked_sets();
     @NotNull LocalDateTimeType.ListType LOCAL_DATE_TIME_LIST=LOCAL_DATE_TIME.lists();
@@ -182,6 +205,7 @@ public interface VarTypes{
 
     //PERIOD
     @NotNull PeriodType PERIOD=new PeriodType();
+    @NotNull PeriodType.ConcurrentSetType PERIOD_CONCURRENT_SET=PERIOD.concurrent_sets();
     @NotNull PeriodType.SetType PERIOD_SET=PERIOD.sets();
     @NotNull PeriodType.LinkedSetType PERIOD_LINKED_SET=PERIOD.linked_sets();
     @NotNull PeriodType.ListType PERIOD_LIST=PERIOD.lists();
@@ -189,6 +213,7 @@ public interface VarTypes{
 
     //DURATION
     @NotNull DurationType DURATION=new DurationType();
+    @NotNull DurationType.ConcurrentSetType DURATION_CONCURRENT_SET=DURATION.concurrent_sets();
     @NotNull DurationType.SetType DURATION_SET=DURATION.sets();
     @NotNull DurationType.LinkedSetType DURATION_LINKED_SET=DURATION.linked_sets();
     @NotNull DurationType.ListType DURATION_LIST=DURATION.lists();
@@ -203,6 +228,7 @@ public interface VarTypes{
 
     //COMPONENT
     @NotNull ComponentType COMPONENT=new ComponentType();
+    @NotNull ComponentType.ConcurrentSetType COMPONENT_CONCURRENT_SET=COMPONENT.concurrent_sets();
     @NotNull ComponentType.SetType COMPONENT_SET=COMPONENT.sets();
     @NotNull ComponentType.LinkedSetType COMPONENT_LINKED_SET=COMPONENT.linked_sets();
     @NotNull ComponentType.ListType COMPONENT_LIST=COMPONENT.lists();
@@ -217,6 +243,7 @@ public interface VarTypes{
 
     //BIG_INTEGER
     @NotNull BigIntegerType BIG_INTEGER=new BigIntegerType();
+    @NotNull BigIntegerType.ConcurrentSetType BIG_INTEGER_CONCURRENT_SET=BIG_INTEGER.concurrent_sets();
     @NotNull BigIntegerType.SetType BIG_INTEGER_SET=BIG_INTEGER.sets();
     @NotNull BigIntegerType.LinkedSetType BIG_INTEGER_LINKED_SET=BIG_INTEGER.linked_sets();
     @NotNull BigIntegerType.ListType BIG_INTEGER_LIST=BIG_INTEGER.lists();
@@ -224,6 +251,7 @@ public interface VarTypes{
 
     //BIG_DECIMAL
     @NotNull BigDecimalType BIG_DECIMAL=new BigDecimalType();
+    @NotNull BigDecimalType.ConcurrentSetType BIG_DECIMAL_CONCURRENT_SET=BIG_DECIMAL.concurrent_sets();
     @NotNull BigDecimalType.SetType BIG_DECIMAL_SET=BIG_DECIMAL.sets();
     @NotNull BigDecimalType.LinkedSetType BIG_DECIMAL_LINKED_SET=BIG_DECIMAL.linked_sets();
     @NotNull BigDecimalType.ListType BIG_DECIMAL_LIST=BIG_DECIMAL.lists();
@@ -238,6 +266,7 @@ public interface VarTypes{
 
     //WORLD
     @NotNull WorldType WORLD=new WorldType();
+    @NotNull WorldType.ConcurrentSetType WORLD_CONCURRENT_SET=WORLD.concurrent_sets();
     @NotNull WorldType.SetType WORLD_SET=WORLD.sets();
     @NotNull WorldType.LinkedSetType WORLD_LINKED_SET=WORLD.linked_sets();
     @NotNull WorldType.ListType WORLD_LIST=WORLD.lists();
@@ -245,6 +274,7 @@ public interface VarTypes{
 
     //BLOCK-DATA
     @NotNull BlockDataType BLOCKDATA=new BlockDataType();
+    @NotNull BlockDataType.ConcurrentSetType BLOCKDATA_CONCURRENT_SET=BLOCKDATA.concurrent_sets();
     @NotNull BlockDataType.SetType BLOCKDATA_SET=BLOCKDATA.sets();
     @NotNull BlockDataType.LinkedSetType BLOCKDATA_LINKED_SET=BLOCKDATA.linked_sets();
     @NotNull BlockDataType.ListType BLOCKDATA_LIST=BLOCKDATA.lists();
@@ -252,6 +282,7 @@ public interface VarTypes{
 
     //CHUNK
     @NotNull ChunkType CHUNK=new ChunkType();
+    @NotNull ChunkType.ConcurrentSetType CHUNK_CONCURRENT_SET=CHUNK.concurrent_sets();
     @NotNull ChunkType.SetType CHUNK_SET=CHUNK.sets();
     @NotNull ChunkType.LinkedSetType CHUNK_LINKED_SET=CHUNK.linked_sets();
     @NotNull ChunkType.ListType CHUNK_LIST=CHUNK.lists();
@@ -259,6 +290,7 @@ public interface VarTypes{
 
     //DEPRECATED_MATERIAL
     @NotNull DeprecatedMaterialType DEPRECATED_MATERIAL=new DeprecatedMaterialType();
+    @NotNull DeprecatedMaterialType.ConcurrentSetType DEPRECATED_MATERIAL_CONCURRENT_SET=DEPRECATED_MATERIAL.concurrent_sets();
     @NotNull DeprecatedMaterialType.SetType DEPRECATED_MATERIAL_SET=DEPRECATED_MATERIAL.sets();
     @NotNull DeprecatedMaterialType.LinkedSetType DEPRECATED_MATERIAL_LINKED_SET=DEPRECATED_MATERIAL.linked_sets();
     @NotNull DeprecatedMaterialType.ListType DEPRECATED_MATERIAL_LIST=DEPRECATED_MATERIAL.lists();
@@ -266,6 +298,7 @@ public interface VarTypes{
 
     //MATERIAL
     @NotNull MaterialType MATERIAL=new MaterialType();
+    @NotNull MaterialType.ConcurrentSetType MATERIAL_CONCURRENT_SET=MATERIAL.concurrent_sets();
     @NotNull MaterialType.SetType MATERIAL_SET=MATERIAL.sets();
     @NotNull MaterialType.LinkedSetType MATERIAL_LINKED_SET=MATERIAL.linked_sets();
     @NotNull MaterialType.ListType MATERIAL_LIST=MATERIAL.lists();
@@ -273,6 +306,7 @@ public interface VarTypes{
 
     //LOCATION
     @NotNull LocationType LOCATION=new LocationType();
+    @NotNull LocationType.ConcurrentSetType LOCATION_CONCURRENT_SET=LOCATION.concurrent_sets();
     @NotNull LocationType.SetType LOCATION_SET=LOCATION.sets();
     @NotNull LocationType.LinkedSetType LOCATION_LINKED_SET=LOCATION.linked_sets();
     @NotNull LocationType.ListType LOCATION_LIST=LOCATION.lists();
@@ -280,6 +314,7 @@ public interface VarTypes{
 
     //ITEM_STACK
     @NotNull ItemStackType ITEMSTACK=new ItemStackType();
+    @NotNull ItemStackType.ConcurrentSetType ITEMSTACK_CONCURRENT_SET=ITEMSTACK.concurrent_sets();
     @NotNull ItemStackType.SetType ITEMSTACK_SET=ITEMSTACK.sets();
     @NotNull ItemStackType.LinkedSetType ITEMSTACK_LINKED_SET=ITEMSTACK.linked_sets();
     @NotNull ItemStackType.ListType ITEMSTACK_LIST=ITEMSTACK.lists();
@@ -287,6 +322,7 @@ public interface VarTypes{
 
     //GAMEMODE
     @NotNull GameModeType GAMEMODE=new GameModeType();
+    @NotNull GameModeType.ConcurrentSetType GAMEMODE_CONCURRENT_SET=GAMEMODE.concurrent_sets();
     @NotNull GameModeType.SetType GAMEMODE_SET=GAMEMODE.sets();
     @NotNull GameModeType.LinkedSetType GAMEMODE_LINKED_SET=GAMEMODE.linked_sets();
     @NotNull GameModeType.ListType GAMEMODE_LIST=GAMEMODE.lists();
@@ -294,6 +330,7 @@ public interface VarTypes{
 
     //INVENTORY
     @NotNull InventoryType INVENTORY=new InventoryType();
+    @NotNull InventoryType.ConcurrentSetType INVENTORY_CONCURRENT_SET=INVENTORY.concurrent_sets();
     @NotNull InventoryType.SetType INVENTORY_SET=INVENTORY.sets();
     @NotNull InventoryType.LinkedSetType INVENTORY_LINKED_SET=INVENTORY.linked_sets();
     @NotNull InventoryType.ListType INVENTORY_LIST=INVENTORY.lists();
@@ -301,6 +338,7 @@ public interface VarTypes{
 
     //VECTOR
     @NotNull VectorType VECTOR=new VectorType();
+    @NotNull VectorType.ConcurrentSetType VECTOR_CONCURRENT_SET=VECTOR.concurrent_sets();
     @NotNull VectorType.SetType VECTOR_SET=VECTOR.sets();
     @NotNull VectorType.LinkedSetType VECTOR_LINKED_SET=VECTOR.linked_sets();
     @NotNull VectorType.ListType VECTOR_LIST=VECTOR.lists();
@@ -308,6 +346,7 @@ public interface VarTypes{
 
     //BOUNDING_BOX
     @NotNull BoundingBoxType BOUNDING_BOX=new BoundingBoxType();
+    @NotNull BoundingBoxType.ConcurrentSetType BOUNDING_BOX_CONCURRENT_SET=BOUNDING_BOX.concurrent_sets();
     @NotNull BoundingBoxType.SetType BOUNDING_BOX_SET=BOUNDING_BOX.sets();
     @NotNull BoundingBoxType.LinkedSetType BOUNDING_BOX_LINKED_SET=BOUNDING_BOX.linked_sets();
     @NotNull BoundingBoxType.ListType BOUNDING_BOX_LIST=BOUNDING_BOX.lists();

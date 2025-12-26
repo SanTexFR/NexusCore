@@ -107,6 +107,34 @@ public final class GuiSlider extends GuiPanel{
         insertAt=Math.min(insertAt,size);
         addGuiItemAtIndex(insertAt,item);
     }
+    public void setGuiItemAtSlot(int slot, @NotNull GuiItem item) {
+        final Integer relative = getRelativeSlot(slot);
+        if (relative == null) {
+            return;
+        }
+
+        final int size = getGuiItemAmount();
+        if (size == 0) return;
+
+        int index = getIndex() - 1;
+
+        if (isHorizontal()) {
+            index += relative;
+        } else {
+            final int col = relative % getWidth();
+            final int row = relative / getWidth();
+            index += col * getHeight() + row;
+        }
+
+        if (isRecursive()) {
+            index = ((index % size) + size) % size;
+        } else if (index >= size) {
+            return;
+        }
+
+        getGuiItems().set(index, item);
+    }
+
 
     public void removeGuiItemAtSlot(int slot){
         final Integer relative=getRelativeSlot(slot);

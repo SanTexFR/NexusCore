@@ -131,8 +131,26 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
     public void addGuiItemAtSlot(int x,int y,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
         addGuiItemAtSlot(y*9+x,new GuiItem(item,action));
     }
+    public void addGuiItemAtSlot(int slot,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
+        addGuiItemAtSlot(slot,new GuiItem(item,action));
+    }
 
     public abstract void addGuiItemAtSlot(int slot,@NotNull GuiItem item);
+
+    public void setGuiItemAtSlot(int x,int y,@NotNull GuiItem item){
+        setGuiItemAtSlot(y*9+x,item);
+    }
+    public void setGuiItemAtSlot(int x,int y,@NotNull ItemStack item){
+        setGuiItemAtSlot(y*9+x,new GuiItem(item));
+    }
+    public void setGuiItemAtSlot(int x,int y,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
+        setGuiItemAtSlot(y*9+x,new GuiItem(item,action));
+    }
+    public void setGuiItemAtSlot(int slot,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
+        setGuiItemAtSlot(slot,new GuiItem(item,action));
+    }
+
+    public abstract void setGuiItemAtSlot(int slot,@NotNull GuiItem item);
 
     public void addGuiItemAtIndex(int index,@NotNull GuiItem item){
         this.guiItems.add(index,item);

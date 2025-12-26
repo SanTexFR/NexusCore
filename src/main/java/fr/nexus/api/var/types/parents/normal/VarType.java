@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 @SuppressWarnings({"unused","UnusedReturnValue","unchecked"})
 public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars,CollectionUtils{
@@ -147,6 +148,37 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
         public@NotNull CompletableFuture<@Nullable Set<T>>deserializeAsync(byte @NotNull[]bytes){
             return deserializeCollectionAsync(bytes,new HashSet<>(),VarType.this::deserializeAsync)
                     .thenApply(result->(Set<T>)result);
+        }
+    }
+
+    //INNER CONCURRENT-SET
+    public@NotNull ConcurrentSetType concurrent_sets(){
+        return new ConcurrentSetType();
+    }
+    public final class ConcurrentSetType implements VarSubType<ConcurrentHashMap.KeySetView<T,Boolean>>{
+        //RAW TYPE
+        public@NotNull String getStringType(){
+            return"ConcurrentSet<"+VarType.this.typeClazz.getName()+">";
+        }
+        public boolean isWrapper(){
+            return true;
+        }
+
+        //SERIALIZATION-SYNC
+        public byte@NotNull[] serializeSync(@NotNull ConcurrentHashMap.KeySetView<@NotNull T,Boolean>set){
+            return serializeCollection(set,VarType.this::serializeSync);
+        }
+        public@Nullable ConcurrentHashMap.KeySetView<@NotNull T,Boolean>deserializeSync(byte@NotNull[]bytes){
+            return(ConcurrentHashMap.KeySetView<@NotNull T,Boolean>)deserializeCollection(bytes,new HashSet<>(),VarType.this::deserializeSync);
+        }
+
+        //SERIALIZATION-ASYNC
+        public@NotNull CompletableFuture<byte@NotNull[]>serializeAsync(@NotNull ConcurrentHashMap.KeySetView<@NotNull T,Boolean>set){
+            return serializeCollectionAsync(set,VarType.this::serializeAsync);
+        }
+        public@NotNull CompletableFuture<ConcurrentHashMap.KeySetView<@Nullable T,Boolean>>deserializeAsync(byte @NotNull[]bytes){
+            return deserializeCollectionAsync(bytes,new HashSet<>(),VarType.this::deserializeAsync)
+                    .thenApply(result->(ConcurrentHashMap.KeySetView<T,Boolean>)result);
         }
     }
 

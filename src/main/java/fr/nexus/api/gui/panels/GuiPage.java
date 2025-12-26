@@ -52,6 +52,16 @@ public final class GuiPage extends GuiPanel{
         final int realIndex=resolveIndexForModification(relativeSlot);
         getGuiItems().add(realIndex,item);
     }
+    public void setGuiItemAtSlot(int slot,@NotNull GuiItem item){
+        final Integer relativeSlot=getRelativeSlot(slot);
+        if(relativeSlot==null){
+            getGuiItems().add(item);
+            return;
+        }
+
+        final int realIndex=resolveIndexForModification(relativeSlot);
+        getGuiItems().set(realIndex,item);
+    }
 
     public void removeGuiItemAtSlot(int slot){
         if(getGuiItems().isEmpty())return;

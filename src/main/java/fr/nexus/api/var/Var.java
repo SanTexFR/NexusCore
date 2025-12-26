@@ -338,7 +338,7 @@ public sealed abstract class Var permits VarFile,VarSql{
     public<T,T2,M extends Map<T,T2>>void putMap(@NotNull MapType<M> mapType,@NotNull VarSubType<T>keyType,@NotNull VarSubType<T2>valueType,@NotNull String key,@Nullable M map,boolean isPersistent){
         final long nanoTime=System.nanoTime();
 
-        if(map!=null){
+        if(map!=null&&!map.isEmpty()){
             synchronized(this.data){
                 if(isPersistent)data.put(key,new Object[]{map,new MapVarType<>(mapType,keyType,valueType)});
                 else data.put(key,new Object[]{map,new MapVarType<>(mapType,keyType,valueType),null});

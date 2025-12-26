@@ -41,11 +41,11 @@ public class CoreCommand {
                             switch(args[0].toLowerCase()){
                                 case"config"->{
                                     if(args.length<2||!args[1].equalsIgnoreCase("reload")){
-                                        c.sendMessage("§cVeuillez indiquez un argument valide. (/core config <reload>)");
+                                        c.sendMessage("§cVeuillez indiquez un argument valide. (/core config <reload> <safe,nosafe>)");
                                         return;
                                     }
 
-                                    reloadConfiguration(c);
+                                    reloadConfiguration(c,args);
                                 }case"cachesize"->{
                                     if(args.length<2||!args[1].equalsIgnoreCase("listeners")&&!args[1].equalsIgnoreCase("var")&&!args[1].equalsIgnoreCase("gui")&&!args[1].equalsIgnoreCase("utils")){
                                         c.sendMessage("§cVeuillez indiquez un argument valide. (/core cachesize <listeners,var,gui,utils>)");
@@ -66,11 +66,11 @@ public class CoreCommand {
                             switch(args[0].toLowerCase()){
                                 case"config"->{
                                     if(args.length<2||!args[1].equalsIgnoreCase("reload")){
-                                        p.sendMessage("§cVeuillez indiquez un argument valide. (/core config <reload>)");
+                                        p.sendMessage("§cVeuillez indiquez un argument valide. (/core config <reload> <safe,nosafe>)");
                                         return;
                                     }
 
-                                    reloadConfiguration(p);
+                                    reloadConfiguration(p,args);
                                 }case"performance"->{
                                     if(args.length<2||!args[1].equalsIgnoreCase("gui")){
                                         p.sendMessage("§cVeuillez indiquez un argument valide. (/core performance <gui>)");
@@ -98,15 +98,21 @@ public class CoreCommand {
 
         TabCompleterHandler.create("core").addArg(sender->()->"config").addDisplay(sender->
                 ()->Set.of("reload")).perform();
+        TabCompleterHandler.create("core").addArg(sender->()->"config").addArg(sender->()->"reload").addDisplay(sender->
+                ()->Set.of("safe","nosafe")).perform();
         TabCompleterHandler.create("core").addArg(sender->()->"performance").addDisplay(sender->
                 ()->Set.of("gui")).perform();
         TabCompleterHandler.create("core").addArg(sender->()->"cachesize").addDisplay(sender->
                 ()->Set.of("listeners","var","gui","utils")).perform();
     }
-    private static void reloadConfiguration(@NotNull CommandSender sender){
+    private static void reloadConfiguration(@NotNull CommandSender sender,@NotNull String[]args){
+        boolean nosafe=(args.length>2&&args[2].equalsIgnoreCase("nosafe"));
+
         final long time=System.currentTimeMillis();
-        Core.reload(false);
-        sender.sendMessage("§eConfiguration rechargée en "+(System.currentTimeMillis()-time)+"ms !");
+        Core.reload(nosafe);
+
+        if(nosafe)sender.sendMessage("§eConfiguration non sécurisée rechargée en "+(System.currentTimeMillis()-time)+"ms !");
+        else sender.sendMessage("§eConfiguration sécurisée rechargée en "+(System.currentTimeMillis()-time)+"ms !");
     }
     private static void cacheSize(@NotNull CommandSender s,@NotNull String arg){
         switch(arg.toLowerCase()){
