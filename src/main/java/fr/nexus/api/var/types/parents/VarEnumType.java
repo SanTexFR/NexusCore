@@ -1,11 +1,12 @@
-package fr.nexus.api.var.types.parents.normal;
+package fr.nexus.api.var.types.parents;
 
 import fr.nexus.api.var.types.VarTypes;
 import fr.nexus.api.var.types.VarVersion;
+import fr.nexus.api.var.types.parents.normal.VarType;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public abstract class VarEnumType<T extends Enum<T>>extends VarType<T>{
+public abstract class VarEnumType<T extends Enum<T>>extends VarType<T> {
     //CONSTRUCTOR
     protected VarEnumType(@NotNull Class<@NotNull T>typeClazz){
         super(typeClazz,1);

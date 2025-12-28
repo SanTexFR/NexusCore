@@ -39,10 +39,7 @@ public final class ChunkType extends VarType<Chunk>{
 
     private@NotNull Chunk deserializeSync(int version, byte[]bytes){
         if(version==1){
-            final ByteBuffer buffer=ByteBuffer.wrap(bytes);
-            final byte[]worldBytes=new byte[buffer.getInt()];
-            buffer.get(worldBytes);
-            return VarTypes.WORLD.deserializeSync(worldBytes).getChunkAt(buffer.getLong());
+            return deserializeAsync(version,bytes).join();
         }else throw createUnsupportedVersionException(version);
     }
 
