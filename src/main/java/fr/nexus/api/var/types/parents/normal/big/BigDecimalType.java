@@ -18,7 +18,7 @@ public final class BigDecimalType extends VarType<BigDecimal>{
 
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull BigDecimal value){
-        final byte[]bigIntBytes=VarTypes.BIG_INTEGER.serializeSync(value.unscaledValue());
+        final byte[]bigIntBytes=VarTypes.BIGINTEGER.serializeSync(value.unscaledValue());
         final ByteBuffer buffer=ByteBuffer.allocate(bigIntBytes.length+Integer.BYTES*2);
         buffer.putInt(bigIntBytes.length);
         buffer.put(bigIntBytes);
@@ -35,7 +35,7 @@ public final class BigDecimalType extends VarType<BigDecimal>{
             final ByteBuffer buffer=ByteBuffer.wrap(bytes);
             final byte[]bigIntBytes=new byte[buffer.getInt()];
             buffer.get(bigIntBytes);
-            final BigInteger bInt=VarTypes.BIG_INTEGER.deserializeSync(bigIntBytes);
+            final BigInteger bInt=VarTypes.BIGINTEGER.deserializeSync(bigIntBytes);
             final int scale=buffer.getInt();
             return new BigDecimal(bInt,scale);
         }else throw createUnsupportedVersionException(version);

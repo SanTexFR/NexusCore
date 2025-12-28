@@ -5,6 +5,7 @@ import fr.nexus.api.var.types.parents.map.types.*;
 @SuppressWarnings({"unused","UnusedReturnValue","unchecked"})
 public class VarMapTypes {
     private static final ConcurrentHashMapType<?,?>CONCURRENT_HASH_MAP=new ConcurrentHashMapType<>();
+    private static final ConcurrentSkipListMapType<?,?>CONCURRENT_SKIP_LIST_MAP=new ConcurrentSkipListMapType<>();
     private static final HashMapType<?,?>HASH_MAP=new HashMapType<>();
     private static final IdentityHashMapType<?,?>IDENTITY_HASH_MAP=new IdentityHashMapType<>();
     private static final LinkedHashMapType<?,?>LINKED_HASH_MAP=new LinkedHashMapType<>();
@@ -13,6 +14,9 @@ public class VarMapTypes {
 
     public static<T,T2>ConcurrentHashMapType<T,T2>CONCURRENT_HASH_MAP(){
         return(ConcurrentHashMapType<T,T2>)CONCURRENT_HASH_MAP;
+    }
+    public static<T,T2>ConcurrentSkipListMapType<T,T2>CONCURRENT_SKIP_LIST_MAP(){
+        return(ConcurrentSkipListMapType<T,T2>)CONCURRENT_SKIP_LIST_MAP;
     }
     public static<T,T2>HashMapType<T,T2>HASH_MAP(){
         return(HashMapType<T,T2>)HASH_MAP;

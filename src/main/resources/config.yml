@@ -1,3 +1,5 @@
+generate-vartypes-file: false
+
 # LIST OF DATABASES THAT VAR-SQL CAN USE
 # REMOVE THE "main" DATABASE IF YOU DON'T WANT A DEFAULT
 databases:

@@ -6,6 +6,7 @@ import fr.nexus.api.listeners.core.CoreDisableEvent;
 import fr.nexus.api.listeners.core.CoreInitializeEvent;
 import fr.nexus.api.listeners.core.CoreReloadEvent;
 import fr.nexus.api.listeners.Listeners;
+import fr.nexus.api.var.types.VarTypes;
 import fr.nexus.system.ClazzInitializer;
 import fr.nexus.system.Logger;
 import fr.nexus.system.ThreadPool;
@@ -14,6 +15,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.lang.ref.Cleaner;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -45,8 +47,17 @@ public final class Core extends JavaPlugin{
         instance=this;
         logger=new Logger(this,Core.class);
 
+
         //CONFIG
         saveDefaultConfig();
+
+        if(getConfig().getBoolean("generate-vartypes-file",false)){
+            try{
+                VarTypes.generateFileTypes();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
         //RELOAD
         reload();
