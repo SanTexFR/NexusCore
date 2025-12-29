@@ -32,8 +32,8 @@ public final class ChunkType extends VarType<Chunk>{
 
     //ASYNC
     public@NotNull CompletableFuture<@NotNull Chunk>deserializeAsync(byte@NotNull[]bytes){
-        final int version=readVersionAndRemainder(bytes);
-        return deserializeAsync(version,bytes);
+        final VersionAndRemainder value=readVersionAndRemainder(bytes);
+        return deserializeAsync(value.version(),value.remainder());
     }
 
     private@NotNull CompletableFuture<@NotNull Chunk>deserializeAsync(int version, byte[]bytes){

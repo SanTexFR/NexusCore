@@ -7,8 +7,7 @@ import org.jetbrains.annotations.NotNull;
 public final class IntegerType extends VarType<Integer>{
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull Integer value){
-        final int v=value;
-        return addVersionToBytes(toVarInt(zigZagEncode(v)));
+        return addVersionToBytes(toVarInt(zigZagEncode(value)));
     }
     public@NotNull Integer deserializeSync(int version,byte[]bytes){
         if(version==1){

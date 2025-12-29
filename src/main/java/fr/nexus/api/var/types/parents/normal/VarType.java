@@ -88,8 +88,8 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     //SERIALIZATION-SYNC
     public abstract byte@NotNull[]serializeSync(@NotNull T obj);
     public@NotNull T deserializeSync(byte@NotNull[]bytes){
-        final int version=readVersionAndRemainder(bytes);
-        return deserializeSync(version,bytes);
+        final VersionAndRemainder value=readVersionAndRemainder(bytes);
+        return deserializeSync(value.version(),value.remainder());
     }
     public abstract@NotNull T deserializeSync(int version,byte[]bytes);
 

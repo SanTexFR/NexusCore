@@ -85,8 +85,8 @@ public class MapVarType<T,T2>extends VarVersion implements Vars,CollectionUtils{
         return addVersionToBytes(buffer.array());
     }
     public @NotNull Map<T,T2>deserializeSync(byte[]bytes){
-        final int version=readVersionAndRemainder(bytes);
-        return deserializeSync(version,bytes);
+        final VersionAndRemainder value=readVersionAndRemainder(bytes);
+        return deserializeSync(value.version(),value.remainder());
     }
 
 
@@ -160,8 +160,8 @@ public class MapVarType<T,T2>extends VarVersion implements Vars,CollectionUtils{
                 });
     }
     public @NotNull CompletableFuture<@NotNull Map<T, T2>> deserializeAsync(byte @NotNull [] bytes) {
-        final int version=readVersionAndRemainder(bytes);
-        return deserializeAsync(version,bytes);
+        final VersionAndRemainder value=readVersionAndRemainder(bytes);
+        return deserializeAsync(value.version(),value.remainder());
     }
 
 

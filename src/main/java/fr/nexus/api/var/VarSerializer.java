@@ -33,77 +33,92 @@ class VarSerializer{
 
     //SAVE
     public static byte[]serializeDataSync(@NotNull Object2ObjectOpenHashMap<@NotNull String,@NotNull Object@NotNull[]>data)throws IOException{
-        if(data.isEmpty())return null;
-
-        final List<Map.Entry<String,Object[]>>entries=new ArrayList<>(data.entrySet());
-        final int chunkSize=(entries.size()+Var.THREAD_AMOUNT-1)/Var.THREAD_AMOUNT;
-
-        final List<CompletableFuture<byte[]>>futures=new ArrayList<>();
-        for(int i=0;i<entries.size();i+=chunkSize){
-            final List<Map.Entry<String,Object[]>>subList=entries.subList(i,Math.min(i+chunkSize,entries.size()));
-            final CompletableFuture<byte[]>future=CompletableFuture.supplyAsync(()->{
-                try{
-                    final ByteArrayOutputStream baos=new ByteArrayOutputStream();
-                    for(final Map.Entry<String,Object[]>entry:subList){
-                        final Object[]objects=entry.getValue();
-                        final Vars vars=(Vars)objects[1];
-                        final byte[]keyBytes=VarTypes.STRING.serializeSync(entry.getKey());
-
-                        if(vars.isWrapper()){
-                            final byte[]dataTypeBytes=VarTypes.STRING.serializeSync("Wrapper");
-                            final byte[]varTypeBytes=VarTypes.STRING.serializeSync(vars.getStringType());
-                            final byte[]valueBytes=((VarSubType<Object>)vars).serializeSync(objects[0]);
-
-                            writeByteArray(baos,dataTypeBytes);
-                            writeByteArray(baos,keyBytes);
-                            writeByteArray(baos,varTypeBytes);
-                            writeByteArray(baos,valueBytes);
-
-                        }else if(vars.isMap()){
-                            final byte[]dataTypeBytes=VarTypes.STRING.serializeSync("Map");
-                            final byte[]mapTypeBytes=VarTypes.STRING.serializeSync(((MapVarType<?,?>)vars).getVarMapType().getStringType());
-                            final byte[]keyTypeBytes=VarTypes.STRING.serializeSync(((MapVarType<?,?>)vars).getKeyVarType().getStringType());
-                            final byte[]valueTypeBytes=VarTypes.STRING.serializeSync(((MapVarType<?,?>)vars).getValueVarType().getStringType());
-                            final byte[]valueBytes=((MapVarType<Object, Object>) vars).serializeSync((Map<Object,Object>)objects[0]);
-
-                            writeByteArray(baos,dataTypeBytes);
-                            writeByteArray(baos,keyBytes);
-                            writeByteArray(baos,mapTypeBytes);
-                            writeByteArray(baos,keyTypeBytes);
-                            writeByteArray(baos,valueTypeBytes);
-                            writeByteArray(baos,valueBytes);
-
-                        }else throw new RuntimeException("Type Vars non supporté: " + vars);
-                    }
-                    return baos.toByteArray();
-                }catch(IOException e){
-                    throw new RuntimeException(e);
-                }
-            },Var.THREADPOOL);
-
-            futures.add(future);
-        }
-
-        final CompletableFuture<Void>allDone=CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-        final CompletableFuture<byte[]>combinedFuture=allDone.thenApply(v->{
-            try{
-                final ByteArrayOutputStream combinedBaos=new ByteArrayOutputStream();
-                for(CompletableFuture<byte[]>f:futures)
-                    combinedBaos.write(f.get());
-                return combinedBaos.toByteArray();
-            }catch(Exception e){
-                throw new RuntimeException(e);
-            }
-        });
-
-        final byte[]allData=combinedFuture.join();
-        final ByteArrayOutputStream compressedBaos=new ByteArrayOutputStream();
-        try(LZ4BlockOutputStream lz4Out=new LZ4BlockOutputStream(compressedBaos,64*1024, COMPRESSOR)) {
-            compressedBaos.write(ByteBuffer.allocate(4).putInt(allData.length).array());
-            lz4Out.write(allData);
-        }
-        return compressedBaos.toByteArray();
+        return serializeDataAsync(data).join();
     }
+//    public static byte[]serializeDataSync(@NotNull Object2ObjectOpenHashMap<@NotNull String,@NotNull Object@NotNull[]>data)throws IOException{
+//        if(data.isEmpty())return null;
+//
+//        final List<Map.Entry<String,Object[]>>entries=new ArrayList<>(data.entrySet());
+//        final int chunkSize=(entries.size()+Var.THREAD_AMOUNT-1)/Var.THREAD_AMOUNT;
+//
+//        final List<CompletableFuture<byte[]>>futures=new ArrayList<>();
+//        for(int i=0;i<entries.size();i+=chunkSize){
+//            final List<Map.Entry<String,Object[]>>subList=entries.subList(i,Math.min(i+chunkSize,entries.size()));
+//            final CompletableFuture<byte[]>future=CompletableFuture.supplyAsync(()->{
+//                try{
+//                    final ByteArrayOutputStream baos=new ByteArrayOutputStream();
+//                    for(final Map.Entry<String,Object[]>entry:subList){
+//                        final Object[]objects=entry.getValue();
+//                        final Vars vars=(Vars)objects[1];
+//                        final byte[]keyBytes=VarTypes.STRING.serializeSync(entry.getKey());
+//
+//                        if(vars.isWrapper()){
+//                            final byte[]dataTypeBytes=VarTypes.STRING.serializeSync("Wrapper");
+//                            final byte[]varTypeBytes=VarTypes.STRING.serializeSync(vars.getStringType());
+//                            final byte[]valueBytes;
+//
+//                            if (vars.needAsync()) {
+//                                valueBytes = ((VarSubType<Object>) vars).serializeAsync(objects[0]).join();
+//                            } else {
+//                                valueBytes = ((VarSubType<Object>) vars).serializeSync(objects[0]);
+//                            }
+//
+//                            writeByteArray(baos,dataTypeBytes);
+//                            writeByteArray(baos,keyBytes);
+//                            writeByteArray(baos,varTypeBytes);
+//                            writeByteArray(baos,valueBytes);
+//
+//                        }else if(vars.isMap()){
+//                            final byte[]dataTypeBytes=VarTypes.STRING.serializeSync("Map");
+//                            final byte[]mapTypeBytes=VarTypes.STRING.serializeSync(((MapVarType<?,?>)vars).getVarMapType().getStringType());
+//                            final byte[]keyTypeBytes=VarTypes.STRING.serializeSync(((MapVarType<?,?>)vars).getKeyVarType().getStringType());
+//                            final byte[]valueTypeBytes=VarTypes.STRING.serializeSync(((MapVarType<?,?>)vars).getValueVarType().getStringType());
+//                            final byte[]valueBytes;
+//
+//                            if (vars.needAsync()) {
+//                                valueBytes =((MapVarType<Object, Object>) vars).serializeAsync((Map<Object,Object>)objects[0]).join();
+//                            } else {
+//                                valueBytes =((MapVarType<Object, Object>) vars).serializeSync((Map<Object,Object>)objects[0]);
+//                            }
+//
+//                            writeByteArray(baos,dataTypeBytes);
+//                            writeByteArray(baos,keyBytes);
+//                            writeByteArray(baos,mapTypeBytes);
+//                            writeByteArray(baos,keyTypeBytes);
+//                            writeByteArray(baos,valueTypeBytes);
+//                            writeByteArray(baos,valueBytes);
+//
+//                        }else throw new RuntimeException("Type Vars non supporté: " + vars);
+//                    }
+//                    return baos.toByteArray();
+//                }catch(IOException e){
+//                    throw new RuntimeException(e);
+//                }
+//            },Var.THREADPOOL);
+//
+//            futures.add(future);
+//        }
+//
+//        final CompletableFuture<Void>allDone=CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+//        final CompletableFuture<byte[]>combinedFuture=allDone.thenApply(v->{
+//            try{
+//                final ByteArrayOutputStream combinedBaos=new ByteArrayOutputStream();
+//                for(CompletableFuture<byte[]>f:futures)
+//                    combinedBaos.write(f.get());
+//                return combinedBaos.toByteArray();
+//            }catch(Exception e){
+//                throw new RuntimeException(e);
+//            }
+//        });
+//
+//        final byte[]allData=combinedFuture.join();
+//        final ByteArrayOutputStream compressedBaos=new ByteArrayOutputStream();
+//        try(LZ4BlockOutputStream lz4Out=new LZ4BlockOutputStream(compressedBaos,64*1024, COMPRESSOR)) {
+//            compressedBaos.write(ByteBuffer.allocate(4).putInt(allData.length).array());
+//            lz4Out.write(allData);
+//        }
+//        return compressedBaos.toByteArray();
+//    }
 
     public static @NotNull CompletableFuture<byte[]> serializeDataAsync(
             @NotNull Object2ObjectOpenHashMap<@NotNull String,@NotNull Object@NotNull[]> data) {
@@ -138,13 +153,12 @@ class VarSerializer{
                         if (vars.isWrapper()) {
                             byte[] dataTypeBytes, varTypeBytes, valueBytes;
 
+                            dataTypeBytes = VarTypes.STRING.serializeSync("Wrapper");
+                            varTypeBytes = VarTypes.STRING.serializeSync(vars.getStringType());
+
                             if (vars.needAsync()) {
-                                dataTypeBytes = VarTypes.STRING.serializeAsync("Wrapper").join();
-                                varTypeBytes = VarTypes.STRING.serializeAsync(vars.getStringType()).join();
                                 valueBytes = ((VarSubType<Object>) vars).serializeAsync(objects[0]).join();
                             } else {
-                                dataTypeBytes = VarTypes.STRING.serializeSync("Wrapper");
-                                varTypeBytes = VarTypes.STRING.serializeSync(vars.getStringType());
                                 valueBytes = ((VarSubType<Object>) vars).serializeSync(objects[0]);
                             }
 
@@ -158,17 +172,14 @@ class VarSerializer{
 
                             byte[] dataTypeBytes, mapTypeBytes, keyTypeBytes, valueTypeBytes, valueBytes;
 
+                            dataTypeBytes = VarTypes.STRING.serializeSync("Map");
+                            mapTypeBytes = VarTypes.STRING.serializeSync(mapVar.getVarMapType().getStringType());
+                            keyTypeBytes = VarTypes.STRING.serializeSync(mapVar.getKeyVarType().getStringType());
+                            valueTypeBytes = VarTypes.STRING.serializeSync(mapVar.getValueVarType().getStringType());
+
                             if (vars.needAsync()) {
-                                dataTypeBytes = VarTypes.STRING.serializeAsync("Map").join();
-                                mapTypeBytes = VarTypes.STRING.serializeAsync(mapVar.getVarMapType().getStringType()).join();
-                                keyTypeBytes = VarTypes.STRING.serializeAsync(mapVar.getKeyVarType().getStringType()).join();
-                                valueTypeBytes = VarTypes.STRING.serializeAsync(mapVar.getValueVarType().getStringType()).join();
                                 valueBytes = ((MapVarType<Object, Object>) mapVar).serializeAsync((Map<Object, Object>) objects[0]).join();
                             } else {
-                                dataTypeBytes = VarTypes.STRING.serializeSync("Map");
-                                mapTypeBytes = VarTypes.STRING.serializeSync(mapVar.getVarMapType().getStringType());
-                                keyTypeBytes = VarTypes.STRING.serializeSync(mapVar.getKeyVarType().getStringType());
-                                valueTypeBytes = VarTypes.STRING.serializeSync(mapVar.getValueVarType().getStringType());
                                 valueBytes = ((MapVarType<Object, Object>) mapVar).serializeSync((Map<Object, Object>) objects[0]);
                             }
 
@@ -232,61 +243,64 @@ class VarSerializer{
 
     //LOAD
     public static void deserializeDataSync(byte[]serializedData,@NotNull Object2ObjectOpenHashMap<@NotNull String,@NotNull Object@NotNull[]>data)throws IOException{
-        data.clear();
-
-        if(serializedData.length==0)return;
-
-        final ByteBuffer wrapper=ByteBuffer.wrap(serializedData);
-        final int originalLength=wrapper.getInt();
-
-        final byte[]compressedData=new byte[serializedData.length-Integer.BYTES];
-        wrapper.get(compressedData);
-
-        final ByteArrayInputStream bais=new ByteArrayInputStream(compressedData);
-        final ByteBuffer decompressedBuffer;
-        try(net.jpountz.lz4.LZ4BlockInputStream lz4In=new net.jpountz.lz4.LZ4BlockInputStream(bais,DECOMPRESSOR)){
-            final byte[]decompressed=lz4In.readAllBytes();
-            if(decompressed.length!=originalLength)
-                throw new IOException("Longueur décompressée incorrecte");
-            decompressedBuffer=ByteBuffer.wrap(decompressed);
-        }
-
-        while(decompressedBuffer.hasRemaining()){
-            final byte[]dataTypeBytes=new byte[decompressedBuffer.getInt()];
-            decompressedBuffer.get(dataTypeBytes);
-            final String dataType=VarTypes.STRING.deserializeSync(dataTypeBytes);
-
-            final byte[]keyBytes=new byte[decompressedBuffer.getInt()];
-            decompressedBuffer.get(keyBytes);
-            final String key=VarTypes.STRING.deserializeSync(keyBytes);
-
-            if("Wrapper".equals(dataType)){
-                final String varTypeString=VarTypes.STRING.deserializeSync(readByteArray(decompressedBuffer));
-                final VarSubType<Object>varType=(VarSubType<Object>)VarType.getTypes().get(varTypeString);
-                if(varType==null)throw new IOException("VarType inconnu: "+varTypeString);
-
-                final Object value=varType.deserializeSync(readByteArray(decompressedBuffer));
-                if(value==null)throw new IOException("Null value");
-
-                data.put(key, new Object[]{value, varType});
-            }else if("Map".equals(dataType)){
-                final String mapTypeString=VarTypes.STRING.deserializeSync(readByteArray(decompressedBuffer));
-                final MapType<?>mapType=MapType.getTypes().get(mapTypeString);
-                if(mapType==null)throw new IOException("MapType inconnu: "+mapTypeString);
-
-                final String varTypeString1=VarTypes.STRING.deserializeSync(readByteArray(decompressedBuffer));
-                final VarSubType<Object>varType1=(VarSubType<Object>) VarType.getTypes().get(varTypeString1);
-                if(varType1==null)throw new IOException("VarType inconnu: "+varTypeString1);
-
-                final String varTypeString2 = VarTypes.STRING.deserializeSync(readByteArray(decompressedBuffer));
-                final VarSubType<Object> varType2 = (VarSubType<Object>) VarType.getTypes().get(varTypeString2);
-                if(varType2==null)throw new IOException("VarType inconnu: "+varTypeString2);
-
-                final MapVarType<Object,Object>mapVarType=new MapVarType<>(mapType,varType1,varType2);
-                data.put(key,new Object[]{mapVarType.deserializeSync(readByteArray(decompressedBuffer)),mapVarType});
-            }else throw new IOException("Type de données inconnu: "+dataType);
-        }
+        deserializeDataAsync(serializedData,data).join();
     }
+//    public static void deserializeDataSync(byte[]serializedData,@NotNull Object2ObjectOpenHashMap<@NotNull String,@NotNull Object@NotNull[]>data)throws IOException{
+//        data.clear();
+//
+//        if(serializedData.length==0)return;
+//
+//        final ByteBuffer wrapper=ByteBuffer.wrap(serializedData);
+//        final int originalLength=wrapper.getInt();
+//
+//        final byte[]compressedData=new byte[serializedData.length-Integer.BYTES];
+//        wrapper.get(compressedData);
+//
+//        final ByteArrayInputStream bais=new ByteArrayInputStream(compressedData);
+//        final ByteBuffer decompressedBuffer;
+//        try(net.jpountz.lz4.LZ4BlockInputStream lz4In=new net.jpountz.lz4.LZ4BlockInputStream(bais,DECOMPRESSOR)){
+//            final byte[]decompressed=lz4In.readAllBytes();
+//            if(decompressed.length!=originalLength)
+//                throw new IOException("Longueur décompressée incorrecte");
+//            decompressedBuffer=ByteBuffer.wrap(decompressed);
+//        }
+//
+//        while(decompressedBuffer.hasRemaining()){
+//            final byte[]dataTypeBytes=new byte[decompressedBuffer.getInt()];
+//            decompressedBuffer.get(dataTypeBytes);
+//            final String dataType=VarTypes.STRING.deserializeSync(dataTypeBytes);
+//
+//            final byte[]keyBytes=new byte[decompressedBuffer.getInt()];
+//            decompressedBuffer.get(keyBytes);
+//            final String key=VarTypes.STRING.deserializeSync(keyBytes);
+//
+//            if("Wrapper".equals(dataType)){
+//                final String varTypeString=VarTypes.STRING.deserializeSync(readByteArray(decompressedBuffer));
+//                final VarSubType<Object>varType=(VarSubType<Object>)VarType.getTypes().get(varTypeString);
+//                if(varType==null)throw new IOException("VarType inconnu: "+varTypeString);
+//
+//                final Object value=varType.deserializeSync(readByteArray(decompressedBuffer));
+//                if(value==null)throw new IOException("Null value");
+//
+//                data.put(key, new Object[]{value, varType});
+//            }else if("Map".equals(dataType)){
+//                final String mapTypeString=VarTypes.STRING.deserializeSync(readByteArray(decompressedBuffer));
+//                final MapType<?>mapType=MapType.getTypes().get(mapTypeString);
+//                if(mapType==null)throw new IOException("MapType inconnu: "+mapTypeString);
+//
+//                final String varTypeString1=VarTypes.STRING.deserializeSync(readByteArray(decompressedBuffer));
+//                final VarSubType<Object>varType1=(VarSubType<Object>) VarType.getTypes().get(varTypeString1);
+//                if(varType1==null)throw new IOException("VarType inconnu: "+varTypeString1);
+//
+//                final String varTypeString2 = VarTypes.STRING.deserializeSync(readByteArray(decompressedBuffer));
+//                final VarSubType<Object> varType2 = (VarSubType<Object>) VarType.getTypes().get(varTypeString2);
+//                if(varType2==null)throw new IOException("VarType inconnu: "+varTypeString2);
+//
+//                final MapVarType<Object,Object>mapVarType=new MapVarType<>(mapType,varType1,varType2);
+//                data.put(key,new Object[]{mapVarType.deserializeSync(readByteArray(decompressedBuffer)),mapVarType});
+//            }else throw new IOException("Type de données inconnu: "+dataType);
+//        }
+//    }
 
     public static @NotNull CompletableFuture<Void> deserializeDataAsync(
             byte[] serializedData,

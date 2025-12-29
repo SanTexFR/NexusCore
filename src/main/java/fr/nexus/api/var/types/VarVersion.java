@@ -1,6 +1,7 @@
 package fr.nexus.api.var.types;
 
 import fr.nexus.api.var.types.parents.Vars;
+import fr.nexus.api.var.types.parents.normal.VarType;
 import fr.nexus.api.var.types.parents.normal.java.IntegerType;
 import org.jetbrains.annotations.NotNull;
 
@@ -16,8 +17,8 @@ public abstract class VarVersion implements Vars{
         return this.version;
     }
 
-    protected int readVersionAndRemainder(byte[]bytes){
-        if (bytes.length == 0)
+    protected @NotNull VarType.VersionAndRemainder readVersionAndRemainder(byte[] bytes) {
+        if (bytes == null || bytes.length == 0)
             throw new IllegalArgumentException("Cannot read version: empty byte array");
 
         int value = 0;
@@ -41,18 +42,26 @@ public abstract class VarVersion implements Vars{
                 throw new RuntimeException("VarInt too long");
         }
 
-        index++; // index = début du reste
+        // ZigZag decode pour récupérer la version originale
+        int decodedVersion = IntegerType.zigZagDecode(value);
 
-        int remainderLength = bytes.length - index;
-        if (remainderLength > 0) {
-            System.arraycopy(bytes, index, bytes, 0, remainderLength);
+        index++; // début du reste
+        final byte[] remainder;
+        if (index >= bytes.length) {
+            remainder = new byte[0];
+        } else {
+            remainder = new byte[bytes.length - index];
+            System.arraycopy(bytes, index, remainder, 0, remainder.length);
         }
 
-        return value;
+        return new VarType.VersionAndRemainder(decodedVersion, remainder);
     }
 
-    protected byte[]addVersionToBytes(byte[] bytes) {
-        final byte[] versionBytes = IntegerType.toVarInt(version);
+    protected byte[] addVersionToBytes(byte[] bytes) {
+        if (bytes == null) bytes = new byte[0];
+
+        // ZigZag encode la version puis convertit en VarInt
+        final byte[] versionBytes = IntegerType.toVarInt(IntegerType.zigZagEncode(version));
 
         byte[] result = new byte[versionBytes.length + bytes.length];
         System.arraycopy(versionBytes, 0, result, 0, versionBytes.length);
@@ -67,4 +76,6 @@ public abstract class VarVersion implements Vars{
                 unsupportedVersion + "' | current_version: '" +
                 getVersion() + "'");
     }
+
+    public record VersionAndRemainder(int version, byte[] remainder) {}
 }
