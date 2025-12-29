@@ -10,11 +10,6 @@ import java.nio.charset.StandardCharsets;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class BlockDataType extends VarType<BlockData>{
-    //CONSTRUCTOR
-    public BlockDataType(){
-        super(BlockData.class,1);
-    }
-
     //METHODS
     public byte@NotNull[]serializeSync(@NotNull BlockData data){
         final byte[]dataBytes=data.getAsString().getBytes(StandardCharsets.UTF_8);
@@ -26,12 +21,7 @@ public final class BlockDataType extends VarType<BlockData>{
         return addVersionToBytes(buffer.array());
     }
 
-    public @NotNull BlockData deserializeSync(byte@NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserialize(var.version(),var.remainder());
-    }
-
-    private @NotNull BlockData deserialize(int version, byte[] bytes) {
+    public@NotNull BlockData deserializeSync(int version, byte[] bytes) {
         if(version==1){
             final ByteBuffer buffer=ByteBuffer.wrap(bytes);
 

@@ -152,8 +152,6 @@ public final class VarFile extends Var{
         if(!isDirty())return;
         final long nanoTime=System.nanoTime();
 
-        setDirty(false);
-
         final Path path=super.getPath();
         try{
             final byte[]bytes;
@@ -174,12 +172,12 @@ public final class VarFile extends Var{
             throw new RuntimeException("Failed to save data synchronously: "+path,e);
         }
 
+        setDirty(false);
+
         PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
     }
     public @NotNull CompletableFuture<@Nullable Void>saveAsync() {
         if(!isDirty())return CompletableFuture.completedFuture(null);
-
-        setDirty(false);
 
         final Path path=super.getPath();
 
@@ -190,23 +188,28 @@ public final class VarFile extends Var{
 
         return VarSerializer.serializeDataAsync(snapshot).thenAcceptAsync(bytes->{
             try{
-                if(bytes==null||bytes.length==0){
+                if(bytes==null || bytes.length==0){
                     Files.deleteIfExists(path);
-                    return;
-                }
-
-                try{
+                }else{
                     Files.createDirectories(path.getParent());
                     Files.write(path,bytes);
-                }catch(IOException e){
-                    throw new CompletionException("Failed to save data asynchronously: "+path,e);
                 }
-            }catch(CompletionException ce){
-                throw ce;
+
+                setDirty(false);
+
             }catch(Throwable t){
                 throw new CompletionException(t);
             }
-        },Var.THREADPOOL);
+        },Var.THREADPOOL)
+                .exceptionally(ex -> {
+                    // ❗ Sauvegarde échouée → on garde dirty = true
+                    // ❗ Le fichier existant n'est PAS touché
+
+                    // Optionnel mais fortement recommandé :
+                    ex.printStackTrace();
+
+                    return null;
+                });
     }
 
     //INNER CLASS

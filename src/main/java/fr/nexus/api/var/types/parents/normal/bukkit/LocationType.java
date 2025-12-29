@@ -10,12 +10,6 @@ import java.nio.ByteBuffer;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class LocationType extends VarType<Location>{
-    //CONSTRUCTOR
-    public LocationType(){
-        super(Location.class,1);
-    }
-
-
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull Location value){
         final byte[]serializedWorld=VarTypes.WORLD.serializeSync(value.getWorld());
@@ -36,12 +30,7 @@ public final class LocationType extends VarType<Location>{
 
         return addVersionToBytes(buffer.array());
     }
-    public@NotNull Location deserializeSync(byte@NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserialize(var.version(),var.remainder());
-    }
-
-    private@NotNull Location deserialize(int version, byte[]bytes){
+    public@NotNull Location deserializeSync(int version, byte[]bytes){
         if(version==1){
             final ByteBuffer buffer=ByteBuffer.wrap(bytes);
             final byte[]worldBytes=new byte[buffer.getInt()];

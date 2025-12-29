@@ -8,16 +8,10 @@ import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class ItemStackType extends VarType<ItemStack>{
-    //VARIABLES (STATICS)
+    //VARIABLES(STATICS)
     private static final @NotNull ItemStack AIR_ITEM_STACK=new ItemStack(Material.AIR);
 
-    //CONSTRUCTOR
-    public ItemStackType(){
-        super(ItemStack.class,1);
-    }
-
-
-    //METHODS
+    //METHODS(INSTANCES)
     public byte@NotNull[] serializeSync(@Nullable ItemStack value) {
         byte[] base;
         if(value == null || value.getType() == Material.AIR){
@@ -28,12 +22,7 @@ public final class ItemStackType extends VarType<ItemStack>{
         return addVersionToBytes(base);
     }
 
-    public@NotNull ItemStack deserializeSync(byte@NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserialize(var.version(),var.remainder());
-    }
-
-    private@NotNull ItemStack deserialize(int version, byte[]bytes){
+    public@NotNull ItemStack deserializeSync(int version, byte[]bytes){
         if(version==1){
             if(bytes.length == 0) return AIR_ITEM_STACK;
             if(bytes[0]==(byte)0xff)return AIR_ITEM_STACK;

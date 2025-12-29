@@ -5,10 +5,6 @@ import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public final class IntArrayType extends VarType<int[]>{
-    public IntArrayType() {
-        super(int[].class, 1);
-    }
-
     @Override
     public byte@NotNull[]serializeSync(int @NotNull[]value){
         final byte[]len=IntegerType.toVarInt(value.length);
@@ -32,13 +28,7 @@ public final class IntArrayType extends VarType<int[]>{
     }
 
 
-    @Override
-    public int@NotNull[]deserializeSync(byte @NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserialize(var.version(),var.remainder());
-    }
-
-    private int@NotNull[]deserialize(int version,byte[]bytes){
+    public int@NotNull[]deserializeSync(int version,byte[]bytes){
         if(version!=1)
             throw createUnsupportedVersionException(version);
 

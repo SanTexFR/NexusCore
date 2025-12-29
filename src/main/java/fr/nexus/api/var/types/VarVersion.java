@@ -1,7 +1,6 @@
 package fr.nexus.api.var.types;
 
 import fr.nexus.api.var.types.parents.Vars;
-import fr.nexus.api.var.types.parents.normal.VarType;
 import fr.nexus.api.var.types.parents.normal.java.IntegerType;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,54 +16,47 @@ public abstract class VarVersion implements Vars{
         return this.version;
     }
 
-    protected @NotNull VarType.VersionAndRemainder readVersionAndRemainder(byte[]bytes){
-        if(bytes==null||bytes.length==0)
+    protected int readVersionAndRemainder(byte[]bytes){
+        if (bytes.length == 0)
             throw new IllegalArgumentException("Cannot read version: empty byte array");
 
-        int value=0;
-        int position=0;
-        int index=0;
+        int value = 0;
+        int position = 0;
+        int index = 0;
 
-        while(true){
-            if(index>=bytes.length)
+        while (true) {
+            if (index >= bytes.length)
                 throw new IllegalArgumentException("Invalid VarInt: truncated");
 
-            final byte b=bytes[index];
-            value|=(b&0x7F)<<position;
+            final byte b = bytes[index];
+            value |= (b & 0x7F) << position;
 
-            if((b&0x80)==0)
+            if ((b & 0x80) == 0)
                 break;
 
-            position+=7;
+            position += 7;
             index++;
 
-            if(position>=32)
+            if (position >= 32)
                 throw new RuntimeException("VarInt too long");
         }
 
-        index++;
+        index++; // index = début du reste
 
-        final byte[]remainder;
-        if(index>=bytes.length)
-            remainder=new byte[0];
-        else {
-            remainder=new byte[bytes.length-index];
-            System.arraycopy(bytes,index,remainder,0,remainder.length);
+        int remainderLength = bytes.length - index;
+        if (remainderLength > 0) {
+            System.arraycopy(bytes, index, bytes, 0, remainderLength);
         }
 
-        return new VarType.VersionAndRemainder(value,remainder);
+        return value;
     }
 
     protected byte[]addVersionToBytes(byte[] bytes) {
-        if(bytes==null)bytes=new byte[0];
+        final byte[] versionBytes = IntegerType.toVarInt(version);
 
-        final byte[]versionBytes=IntegerType.toVarInt(this.version);
-
-        final byte[]result=new byte[versionBytes.length+bytes.length];
-
-        System.arraycopy(versionBytes,0,result,0,versionBytes.length);
-
-        System.arraycopy(bytes,0,result,versionBytes.length,bytes.length);
+        byte[] result = new byte[versionBytes.length + bytes.length];
+        System.arraycopy(versionBytes, 0, result, 0, versionBytes.length);
+        System.arraycopy(bytes, 0, result, versionBytes.length, bytes.length);
 
         return result;
     }
@@ -75,6 +67,4 @@ public abstract class VarVersion implements Vars{
                 unsupportedVersion + "' | current_version: '" +
                 getVersion() + "'");
     }
-
-    public record VersionAndRemainder(int version,byte[]remainder){}
 }

@@ -5,11 +5,6 @@ import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public final class CharArrayType extends VarType<char[]> {
-
-    public CharArrayType() {
-        super(char[].class, 1);
-    }
-
     @Override
     public byte @NotNull [] serializeSync(char @NotNull [] value) {
 
@@ -32,13 +27,7 @@ public final class CharArrayType extends VarType<char[]> {
         return addVersionToBytes(data);
     }
 
-    @Override
-    public char @NotNull [] deserializeSync(byte @NotNull [] bytes) {
-        VersionAndRemainder var = readVersionAndRemainder(bytes);
-        return deserialize(var.version(), var.remainder());
-    }
-
-    private char @NotNull [] deserialize(int version, byte[] bytes) {
+    public char @NotNull [] deserializeSync(int version, byte[] bytes) {
         if (version != 1)
             throw createUnsupportedVersionException(version);
 

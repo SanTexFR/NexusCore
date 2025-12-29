@@ -4,11 +4,7 @@ import fr.nexus.api.var.types.parents.normal.VarType;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
-public final class ShortArrayType extends VarType<short[]> {
-    public ShortArrayType() {
-        super(short[].class, 1);
-    }
-
+public final class ShortArrayType extends VarType<short[]>{
     @Override
     public byte@NotNull[]serializeSync(short @NotNull[]value){
         byte[]lenBytes=IntegerType.toVarInt(value.length);
@@ -37,12 +33,7 @@ public final class ShortArrayType extends VarType<short[]> {
     }
 
     @Override
-    public short @NotNull[]deserializeSync(byte@NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserialize(var.version(),var.remainder());
-    }
-
-    private short@NotNull[]deserialize(int version,byte[]bytes){
+    public short@NotNull[]deserializeSync(int version,byte[]bytes){
         if(version!=1)throw createUnsupportedVersionException(version);
 
         int offset=0;

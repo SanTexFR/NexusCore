@@ -5,12 +5,6 @@ import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class BooleanArrayType extends VarType<boolean[]>{
-    //CONSTRUCTOR
-    public BooleanArrayType(){
-        super(boolean[].class,1);
-    }
-
-
     //METHODS
     public byte@NotNull[]serializeSync(boolean@NotNull[]value){
         final int length=value.length;
@@ -38,12 +32,7 @@ public final class BooleanArrayType extends VarType<boolean[]>{
 
         return addVersionToBytes(data);
     }
-    public boolean@NotNull[]deserializeSync(byte@NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserialize(var.version(),var.remainder());
-    }
-
-    private boolean@NotNull[]deserialize(int version,byte[]bytes){
+    public boolean@NotNull[]deserializeSync(int version,byte[]bytes){
         if(version!=1)throw createUnsupportedVersionException(version);
 
         final int length=((bytes[0]&0xFF)<<24)|

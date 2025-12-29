@@ -8,6 +8,7 @@ import fr.nexus.api.listeners.server.ServerStartEvent;
 import fr.nexus.api.listeners.server.ServerStopEvent;
 import fr.nexus.system.Logger;
 import fr.nexus.api.var.Var;
+import org.bukkit.event.EventPriority;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.Cleaner;
@@ -26,12 +27,12 @@ public abstract class VarObjectBackend<R>{
     //VARIABLES (STATICS)
     private static final@NotNull Logger logger=new Logger(Core.getInstance(), VarObjectBackend.class);
     protected static final@NotNull ConcurrentHashMap<@NotNull String,@NotNull CompletableFuture<@NotNull VarObjectBackend<?>>>asyncLoads=new ConcurrentHashMap<>();
-    protected static final@NotNull ConcurrentHashMap<@NotNull String,@NotNull WeakReference<@NotNull VarObjectBackend<?>>>varObjects=new ConcurrentHashMap<>();
+    public static final@NotNull ConcurrentHashMap<@NotNull String,@NotNull WeakReference<@NotNull VarObjectBackend<?>>>varObjects=new ConcurrentHashMap<>();
 
     private static TaskImplementation<?>saveTask;
     static{
         Listeners.register(ServerStartEvent.class, VarObjectBackend::onServerStart);
-        Listeners.register(ServerStopEvent.class, VarObjectBackend::onServerStop);
+        Listeners.register(ServerStopEvent.class, VarObjectBackend::onServerStop, EventPriority.HIGHEST);
     }
 
     //VARIABLES (INSTANCES)
@@ -119,7 +120,7 @@ public abstract class VarObjectBackend<R>{
     /**
      * Nettoie la map des Meshs en supprimant ceux dont la référence faible est libérée.
      */
-    private static void cleanVarObjectMap(){
+    public static void cleanVarObjectMap(){
         varObjects.entrySet().removeIf(entry->entry.getValue().get()==null);
     }
 

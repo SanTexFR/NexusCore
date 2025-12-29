@@ -213,7 +213,6 @@ public final class VarSql extends Var{
     }
     public@NotNull CompletableFuture<@Nullable Void>saveAsync(){
         if(!isDirty())return CompletableFuture.completedFuture(null);
-        setDirty(false);
 
         final HikariDataSource hikari;
         synchronized(dataSources){
@@ -230,7 +229,18 @@ public final class VarSql extends Var{
                         }catch(SQLException e){
                             throw new CompletionException("Failed to save data to DB: "+this.tableName,e);
                         }
-                    },Var.THREADPOOL);
+
+                        setDirty(false);
+                    },Var.THREADPOOL)
+                    .exceptionally(ex -> {
+                        // ❗ Sauvegarde échouée → on garde dirty = true
+                        // ❗ Le fichier existant n'est PAS touché
+
+                        // Optionnel mais fortement recommandé :
+                        ex.printStackTrace();
+
+                        return null;
+                    });
         }
     }
 

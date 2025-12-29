@@ -8,22 +8,11 @@ import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class ComponentType extends VarType<Component>{
-    //CONSTRUCTOR
-    public ComponentType(){
-        super(Component.class,1);
-    }
-
-
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull Component value){
         return addVersionToBytes(VarTypes.STRING.serializeSync(MiniMessage.miniMessage().serialize(value)));
     }
-    public@NotNull Component deserializeSync(byte@NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserialize(var.version(),var.remainder());
-    }
-
-    private@NotNull Component deserialize(int version, byte[]bytes){
+    public@NotNull Component deserializeSync(int version, byte[]bytes){
         if(version==1)return MiniMessage.miniMessage().deserialize(VarTypes.STRING.deserializeSync(bytes));
         else throw createUnsupportedVersionException(version);
     }

@@ -10,12 +10,6 @@ import java.nio.ByteBuffer;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class BigDecimalType extends VarType<BigDecimal>{
-    //CONSTRUCTOR
-    public BigDecimalType(){
-        super(BigDecimal.class,1);
-    }
-
-
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull BigDecimal value){
         final byte[]bigIntBytes=VarTypes.BIGINTEGER.serializeSync(value.unscaledValue());
@@ -25,12 +19,7 @@ public final class BigDecimalType extends VarType<BigDecimal>{
         buffer.putInt(value.scale());
         return addVersionToBytes(buffer.array());
     }
-    public@NotNull BigDecimal deserializeSync(byte@NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserialize(var.version(),var.remainder());
-    }
-
-    private@NotNull BigDecimal deserialize(int version,byte[]bytes){
+    public@NotNull BigDecimal deserializeSync(int version,byte[]bytes){
         if(version==1){
             final ByteBuffer buffer=ByteBuffer.wrap(bytes);
             final byte[]bigIntBytes=new byte[buffer.getInt()];

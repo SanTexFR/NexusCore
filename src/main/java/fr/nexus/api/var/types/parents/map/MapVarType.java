@@ -85,12 +85,12 @@ public class MapVarType<T,T2>extends VarVersion implements Vars,CollectionUtils{
         return addVersionToBytes(buffer.array());
     }
     public @NotNull Map<T,T2>deserializeSync(byte[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserializeSync(var.version(),var.remainder());
+        final int version=readVersionAndRemainder(bytes);
+        return deserializeSync(version,bytes);
     }
 
 
-    private@NotNull Map<T,T2>deserializeSync(int version, byte[]bytes){
+    public@NotNull Map<T,T2>deserializeSync(int version, byte[]bytes){
         if(version==1){
             final ByteBuffer buffer=ByteBuffer.wrap(bytes);
             final Map<T,T2>map=(Map<T,T2>)this.varMapType.getSupplier().get();
@@ -160,12 +160,12 @@ public class MapVarType<T,T2>extends VarVersion implements Vars,CollectionUtils{
                 });
     }
     public @NotNull CompletableFuture<@NotNull Map<T, T2>> deserializeAsync(byte @NotNull [] bytes) {
-        final VersionAndRemainder var = readVersionAndRemainder(bytes);
-        return deserializeAsync(var.version(), var.remainder());
+        final int version=readVersionAndRemainder(bytes);
+        return deserializeAsync(version,bytes);
     }
 
 
-    private @NotNull CompletableFuture<@NotNull Map<T, T2>> deserializeAsync(int version, byte @NotNull [] bytes) {
+    public @NotNull CompletableFuture<@NotNull Map<T, T2>> deserializeAsync(int version, byte @NotNull [] bytes) {
         if (version != 1) {
             CompletableFuture<Map<T, T2>> failed = new CompletableFuture<>();
             failed.completeExceptionally(createUnsupportedVersionException(version));

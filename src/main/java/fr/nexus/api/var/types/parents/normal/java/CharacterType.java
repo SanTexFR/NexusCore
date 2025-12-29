@@ -5,12 +5,6 @@ import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class CharacterType extends VarType<Character>{
-    //CONSTRUCTOR
-    public CharacterType(){
-        super(Character.class,1);
-    }
-
-
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull Character value){
         final char c=value;
@@ -19,12 +13,7 @@ public final class CharacterType extends VarType<Character>{
                 (byte)c
         });
     }
-    public@NotNull Character deserializeSync(byte@NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserialize(var.version(),var.remainder());
-    }
-
-    private@NotNull Character deserialize(int version, byte[]bytes){
+    public@NotNull Character deserializeSync(int version, byte[]bytes){
         if(version==1)
             return(char)(((bytes[0]&0xFF)<<8)|
                     (bytes[1]&0xFF));

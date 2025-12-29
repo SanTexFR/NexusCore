@@ -8,22 +8,11 @@ import java.time.LocalDate;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class LocalDateType extends VarType<LocalDate>{
-    //CONSTRUCTOR
-    public LocalDateType(){
-        super(LocalDate.class,1);
-    }
-
-
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull LocalDate value){
         return addVersionToBytes(VarTypes.LONG.serializeSync(value.toEpochDay()));
     }
-    public@NotNull LocalDate deserializeSync(byte@NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserialize(var.version(),var.remainder());
-    }
-
-    private@NotNull LocalDate deserialize(int version,byte[]bytes){
+    public@NotNull LocalDate deserializeSync(int version,byte[]bytes){
         if(version==1)return LocalDate.ofEpochDay(VarTypes.LONG.deserializeSync(bytes));
         else throw createUnsupportedVersionException(version);
     }

@@ -10,14 +10,6 @@ import java.util.concurrent.CompletableFuture;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class ChunkType extends VarType<Chunk>{
-    //CONSTRUCTOR
-    public ChunkType(){
-        super(Chunk.class,1);
-    }
-
-
-    //METHODS
-
     //SYNC
     public byte@NotNull[]serializeSync(@NotNull Chunk value){
         final byte[]serializedWorld=VarTypes.WORLD.serializeSync(value.getWorld());
@@ -32,12 +24,7 @@ public final class ChunkType extends VarType<Chunk>{
 
         return addVersionToBytes(buffer.array());
     }
-    public@NotNull Chunk deserializeSync(byte@NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserializeSync(var.version(),var.remainder());
-    }
-
-    private@NotNull Chunk deserializeSync(int version, byte[]bytes){
+    public@NotNull Chunk deserializeSync(int version, byte[]bytes){
         if(version==1){
             return deserializeAsync(version,bytes).join();
         }else throw createUnsupportedVersionException(version);
@@ -45,8 +32,8 @@ public final class ChunkType extends VarType<Chunk>{
 
     //ASYNC
     public@NotNull CompletableFuture<@NotNull Chunk>deserializeAsync(byte@NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserializeAsync(var.version(),var.remainder());
+        final int version=readVersionAndRemainder(bytes);
+        return deserializeAsync(version,bytes);
     }
 
     private@NotNull CompletableFuture<@NotNull Chunk>deserializeAsync(int version, byte[]bytes){

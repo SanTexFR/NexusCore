@@ -5,12 +5,6 @@ import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class DoubleType extends VarType<Double>{
-    //CONSTRUCTOR
-    public DoubleType(){
-        super(Double.class,1);
-    }
-
-
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull Double value){
         final long longBits=Double.doubleToLongBits(value);
@@ -25,12 +19,7 @@ public final class DoubleType extends VarType<Double>{
                 (byte)longBits
         });
     }
-    public@NotNull Double deserializeSync(byte@NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserialize(var.version(),var.remainder());
-    }
-
-    private@NotNull Double deserialize(int version,byte[]bytes){
+    public@NotNull Double deserializeSync(int version,byte[]bytes){
         if(version==1){
             final long longBits=((long)(bytes[0]&0xFF)<<56)|
                     ((long)(bytes[1]&0xFF)<<48)|

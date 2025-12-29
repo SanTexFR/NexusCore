@@ -5,23 +5,13 @@ import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public final class LongType extends VarType<Long>{
-    public LongType(){
-        super(Long.class,1);
-    }
-
     @Override
     public byte@NotNull[]serializeSync(@NotNull Long value){
         final byte[]encoded=toVarLong(value);
         return addVersionToBytes(encoded);
     }
 
-    @Override
-    public@NotNull Long deserializeSync(byte @NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserialize(var.version(),var.remainder());
-    }
-
-    private @NotNull Long deserialize(int version,byte[]bytes){
+    public@NotNull Long deserializeSync(int version,byte[]bytes){
         if(version!=1)throw createUnsupportedVersionException(version);
 
         return fromVarLong(bytes);

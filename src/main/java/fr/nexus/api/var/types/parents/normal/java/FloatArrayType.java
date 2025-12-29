@@ -5,11 +5,6 @@ import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public final class FloatArrayType extends VarType<float[]> {
-
-    public FloatArrayType() {
-        super(float[].class, 1);
-    }
-
     @Override
     public byte @NotNull [] serializeSync(float @NotNull [] value) {
 
@@ -39,13 +34,7 @@ public final class FloatArrayType extends VarType<float[]> {
         return addVersionToBytes(data);
     }
 
-    @Override
-    public float @NotNull [] deserializeSync(byte @NotNull [] bytes) {
-        VersionAndRemainder var = readVersionAndRemainder(bytes);
-        return deserialize(var.version(), var.remainder());
-    }
-
-    private float @NotNull [] deserialize(int version, byte[] bytes) {
+    public float @NotNull [] deserializeSync(int version, byte[] bytes) {
         if (version != 1)
             throw createUnsupportedVersionException(version);
 

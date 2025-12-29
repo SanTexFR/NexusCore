@@ -13,13 +13,10 @@ import java.util.Arrays;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class InventoryType extends VarType<Inventory> {
-
+    //VARIABLES (STATICS)
     private static final @NotNull ItemStack AIR_ITEM_STACK = new ItemStack(Material.AIR);
 
-    public InventoryType() {
-        super(Inventory.class, 1);
-    }
-
+    //METHODS(INSTANCES)
     @Override
     public byte @NotNull [] serializeSync(@NotNull Inventory value) {
         // Taille réelle de l'inventaire
@@ -45,13 +42,7 @@ public final class InventoryType extends VarType<Inventory> {
         return addVersionToBytes(buffer.array());
     }
 
-    @Override
-    public @NotNull Inventory deserializeSync(byte @NotNull [] bytes) {
-        final VersionAndRemainder var = readVersionAndRemainder(bytes);
-        return deserialize(var.version(), var.remainder());
-    }
-
-    private @NotNull Inventory deserialize(int version, byte[] bytes) {
+    public@NotNull Inventory deserializeSync(int version, byte[] bytes) {
         if (version != 1) throw createUnsupportedVersionException(version);
 
         final ByteBuffer buffer = ByteBuffer.wrap(bytes);

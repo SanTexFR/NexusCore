@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.ParameterizedType;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,13 +24,31 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     private final@NotNull Class<@NotNull T>typeClazz;
 
     //CONSTRUCTOR
+    protected VarType(){
+        super(1);
+        this.typeClazz=(Class<T>)((ParameterizedType)getClass()
+                .getGenericSuperclass())
+                .getActualTypeArguments()[0];
+
+        init();
+    }
+    protected VarType(int version){
+        super(version);
+        this.typeClazz=(Class<T>)((ParameterizedType)getClass()
+                .getGenericSuperclass())
+                .getActualTypeArguments()[0];
+
+        init();
+    }
     protected VarType(@NotNull Class<@NotNull T>typeClazz,int version){
         super(version);
         this.typeClazz=typeClazz;
 
+        init();
+    }
+    private void init(){
         types.put(getStringType(),this);
 
-        //CONSTRUCTOR
         final VarSubType<?>list=lists();
         types.put(list.getStringType(),list);
 
@@ -68,7 +87,11 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
 
     //SERIALIZATION-SYNC
     public abstract byte@NotNull[]serializeSync(@NotNull T obj);
-    public abstract@Nullable T deserializeSync(byte@NotNull[]bytes);
+    public@NotNull T deserializeSync(byte@NotNull[]bytes){
+        final int version=readVersionAndRemainder(bytes);
+        return deserializeSync(version,bytes);
+    }
+    public abstract@NotNull T deserializeSync(int version,byte[]bytes);
 
     //SERIALIZATION-ASYNC
     public@NotNull CompletableFuture<byte[]>serializeAsync(@NotNull T obj){

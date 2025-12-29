@@ -7,12 +7,6 @@ import java.util.UUID;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class UUIDType extends VarType<UUID>{
-    //CONSTRUCTOR
-    public UUIDType(){
-        super(UUID.class,1);
-    }
-
-
     //METHODS
     public byte@NotNull[]serializeSync(@NotNull UUID uuid){
         final byte[]bytes=new byte[16];
@@ -24,12 +18,7 @@ public final class UUIDType extends VarType<UUID>{
             bytes[8+i]=(byte)(least>>>(8*(7-i)));
         }return addVersionToBytes(bytes);
     }
-    public@NotNull UUID deserializeSync(byte@NotNull[]bytes){
-        final VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserialize(var.version(),var.remainder());
-    }
-
-    private@NotNull UUID deserialize(int version,byte[]bytes){
+    public@NotNull UUID deserializeSync(int version,byte[]bytes){
         if(version==1){
             long most=0,least=0;
             for(int i=0;i<8;i++){

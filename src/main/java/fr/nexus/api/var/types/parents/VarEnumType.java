@@ -1,7 +1,6 @@
 package fr.nexus.api.var.types.parents;
 
 import fr.nexus.api.var.types.VarTypes;
-import fr.nexus.api.var.types.VarVersion;
 import fr.nexus.api.var.types.parents.normal.VarType;
 import org.jetbrains.annotations.NotNull;
 
@@ -20,11 +19,10 @@ public abstract class VarEnumType<T extends Enum<T>>extends VarType<T> {
 
     @Override
     public @NotNull T deserializeSync(byte@NotNull[]bytes){
-        final VarVersion.VersionAndRemainder var=readVersionAndRemainder(bytes);
-        return deserialize(var.version(),var.remainder());
+        final int version=readVersionAndRemainder(bytes);
+        return deserializeSync(version,bytes);
     }
-
-    private @NotNull T deserialize(int version,byte[]bytes){
+    public @NotNull T deserializeSync(int version,byte[]bytes){
         if(version!=1)throw createUnsupportedVersionException(version);
 
         final String str=VarTypes.STRING.deserializeSync(bytes);

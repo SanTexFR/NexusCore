@@ -6,6 +6,7 @@ import fr.nexus.api.command.tabcompleter.TabCompleterHandler;
 import fr.nexus.api.gui.GuiManager;
 import fr.nexus.api.listeners.Listeners;
 import fr.nexus.api.listeners.core.CoreInitializeEvent;
+import fr.nexus.api.var.varObjects.VarObjectBackend;
 import fr.nexus.system.internal.information.InformationGui;
 import fr.nexus.system.internal.performanceTracker.PerformanceTrackerGui;
 import fr.nexus.system.Updater;
@@ -18,7 +19,10 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.ref.WeakReference;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public class CoreCommand {
@@ -34,39 +38,61 @@ public class CoreCommand {
                 .setAction((handler,args)->handler
                         .ifNotPlayer(c->{
                             if(args.length<1){
-                                c.sendMessage("§cVeuillez indiquez un argument valide. (/core <config,cachesize>)");
+                                c.sendMessage("§cVeuillez indiquez un argument valide. (/core <config, cachesize, version, mesh>)");
                                 return;
                             }
 
                             switch(args[0].toLowerCase()){
                                 case"config"->{
                                     if(args.length<2||!args[1].equalsIgnoreCase("reload")){
-                                        c.sendMessage("§cVeuillez indiquez un argument valide. (/core config <reload> <safe,nosafe>)");
+                                        c.sendMessage("§cVeuillez indiquez un argument valide. (/core config <reload> <safe, nosafe>)");
                                         return;
                                     }
 
                                     reloadConfiguration(c,args);
                                 }case"cachesize"->{
                                     if(args.length<2||!args[1].equalsIgnoreCase("listeners")&&!args[1].equalsIgnoreCase("var")&&!args[1].equalsIgnoreCase("gui")&&!args[1].equalsIgnoreCase("utils")){
-                                        c.sendMessage("§cVeuillez indiquez un argument valide. (/core cachesize <listeners,var,gui,utils>)");
+                                        c.sendMessage("§cVeuillez indiquez un argument valide. (/core cachesize <listeners, var, gui, utils>)");
                                         return;
                                     }
                                     
                                     cacheSize(c,args[1]);
+                                }case"mesh"->{
+                                    if(args.length<2||!args[1].equalsIgnoreCase("save")){
+                                        c.sendMessage("§cVeuillez indiquez un argument valide. (/core mesh <save>)");
+                                        return;
+                                    }
+
+                                    final long startMillis=System.currentTimeMillis();
+
+                                    VarObjectBackend.cleanVarObjectMap();
+
+                                    CompletableFuture.allOf(
+                                            VarObjectBackend.varObjects.values().stream()
+                                                    .map(WeakReference::get)
+                                                    .filter(Objects::nonNull)
+                                                    .map(varObject -> varObject.getVar().saveAsync())
+                                                    .toArray(CompletableFuture[]::new)
+                                    ).thenRun(()->
+                                            c.sendMessage("✅ Mesh saves "+(System.currentTimeMillis()-startMillis)+" ms !")
+                                    ).exceptionally(ex->{
+                                        c.sendMessage("❌ Mesh saves error: "+ex.getMessage());
+                                        return null;
+                                    });
                                 }case"version"->version(c);
-                                default->c.sendMessage("§cCommande incorrecte. (/core <config,cachesize,version>)");
+                                default->c.sendMessage("§cCommande incorrecte. (/core <config, cachesize, version, mesh>)");
                             }
                         })
                         .ifPlayer(p->{
                             if(args.length<1){
-                                p.sendMessage("§cVeuillez indiquez un argument valide. (/core <config,performance,cachesize,information>)");
+                                p.sendMessage("§cVeuillez indiquez un argument valide. (/core <config, performance, cachesize, information, version, mesh>)");
                                 return;
                             }
 
                             switch(args[0].toLowerCase()){
                                 case"config"->{
                                     if(args.length<2||!args[1].equalsIgnoreCase("reload")){
-                                        p.sendMessage("§cVeuillez indiquez un argument valide. (/core config <reload> <safe,nosafe>)");
+                                        p.sendMessage("§cVeuillez indiquez un argument valide. (/core config <reload> <safe, nosafe>)");
                                         return;
                                     }
 
@@ -80,26 +106,50 @@ public class CoreCommand {
                                     PerformanceTrackerGui.primaryGui(p);
                                 }case"cachesize"->{
                                     if(args.length<2||!args[1].equalsIgnoreCase("listeners")&&!args[1].equalsIgnoreCase("var")&&!args[1].equalsIgnoreCase("gui")&&!args[1].equalsIgnoreCase("utils")){
-                                        p.sendMessage("§cVeuillez indiquez un argument valide. (/core cachesize <listeners,var,gui,utils>)");
+                                        p.sendMessage("§cVeuillez indiquez un argument valide. (/core cachesize <listeners, var, gui, utils>)");
                                         return;
                                     }
 
                                     cacheSize(p,args[1]);
+                                }case"mesh"->{
+                                    if(args.length<2||!args[1].equalsIgnoreCase("save")){
+                                        p.sendMessage("§cVeuillez indiquez un argument valide. (/core mesh <save>)");
+                                        return;
+                                    }
+
+                                    final long startMillis=System.currentTimeMillis();
+
+                                    VarObjectBackend.cleanVarObjectMap();
+
+                                    CompletableFuture.allOf(
+                                            VarObjectBackend.varObjects.values().stream()
+                                                    .map(WeakReference::get)
+                                                    .filter(Objects::nonNull)
+                                                    .map(varObject -> varObject.getVar().saveAsync())
+                                                    .toArray(CompletableFuture[]::new)
+                                    ).thenRun(()->
+                                            p.sendMessage("✅ Mesh saves "+(System.currentTimeMillis()-startMillis)+" ms !")
+                                    ).exceptionally(ex->{
+                                        p.sendMessage("❌ Mesh saves error: "+ex.getMessage());
+                                        return null;
+                                    });
                                 }case"information"->
                                     InformationGui.primaryGui(p);
                                 case"version"->version(p);
-                                default->p.sendMessage("§cCommande incorrecte. (/core <performance,config,cachesize,version>)");
+                                default->p.sendMessage("§cCommande incorrecte. (/core <performance, config, cachesize, version, mesh>)");
                             }
                         })
                 ).perform();
 
         TabCompleterHandler.create("core").addDisplay(sender->
-            ()->Set.of("performance","config","cachesize","version","information")).perform();
+            ()->Set.of("performance","config","cachesize","version","information","mesh")).perform();
 
         TabCompleterHandler.create("core").addArg(sender->()->"config").addDisplay(sender->
                 ()->Set.of("reload")).perform();
         TabCompleterHandler.create("core").addArg(sender->()->"config").addArg(sender->()->"reload").addDisplay(sender->
                 ()->Set.of("safe","nosafe")).perform();
+        TabCompleterHandler.create("core").addArg(sender->()->"mesh").addDisplay(sender->
+                ()->Set.of("save")).perform();
         TabCompleterHandler.create("core").addArg(sender->()->"performance").addDisplay(sender->
                 ()->Set.of("gui")).perform();
         TabCompleterHandler.create("core").addArg(sender->()->"cachesize").addDisplay(sender->
