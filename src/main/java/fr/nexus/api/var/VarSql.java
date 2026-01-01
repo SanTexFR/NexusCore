@@ -183,33 +183,34 @@ public final class VarSql extends Var{
     }
 
     //ABSTRACT
-    @Deprecated
     public void saveSync(){
-        if(!isDirty())return;
+        saveAsync().join();
 
-        final long nanoTime=System.nanoTime();
-
-        setDirty(false);
-
-        final HikariDataSource hikari;
-        synchronized(dataSources){
-            hikari=dataSources.get(this.database);
-        }
-        if(hikari==null){
-            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
-            throw new IllegalStateException("Unknown database: "+this.database);
-        }
-
-        try{
-            synchronized(super.data){
-                putValue(hikari,this.tableName,this.dataPath,VarSerializer.serializeDataSync(super.data));
-            }
-        }catch(IOException|SQLException e){
-            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
-            throw new RuntimeException("Failed to save data synchronously to DB: "+this.tableName,e);
-        }
-
-        PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
+//        if(!isDirty())return;
+//
+//        final long nanoTime=System.nanoTime();
+//
+//        setDirty(false);
+//
+//        final HikariDataSource hikari;
+//        synchronized(dataSources){
+//            hikari=dataSources.get(this.database);
+//        }
+//        if(hikari==null){
+//            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
+//            throw new IllegalStateException("Unknown database: "+this.database);
+//        }
+//
+//        try{
+//            synchronized(super.data){
+//                putValue(hikari,this.tableName,this.dataPath,VarSerializer.serializeDataSync(super.data));
+//            }
+//        }catch(IOException|SQLException e){
+//            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
+//            throw new RuntimeException("Failed to save data synchronously to DB: "+this.tableName,e);
+//        }
+//
+//        PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
     }
     public@NotNull CompletableFuture<@Nullable Void>saveAsync(){
         if(!isDirty())return CompletableFuture.completedFuture(null);

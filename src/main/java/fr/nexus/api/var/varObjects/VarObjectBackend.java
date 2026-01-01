@@ -2,9 +2,8 @@ package fr.nexus.api.var.varObjects;
 
 import com.cjcrafter.foliascheduler.TaskImplementation;
 import fr.nexus.Core;
-import fr.nexus.api.listeners.core.CoreReloadEvent;
+import fr.nexus.api.listeners.core.CoreCleanupEvent;
 import fr.nexus.api.listeners.Listeners;
-import fr.nexus.api.listeners.server.ServerStartEvent;
 import fr.nexus.api.listeners.server.ServerStopEvent;
 import fr.nexus.system.Logger;
 import fr.nexus.api.var.Var;
@@ -31,8 +30,8 @@ public abstract class VarObjectBackend<R>{
 
     private static TaskImplementation<?>saveTask;
     static{
-        Listeners.register(ServerStartEvent.class, VarObjectBackend::onServerStart);
-        Listeners.register(ServerStopEvent.class, VarObjectBackend::onServerStop, EventPriority.HIGHEST);
+        Listeners.register(CoreCleanupEvent.class,VarObjectBackend::onCoreCleanup);
+        Listeners.register(ServerStopEvent.class, VarObjectBackend::onServerStop,EventPriority.HIGHEST);
     }
 
     //VARIABLES (INSTANCES)
@@ -139,36 +138,25 @@ public abstract class VarObjectBackend<R>{
     }
 
     //LISTENERS
-    private static void onCoreReload(CoreReloadEvent e){
-        if(saveTask!=null)saveTask.cancel();
+    private static void onCoreCleanup(CoreCleanupEvent e){
+        final long startMillis=System.currentTimeMillis();
 
-        onServerStart(null);
-    }
-    private static void onServerStart(ServerStartEvent e){
-        //PERIODICAL SAVE
-        saveTask=Core.getServerImplementation().global().runAtFixedRate(()->{
-            final long startMillis=System.currentTimeMillis();
+        cleanVarObjectMap();
 
-            cleanVarObjectMap();
-
-            CompletableFuture.allOf(
-                    varObjects.values().stream()
-                            .map(WeakReference::get)
-                            .filter(Objects::nonNull)
-                            .map(varObject -> varObject.getVar().saveAsync())
-                            .toArray(CompletableFuture[]::new)
-            ).thenRun(()->
-                    logger.info("✅ Mesh saves "+(System.currentTimeMillis()-startMillis)+" ms !")
-            ).exceptionally(ex->{
-                logger.severe("❌ Mesh saves error: "+ex.getMessage());
-                return null;
-            });
-        },Core.CLEANUP_INTERVAL,Core.CLEANUP_INTERVAL);
+        CompletableFuture.allOf(
+                varObjects.values().stream()
+                        .map(WeakReference::get)
+                        .filter(Objects::nonNull)
+                        .map(varObject -> varObject.getVar().saveAsync())
+                        .toArray(CompletableFuture[]::new)
+        ).thenRun(()->
+                logger.info("✅ Mesh saves "+(System.currentTimeMillis()-startMillis)+" ms !")
+        ).exceptionally(ex->{
+            logger.severe("❌ Mesh saves error: "+ex.getMessage());
+            return null;
+        });
     }
     private static void onServerStop(ServerStopEvent e){
-        //SAVE TASK
-        if(saveTask!=null)saveTask.cancel();
-
         //SAVE
         varObjects.values().forEach(weakMesh->{
             final VarObjectBackend<?> varObject=weakMesh.get();

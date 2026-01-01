@@ -1,15 +1,9 @@
 package fr.nexus.api.actionBar;
 
-import com.cjcrafter.foliascheduler.TaskImplementation;
-import fr.nexus.Core;
-import fr.nexus.api.listeners.core.CoreInitializeEvent;
-import fr.nexus.api.listeners.core.CoreReloadEvent;
+import fr.nexus.api.listeners.core.CoreCleanupEvent;
 import fr.nexus.api.listeners.Listeners;
-import org.bukkit.Bukkit;
 import org.bukkit.event.EventPriority;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.HashSet;
@@ -20,12 +14,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public class ActionBarManager{
     //VARIABLES (STATICS)
-    private static@Nullable TaskImplementation<?>cleanupTask;
     private static final@NotNull Set<@NotNull ActionBar>actionBarReferences=new HashSet<>();
     private static final@NotNull ConcurrentHashMap<@NotNull UUID,@NotNull WeakReference<ActionBar>>actionBars=new ConcurrentHashMap<>();
     static{
-        Listeners.register(CoreInitializeEvent.class,ActionBarManager::onCoreInitialize,EventPriority.LOWEST);
-        Listeners.register(CoreReloadEvent.class,ActionBarManager::onCoreReload,EventPriority.LOWEST);
+        Listeners.register(CoreCleanupEvent.class,ActionBarManager::onCoreCleanup,EventPriority.LOWEST);
     }
 
     //METHODS (STATICS)
@@ -61,12 +53,7 @@ public class ActionBarManager{
     }
 
     //LISTENER
-    private static void onCoreInitialize(CoreInitializeEvent e){
-
-    }
-    private static void onCoreReload(CoreReloadEvent e){
-        if(cleanupTask!=null)cleanupTask.cancel();
-
-        cleanupTask=Core.getServerImplementation().global().runAtFixedRate(ActionBarManager::cleanupActionBars,Core.CLEANUP_INTERVAL,Core.CLEANUP_INTERVAL);
+    private static void onCoreCleanup(CoreCleanupEvent e){
+        cleanupActionBars();
     }
 }

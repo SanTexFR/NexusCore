@@ -1,11 +1,10 @@
 package fr.nexus.api.var;
 
-import com.cjcrafter.foliascheduler.TaskImplementation;
 import fr.nexus.Core;
+import fr.nexus.api.listeners.core.CoreCleanupEvent;
 import fr.nexus.system.ThreadPool;
 import fr.nexus.api.listeners.core.CoreDisableEvent;
 import fr.nexus.api.listeners.core.CoreInitializeEvent;
-import fr.nexus.api.listeners.core.CoreReloadEvent;
 import fr.nexus.system.internal.performanceTracker.PerformanceTracker;
 import fr.nexus.api.listeners.Listeners;
 import fr.nexus.api.var.events.DataSetEvent;
@@ -36,15 +35,13 @@ public sealed abstract class Var permits VarFile,VarSql{
     public static int THREAD_AMOUNT;
     public static ThreadPool THREADPOOL;
 
-    private static@Nullable TaskImplementation<?>cleanupTask;
-
     public static final@NotNull Object2ObjectOpenHashMap<@NotNull String,CompletableFuture<Var>>asyncLoads=new Object2ObjectOpenHashMap<>();
     public static final@NotNull Object2ObjectOpenHashMap<@NotNull String,WeakReference<Var>>vars=new Object2ObjectOpenHashMap<>();
     public static final@NotNull Set<@NotNull Var>shouldStayLoadedVars=new HashSet<>();
     static{
         Listeners.register(CoreInitializeEvent.class,Var::onCoreInitialize);
-        Listeners.register(CoreReloadEvent.class,Var::onCoreReload);
         Listeners.register(CoreDisableEvent.class,Var::onCoreDisable);
+        Listeners.register(CoreCleanupEvent.class,Var::onCoreCleanup);
     }
 
     //VARIABLES (INSTANCES)
@@ -79,37 +76,32 @@ public sealed abstract class Var permits VarFile,VarSql{
                 "Var Async",
                 Thread.NORM_PRIORITY-1
         );
-
-        onCoreReload(null);
-    }
-    private static void onCoreReload(CoreReloadEvent e){
-        if(cleanupTask!=null)cleanupTask.cancel();
-
-        cleanupTask=Core.getServerImplementation().global().runAtFixedRate(()->{
-            if(shouldStayLoadedVars.isEmpty()){
-                cleanupVars();
-                return;
-            }
-
-            final AtomicInteger remaining=new AtomicInteger(shouldStayLoadedVars.size());
-            for(final Var var:new HashSet<>(shouldStayLoadedVars)){
-                if(var.shouldStayLoaded==null){
-                    if(remaining.decrementAndGet()==0)cleanupVars();
-                    continue;
-                }
-
-                var.shouldStayLoaded.apply(var).thenAccept(bool->{
-                    if(!bool)shouldStayLoadedVars.remove(var);
-
-                    if(remaining.decrementAndGet()==0)cleanupVars();
-                });
-            }
-
-            cleanupVars();
-        },Core.CLEANUP_INTERVAL,Core.CLEANUP_INTERVAL);
     }
     private static void onCoreDisable(CoreDisableEvent e){
         Core.shutdownExecutor(THREADPOOL);
+    }
+
+    private static void onCoreCleanup(CoreCleanupEvent e){
+        if(shouldStayLoadedVars.isEmpty()){
+            cleanupVars();
+            return;
+        }
+
+        final AtomicInteger remaining=new AtomicInteger(shouldStayLoadedVars.size());
+        for(final Var var:new HashSet<>(shouldStayLoadedVars)){
+            if(var.shouldStayLoaded==null){
+                if(remaining.decrementAndGet()==0)cleanupVars();
+                continue;
+            }
+
+            var.shouldStayLoaded.apply(var).thenAccept(bool->{
+                if(!bool)shouldStayLoadedVars.remove(var);
+
+                if(remaining.decrementAndGet()==0)cleanupVars();
+            });
+        }
+
+        cleanupVars();
     }
 
     //OTHERS
@@ -172,7 +164,6 @@ public sealed abstract class Var permits VarFile,VarSql{
      * Note : cette méthode prend déjà en compte l'état {@link #isDirty()}.
      * Si l'objet n'est pas dirty, aucun write n'est effectué.
      */
-    @Deprecated
     public abstract void saveSync();
     /**
      * Sauvegarde l'objet de manière asynchrone (non bloquante).

@@ -147,34 +147,35 @@ public final class VarFile extends Var{
     }
 
     //ABSTRACT
-    @Deprecated
     public void saveSync(){
-        if(!isDirty())return;
-        final long nanoTime=System.nanoTime();
+        saveAsync().join();
 
-        final Path path=super.getPath();
-        try{
-            final byte[]bytes;
-            synchronized(super.data){
-                bytes=VarSerializer.serializeDataSync(super.data);
-            }
-            if(bytes==null||bytes.length==0){
-                Files.deleteIfExists(path);
-
-                PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
-                return;
-            }
-
-            Files.createDirectories(path.getParent());
-            Files.write(path,bytes);
-        }catch(IOException e){
-            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
-            throw new RuntimeException("Failed to save data synchronously: "+path,e);
-        }
-
-        setDirty(false);
-
-        PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
+//        if(!isDirty())return;
+//        final long nanoTime=System.nanoTime();
+//
+//        final Path path=super.getPath();
+//        try{
+//            final byte[]bytes;
+//            synchronized(super.data){
+//                bytes=VarSerializer.serializeDataSync(super.data);
+//            }
+//            if(bytes==null||bytes.length==0){
+//                Files.deleteIfExists(path);
+//
+//                PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
+//                return;
+//            }
+//
+//            Files.createDirectories(path.getParent());
+//            Files.write(path,bytes);
+//        }catch(IOException e){
+//            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
+//            throw new RuntimeException("Failed to save data synchronously: "+path,e);
+//        }
+//
+//        setDirty(false);
+//
+//        PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
     }
     public @NotNull CompletableFuture<@Nullable Void>saveAsync() {
         if(!isDirty())return CompletableFuture.completedFuture(null);
