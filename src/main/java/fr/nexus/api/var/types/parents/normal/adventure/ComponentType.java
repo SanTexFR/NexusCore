@@ -1,7 +1,7 @@
 package fr.nexus.api.var.types.parents.normal.adventure;
 
 import fr.nexus.api.var.types.VarTypes;
-import fr.nexus.api.var.types.parents.normal.VarType;
+import fr.nexus.api.var.types.parents.VarType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.jetbrains.annotations.NotNull;

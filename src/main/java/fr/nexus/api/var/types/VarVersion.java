@@ -1,7 +1,7 @@
 package fr.nexus.api.var.types;
 
 import fr.nexus.api.var.types.parents.Vars;
-import fr.nexus.api.var.types.parents.normal.VarType;
+import fr.nexus.api.var.types.parents.VarType;
 import fr.nexus.api.var.types.parents.normal.java.IntegerType;
 import org.jetbrains.annotations.NotNull;
 

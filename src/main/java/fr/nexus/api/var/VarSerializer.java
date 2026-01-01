@@ -5,7 +5,7 @@ import fr.nexus.api.var.types.VarTypes;
 import fr.nexus.api.var.types.parents.Vars;
 import fr.nexus.api.var.types.parents.map.MapType;
 import fr.nexus.api.var.types.parents.map.MapVarType;
-import fr.nexus.api.var.types.parents.normal.VarType;
+import fr.nexus.api.var.types.parents.VarType;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.jpountz.lz4.LZ4BlockOutputStream;
 import net.jpountz.lz4.LZ4Compressor;

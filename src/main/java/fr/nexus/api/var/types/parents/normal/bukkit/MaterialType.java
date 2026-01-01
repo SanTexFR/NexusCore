@@ -1,7 +1,7 @@
 package fr.nexus.api.var.types.parents.normal.bukkit;
 
 import fr.nexus.api.var.types.VarTypes;
-import fr.nexus.api.var.types.parents.normal.VarType;
+import fr.nexus.api.var.types.parents.VarType;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 

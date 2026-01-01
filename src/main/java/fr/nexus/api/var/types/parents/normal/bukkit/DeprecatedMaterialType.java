@@ -1,6 +1,6 @@
 package fr.nexus.api.var.types.parents.normal.bukkit;
 
-import fr.nexus.api.var.types.parents.normal.VarType;
+import fr.nexus.api.var.types.parents.VarType;
 import fr.nexus.api.var.types.parents.normal.java.IntegerType;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;

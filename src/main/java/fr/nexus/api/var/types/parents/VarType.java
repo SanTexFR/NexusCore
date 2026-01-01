@@ -1,8 +1,7 @@
-package fr.nexus.api.var.types.parents.normal;
+package fr.nexus.api.var.types.parents;
 
 import fr.nexus.api.var.types.VarSubType;
 import fr.nexus.api.var.types.VarVersion;
-import fr.nexus.api.var.types.parents.Vars;
 import fr.nexus.utils.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

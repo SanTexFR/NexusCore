@@ -1,14 +1,21 @@
 package fr.nexus.api.var.types.parents;
 
 import fr.nexus.api.var.types.VarTypes;
-import fr.nexus.api.var.types.parents.normal.VarType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public abstract class VarEnumType<T extends Enum<T>>extends VarType<T> {
+public abstract class VarEnumType<T extends Enum<T>>extends VarType<T>{
+    //VARIABLES(INSTANCES)
+    private@Nullable T defaultReturn;
+
     //CONSTRUCTOR
     protected VarEnumType(@NotNull Class<@NotNull T>typeClazz){
         super(typeClazz,1);
+    }
+    protected VarEnumType(@NotNull Class<@NotNull T>typeClazz,@Nullable T defaultReturn){
+        super(typeClazz,1);
+        this.defaultReturn=defaultReturn;
     }
 
     //METHODS(INSTANCES)
@@ -30,7 +37,8 @@ public abstract class VarEnumType<T extends Enum<T>>extends VarType<T> {
         try{
             type=Enum.valueOf(getTypeClazz(),str);
         }catch(IllegalArgumentException e){
-            throw new RuntimeException(e);
+            if(defaultReturn!=null)return defaultReturn;
+            else throw new RuntimeException(e);
         }
 
         return type;

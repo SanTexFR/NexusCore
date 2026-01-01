@@ -1,6 +1,6 @@
 package fr.nexus.api.var.types.parents.normal.big;
 
-import fr.nexus.api.var.types.parents.normal.VarType;
+import fr.nexus.api.var.types.parents.VarType;
 import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
