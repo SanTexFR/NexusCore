@@ -12,7 +12,6 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.nio.file.Path;
 import java.sql.*;
@@ -100,7 +99,7 @@ public final class VarSql extends Var{
 
             PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getVarSync",System.nanoTime()-nanoTime);
             return var;
-        }catch(IOException|SQLException e){
+        }catch(SQLException e){
             PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getVarSync",System.nanoTime()-nanoTime);
             throw new RuntimeException("Failed to load sync var: "+key,e);
         }

@@ -8,23 +8,21 @@ import fr.nexus.api.listeners.core.CoreDisableEvent;
 import fr.nexus.api.listeners.core.CoreInitializeEvent;
 import fr.nexus.api.listeners.core.CoreReloadEvent;
 import fr.nexus.api.listeners.Listeners;
-import fr.nexus.api.var.Var;
 import fr.nexus.api.var.types.VarTypes;
 import fr.nexus.system.ClazzInitializer;
 import fr.nexus.system.Logger;
 import fr.nexus.system.ThreadPool;
 import fr.nexus.system.Updater;
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.lang.ref.Cleaner;
-import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class Core extends JavaPlugin{
@@ -42,13 +40,9 @@ public final class Core extends JavaPlugin{
 
     private static final@NotNull UUID sessionUUID=UUID.randomUUID();
 
-    //DANS VAR AJOUTER UNE VERIF POUR LES SAVESYNC ET LOAD SYNC, POUR LE PAS POUVOIR LES LANCEES EN ASYNC
-
     //METHODS (OVERRIDE)
     @Override
     public void onEnable(){
-//        org.spigotmc.AsyncCatcher.enabled = false;
-
         //INSTANCE
         serverImplementation=new FoliaCompatibility(this).getServerImplementation();
         instance=this;
@@ -82,16 +76,14 @@ public final class Core extends JavaPlugin{
         Updater.checkForUpdates();
 
         Listeners.register(CoreReloadEvent.class,Core::onCoreReload);
-
-        //TEST
-        //Bukkit.getScheduler().runTaskLater(getInstance(),Core::testFile,40L);
-        //Listeners.register(PlayerJoinEvent.class,Core::onPlayerJoin);
     }
 
     @Override
     public void onDisable(){
-        Bukkit.getPluginManager().callEvent(new CoreDisableEvent());
+        final PluginManager pluginManager=Bukkit.getPluginManager();
+        pluginManager.callEvent(new CoreDisableEvent());
         shutdownExecutor(Listeners.THREADPOOL);
+        pluginManager.callEvent(new CoreCleanupEvent());
     }
     public static void shutdownExecutor(@NotNull ThreadPool threadPool){
         try{
@@ -121,9 +113,6 @@ public final class Core extends JavaPlugin{
     public static @NotNull Cleaner getCleaner(){
         return cleaner;
     }
-
-    //FAIRE UN MENU COMME LE MENU PERFORMANCE MAIS OU J'indique LES ENTREES SOUS FORME D'API style MATERIAL, SUPPLIER TEXT EN ... POUR EN METTRE AUTANT QUE JE VEUX DANS LA DESCRIPTION, AUSSI POUVOIR CHANGER LE TITRE DES ITEMS
-    //EMPECHER DE CUIR DES ITEMS CUSTOM ET DESENCHANTER AVEC L'iTEM BUILDER
 
     public static void reload(boolean safe){
         getInstance().reloadConfig();

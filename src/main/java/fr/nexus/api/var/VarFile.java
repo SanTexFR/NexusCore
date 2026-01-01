@@ -100,7 +100,7 @@ public final class VarFile extends Var{
                 }
             },Var.THREADPOOL).thenCompose(bytes->{
                 synchronized(var.data){
-                    return VarSerializer.deserializeDataAsync(bytes, var.data)
+                    return VarSerializer.deserializeDataAsync(bytes,var.data)
                             .thenApply(unused->var);
                 }
             });
@@ -182,7 +182,7 @@ public final class VarFile extends Var{
 
         final Path path=super.getPath();
 
-        final Object2ObjectOpenHashMap<String,Object[]>snapshot;
+        final Object2ObjectOpenHashMap<String,VarEntry<?>>snapshot;
         synchronized(super.data){
             snapshot=new it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<>(super.data);
         }

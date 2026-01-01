@@ -10,7 +10,6 @@ import fr.nexus.api.listeners.Listeners;
 import fr.nexus.api.var.events.DataSetEvent;
 import fr.nexus.api.var.events.DataSetEventType;
 import fr.nexus.api.var.types.VarSubType;
-import fr.nexus.api.var.types.parents.Vars;
 import fr.nexus.api.var.types.parents.map.MapType;
 import fr.nexus.api.var.types.parents.map.MapVarType;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
@@ -45,7 +44,7 @@ public sealed abstract class Var permits VarFile,VarSql{
     }
 
     //VARIABLES (INSTANCES)
-    protected final@NotNull Object2ObjectOpenHashMap<@NotNull String,Object[]>data=new Object2ObjectOpenHashMap<>();
+    protected final@NotNull Object2ObjectOpenHashMap<@NotNull String,@NotNull VarEntry<?>>data=new Object2ObjectOpenHashMap<>();
     private final@NotNull Path path;
     private boolean dirty;
 
@@ -251,22 +250,16 @@ public sealed abstract class Var permits VarFile,VarSql{
         setValue(type,key,value,true);
     }
     public<V>void setValue(@NotNull VarSubType<V>type,@NotNull String key,@Nullable V value,boolean isPersistent){
-        final long nanoTime=System.nanoTime();
-
         if(value!=null){
             synchronized(this.data){
-                if(isPersistent)this.data.put(key,new Object[]{value,type});
-                else this.data.put(key,new Object[]{value,type,null});
+                this.data.put(key,new VarEntry<>(value,type,isPersistent));
             }
         }else removeWithoutEvent(key);
 
         setDirty(true);
 
         if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.WRAPPER,key,value));
-        else Core.getServerImplementation().global().run(()->
-                Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.WRAPPER,key,value)));
-
-        PerformanceTracker.increment(PerformanceTracker.Types.VAR,"setValue",System.nanoTime()-nanoTime);
+        else Core.getServerImplementation().global().run(()->Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.WRAPPER,key,value)));
     }
 
     /**
@@ -278,19 +271,14 @@ public sealed abstract class Var permits VarFile,VarSql{
      * @return la valeur si présente et du bon type, sinon null
      */
     public@Nullable<T>T getValue(@NotNull VarSubType<@NotNull T>type,@NotNull String key){
-        final long nanoTime=System.nanoTime();
-
-        final Object[]values;
+        final VarEntry<?>entry;
         synchronized(this.data){
-            values=this.data.get(key);
-        }
-        if(values==null||!((Vars)values[1]).equals(type)){
-            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getValue",System.nanoTime()-nanoTime);
-            return null;
+            entry=this.data.get(key);
         }
 
-        PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getValue",System.nanoTime()-nanoTime);
-        return(T)values[0];
+        if(entry==null||!entry.type().equals(type))return null;
+
+        return(T)entry.value();
     }
     /**
      * Récupère une valeur typée stockée dans la variable.
@@ -327,22 +315,19 @@ public sealed abstract class Var permits VarFile,VarSql{
         putMap(mapType,keyType,valueType,key,map,true);
     }
     public<T,T2,M extends Map<T,T2>>void putMap(@NotNull MapType<M> mapType,@NotNull VarSubType<T>keyType,@NotNull VarSubType<T2>valueType,@NotNull String key,@Nullable M map,boolean isPersistent){
-        final long nanoTime=System.nanoTime();
-
         if(map!=null&&!map.isEmpty()){
+            final MapVarType<?,?>type=new MapVarType<>(mapType,keyType,valueType);
             synchronized(this.data){
-                if(isPersistent)data.put(key,new Object[]{map,new MapVarType<>(mapType,keyType,valueType)});
-                else data.put(key,new Object[]{map,new MapVarType<>(mapType,keyType,valueType),null});
+                this.data.put(key,new VarEntry<>(map,type,isPersistent));
             }
-        }else removeWithoutEvent(key);
+        } else {
+            removeWithoutEvent(key);
+        }
 
         setDirty(true);
 
         if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.MAP,key,map));
-        else Core.getServerImplementation().global().run(()->
-                Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.MAP,key,map)));
-
-        PerformanceTracker.increment(PerformanceTracker.Types.VAR,"putMap",System.nanoTime()-nanoTime);
+        else Core.getServerImplementation().global().run(()->Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.MAP,key,map)));
     }
 
     /**
@@ -358,17 +343,16 @@ public sealed abstract class Var permits VarFile,VarSql{
      * @return la map si présente et valide, sinon null
      */
     public@Nullable<T,T2,M extends Map<T,T2>>M getMap(@NotNull MapType<M>mapType,@NotNull VarSubType<T>keyType,@NotNull VarSubType<T2>valueType,@NotNull String key){
-        final long nanoTime=System.nanoTime();
-
-        final Object[]values;
+        final VarEntry<?>entry;
         synchronized(this.data){
-            values=this.data.get(key);
+            entry=this.data.get(key);
         }
 
+        if(entry==null)return null;
+        final MapVarType<?,?>expectedType=new MapVarType<>(mapType,keyType,valueType);
+        if(!entry.type().equals(expectedType))return null;
 
-        PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getMap",System.nanoTime()-nanoTime);
-
-        return(values==null||!((Vars)values[1]).equals(new MapVarType<>(mapType,keyType,valueType)))?null:(M)values[0];
+        return(M)entry.value();
     }
     /**
      * Récupère une Map stockée ou retourne une valeur par défaut si absente.
