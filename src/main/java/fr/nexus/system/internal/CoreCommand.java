@@ -104,7 +104,7 @@ public class CoreCommand {
                 ).perform();
 
         TabCompleterHandler.create("core").addDisplay(sender->
-            ()->Set.of("performance","config","cachesize","version","information","mesh")).perform();
+            ()->Set.of("performance","config","cachesize","version","information","mesh","cleanup")).perform();
 
         TabCompleterHandler.create("core").addArg(sender->()->"config").addDisplay(sender->
                 ()->Set.of("reload")).perform();
