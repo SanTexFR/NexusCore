@@ -5,6 +5,7 @@ import fr.nexus.api.command.CommandCreator;
 import fr.nexus.api.command.tabcompleter.TabCompleterHandler;
 import fr.nexus.api.gui.GuiManager;
 import fr.nexus.api.listeners.Listeners;
+import fr.nexus.api.listeners.core.CoreCleanupEvent;
 import fr.nexus.api.listeners.core.CoreInitializeEvent;
 import fr.nexus.api.var.varObjects.VarObjectBackend;
 import fr.nexus.system.internal.information.InformationGui;
@@ -16,6 +17,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
@@ -38,7 +40,7 @@ public class CoreCommand {
                 .setAction((handler,args)->handler
                         .ifNotPlayer(c->{
                             if(args.length<1){
-                                c.sendMessage("§cVeuillez indiquez un argument valide. (/core <config, cachesize, version, mesh>)");
+                                c.sendMessage("§cVeuillez indiquez un argument valide. (/core <config, cachesize, version, mesh, cleanup>)");
                                 return;
                             }
 
@@ -57,35 +59,15 @@ public class CoreCommand {
                                     }
                                     
                                     cacheSize(c,args[1]);
-                                }case"mesh"->{
-                                    if(args.length<2||!args[1].equalsIgnoreCase("save")){
-                                        c.sendMessage("§cVeuillez indiquez un argument valide. (/core mesh <save>)");
-                                        return;
-                                    }
-
-                                    final long startMillis=System.currentTimeMillis();
-
-                                    VarObjectBackend.cleanVarObjectMap();
-
-                                    CompletableFuture.allOf(
-                                            VarObjectBackend.varObjects.values().stream()
-                                                    .map(WeakReference::get)
-                                                    .filter(Objects::nonNull)
-                                                    .map(varObject -> varObject.getVar().saveAsync())
-                                                    .toArray(CompletableFuture[]::new)
-                                    ).thenRun(()->
-                                            c.sendMessage("✅ Mesh saves "+(System.currentTimeMillis()-startMillis)+" ms !")
-                                    ).exceptionally(ex->{
-                                        c.sendMessage("❌ Mesh saves error: "+ex.getMessage());
-                                        return null;
-                                    });
-                                }case"version"->version(c);
-                                default->c.sendMessage("§cCommande incorrecte. (/core <config, cachesize, version, mesh>)");
+                                }case"mesh"->meshHandler(c,args);
+                                case"version"->version(c);
+                                case"cleanup"->cleanup(c);
+                                default->c.sendMessage("§cCommande incorrecte. (/core <config, cachesize, version, mesh, cleanup>)");
                             }
                         })
                         .ifPlayer(p->{
                             if(args.length<1){
-                                p.sendMessage("§cVeuillez indiquez un argument valide. (/core <config, performance, cachesize, information, version, mesh>)");
+                                p.sendMessage("§cVeuillez indiquez un argument valide. (/core <config, performance, cachesize, information, version, mesh, cleanup>)");
                                 return;
                             }
 
@@ -111,32 +93,12 @@ public class CoreCommand {
                                     }
 
                                     cacheSize(p,args[1]);
-                                }case"mesh"->{
-                                    if(args.length<2||!args[1].equalsIgnoreCase("save")){
-                                        p.sendMessage("§cVeuillez indiquez un argument valide. (/core mesh <save>)");
-                                        return;
-                                    }
-
-                                    final long startMillis=System.currentTimeMillis();
-
-                                    VarObjectBackend.cleanVarObjectMap();
-
-                                    CompletableFuture.allOf(
-                                            VarObjectBackend.varObjects.values().stream()
-                                                    .map(WeakReference::get)
-                                                    .filter(Objects::nonNull)
-                                                    .map(varObject -> varObject.getVar().saveAsync())
-                                                    .toArray(CompletableFuture[]::new)
-                                    ).thenRun(()->
-                                            p.sendMessage("✅ Mesh saves "+(System.currentTimeMillis()-startMillis)+" ms !")
-                                    ).exceptionally(ex->{
-                                        p.sendMessage("❌ Mesh saves error: "+ex.getMessage());
-                                        return null;
-                                    });
-                                }case"information"->
+                                }case"mesh"->meshHandler(p,args);
+                                case"information"->
                                     InformationGui.primaryGui(p);
                                 case"version"->version(p);
-                                default->p.sendMessage("§cCommande incorrecte. (/core <performance, config, cachesize, version, mesh>)");
+                                case"cleanup"->cleanup(p);
+                                default->p.sendMessage("§cCommande incorrecte. (/core <performance, config, cachesize, version, mesh, cleanup>)");
                             }
                         })
                 ).perform();
@@ -221,6 +183,34 @@ public class CoreCommand {
             }catch(Exception ex){
                 s.sendMessage("§cImpossible de vérifier les mises à jour: "+ex.getMessage());
             }
+        });
+    }
+    private static void cleanup(@NotNull CommandSender c){
+        final long time=System.currentTimeMillis();
+        Bukkit.getPluginManager().callEvent(new CoreCleanupEvent());
+        c.sendMessage("Temps de cleanup: "+(System.currentTimeMillis()-time)+" ms !");
+    }
+    private static void meshHandler(@NotNull CommandSender c,@NotNull String[]args){
+        if(args.length<2||!args[1].equalsIgnoreCase("save")){
+            c.sendMessage("§cVeuillez indiquez un argument valide. (/core mesh <save>)");
+            return;
+        }
+
+        final long startMillis=System.currentTimeMillis();
+
+        VarObjectBackend.cleanVarObjectMap();
+
+        CompletableFuture.allOf(
+                VarObjectBackend.varObjects.values().stream()
+                        .map(WeakReference::get)
+                        .filter(Objects::nonNull)
+                        .map(varObject -> varObject.getVar().saveAsync())
+                        .toArray(CompletableFuture[]::new)
+        ).thenRun(()->
+                c.sendMessage("Les meshs ont été sauvegardés en "+(System.currentTimeMillis()-startMillis)+" ms !")
+        ).exceptionally(ex->{
+            c.sendMessage("La sauvegarde des meshs à rencontrées une érreur: "+ex.getMessage());
+            return null;
         });
     }
 }
