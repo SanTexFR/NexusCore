@@ -58,16 +58,7 @@ public abstract class VarObjectBackend<R>{
 
     //GET
     protected static<R,T extends VarObjectBackend<R>>@NotNull T getVarObjectSyncInner(@NotNull String keyPrefix, @NotNull Class<T> clazz,@NotNull Supplier<T>factory, @NotNull Object...keyArgs){
-        final String completePath=getKey(keyPrefix,clazz.getName(),stringify(keyArgs));
-        final T cached=getIfCached(completePath,clazz);
-        if(cached!=null)return cached;
-
-        final CompletableFuture<VarObjectBackend<?>>async=asyncLoads.get(completePath);
-        if(async!=null)return(T)async.join();
-
-        final T varObject=factory.get();
-        varObjects.put(completePath,new WeakReference<>(varObject));
-        return varObject;
+        return getVarObjectAsyncInner(keyPrefix,clazz,()->CompletableFuture.completedFuture(factory.get()),keyArgs).join();
     }
     protected static<R,T extends VarObjectBackend<R>>@NotNull CompletableFuture<T>getVarObjectAsyncInner(@NotNull String keyPrefix,@NotNull Class<T> clazz,@NotNull Supplier<CompletableFuture<T>>factory,@NotNull Object...keyArgs){
         final String completePath=getKey(keyPrefix,clazz.getName(),stringify(keyArgs));

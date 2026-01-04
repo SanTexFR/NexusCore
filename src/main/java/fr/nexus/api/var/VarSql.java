@@ -3,7 +3,6 @@ package fr.nexus.api.var;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import fr.nexus.Core;
-import fr.nexus.system.internal.performanceTracker.PerformanceTracker;
 import fr.nexus.api.listeners.Listeners;
 import fr.nexus.api.listeners.server.ServerStopEvent;
 import fr.nexus.system.Logger;
@@ -18,10 +17,9 @@ import java.sql.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class VarSql extends Var{
+public class VarSql extends Var{
     //VARIABLES (STATICS)
     private static final@NotNull Logger logger=new Logger(Core.getInstance(),VarSql.class);
     private static final@NotNull Object2ObjectOpenHashMap<@NotNull String,HikariDataSource>dataSources=new Object2ObjectOpenHashMap<>();
@@ -35,8 +33,8 @@ public final class VarSql extends Var{
     private final@NotNull String database,tableName,dataPath;
 
     //CONSTRUCTOR
-    private VarSql(@NotNull Path path,@NotNull String database,@NotNull String tableName,@NotNull String dataPath,@NotNull Runnable closeRunnable,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded,@Nullable Consumer<@NotNull Var>notCachedConsumer){
-        super(path,closeRunnable,shouldStayLoaded);
+    private VarSql(@NotNull Path path,@NotNull String database,@NotNull String tableName,@NotNull String dataPath,@NotNull Runnable cleanupRunnable,@Nullable Consumer<@NotNull Var>notCachedConsumer){
+        super(path,cleanupRunnable);
         this.database=database;
         this.tableName=tableName;
         this.dataPath=dataPath;
@@ -50,64 +48,16 @@ public final class VarSql extends Var{
         }
     }
 
-    @Deprecated
     public static@NotNull VarSql getVarSync(@NotNull String database,@NotNull String tableName,@NotNull String path){
-        return getVarSync(database,tableName,path,null,null,null);
+        return getVarSync(database,tableName,path,null,null);
     }
-    public static@NotNull VarSql getVarSync(@NotNull String database,@NotNull String tableName,@NotNull String path,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>> shouldStayLoaded,@Nullable Consumer<@NotNull Var> notCachedConsumer,@Nullable Runnable unloadRunnable){
-        final long nanoTime=System.nanoTime();
-
-        final HikariDataSource hikari;
-        synchronized(dataSources){
-            hikari=dataSources.get(database);
-        }
-        if(hikari==null){
-            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getVarSync",System.nanoTime()-nanoTime);
-            throw new RuntimeException("Unknown database: "+database);
-        }
-
-        final Path fullPath=Path.of(database,tableName,path);
-        final String key=String.join("/","sql",fullPath.toString());
-
-        final VarSql cached=getIfCached(key);
-        if(cached!=null){
-            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getVarSync",System.nanoTime()-nanoTime);
-            return cached;
-        }
-
-        final CompletableFuture<Var>async;
-        synchronized(asyncLoads){
-            async=asyncLoads.get(key);
-        }
-        if(async!=null){
-            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getVarSync",System.nanoTime()-nanoTime);
-            return(VarSql)async.join();
-        }
-
-        final VarSql var=new VarSql(fullPath,database,tableName,path,new Unload(key,unloadRunnable),shouldStayLoaded,notCachedConsumer);
-        try{
-            checkOrCreateTable(hikari,tableName);
-
-            synchronized(var.data){
-                VarSerializer.deserializeDataSync(getValue(hikari,tableName,path),var.data);
-            }
-
-            synchronized(vars){
-                vars.put(key,new WeakReference<>(var));
-                if(notCachedConsumer!=null)notCachedConsumer.accept(var);
-            }
-
-            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getVarSync",System.nanoTime()-nanoTime);
-            return var;
-        }catch(SQLException e){
-            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getVarSync",System.nanoTime()-nanoTime);
-            throw new RuntimeException("Failed to load sync var: "+key,e);
-        }
+    public static@NotNull VarSql getVarSync(@NotNull String database,@NotNull String tableName,@NotNull String path,@Nullable Consumer<@NotNull Var>notCachedConsumer,@Nullable Runnable unloadRunnable){
+        return getVarAsync(database,tableName,path,notCachedConsumer,unloadRunnable).join();
     }
     public static@NotNull CompletableFuture<@NotNull VarSql>getVarAsync(@NotNull String database,@NotNull String tableName,@NotNull String path){
-        return getVarAsync(database,tableName,path,null,null,null);
+        return getVarAsync(database,tableName,path,null,null);
     }
-    public static@NotNull CompletableFuture<@NotNull VarSql>getVarAsync(@NotNull String database,@NotNull String tableName,@NotNull String path,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded,@Nullable Consumer<@NotNull Var>notCachedConsumer,@Nullable Runnable unloadRunnable){
+    public static@NotNull CompletableFuture<@NotNull VarSql>getVarAsync(@NotNull String database,@NotNull String tableName,@NotNull String path,@Nullable Consumer<@NotNull Var>notCachedConsumer,@Nullable Runnable unloadRunnable){
         final HikariDataSource hikari;
         synchronized(dataSources){
             hikari=dataSources.get(database);
@@ -126,7 +76,7 @@ public final class VarSql extends Var{
         }
         if(async!=null)return async.thenApply(var->(VarSql) var);
 
-        final VarSql var=new VarSql(fullPath,database,tableName,path,new Unload(key,unloadRunnable),shouldStayLoaded,notCachedConsumer);
+        final VarSql var=new VarSql(fullPath,database,tableName,path,new Unload(key,unloadRunnable),notCachedConsumer);
 
         final CompletableFuture<VarSql>future=CompletableFuture
                 .runAsync(()->{
@@ -184,32 +134,6 @@ public final class VarSql extends Var{
     //ABSTRACT
     public void saveSync(){
         saveAsync().join();
-
-//        if(!isDirty())return;
-//
-//        final long nanoTime=System.nanoTime();
-//
-//        setDirty(false);
-//
-//        final HikariDataSource hikari;
-//        synchronized(dataSources){
-//            hikari=dataSources.get(this.database);
-//        }
-//        if(hikari==null){
-//            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
-//            throw new IllegalStateException("Unknown database: "+this.database);
-//        }
-//
-//        try{
-//            synchronized(super.data){
-//                putValue(hikari,this.tableName,this.dataPath,VarSerializer.serializeDataSync(super.data));
-//            }
-//        }catch(IOException|SQLException e){
-//            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
-//            throw new RuntimeException("Failed to save data synchronously to DB: "+this.tableName,e);
-//        }
-//
-//        PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
     }
     public@NotNull CompletableFuture<@Nullable Void>saveAsync(){
         if(!isDirty())return CompletableFuture.completedFuture(null);
@@ -233,10 +157,6 @@ public final class VarSql extends Var{
                         setDirty(false);
                     },Var.THREADPOOL)
                     .exceptionally(ex -> {
-                        // ❗ Sauvegarde échouée → on garde dirty = true
-                        // ❗ Le fichier existant n'est PAS touché
-
-                        // Optionnel mais fortement recommandé :
                         ex.printStackTrace();
 
                         return null;

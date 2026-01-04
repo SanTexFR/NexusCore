@@ -1,6 +1,5 @@
 package fr.nexus.api.var;
 
-import fr.nexus.system.internal.performanceTracker.PerformanceTracker;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -13,69 +12,25 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class VarFile extends Var{
+public class VarFile extends Var{
     //CONSTRUCTOR
-    private VarFile(@NotNull Path path,@NotNull Runnable closeRunnable,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>> shouldStayLoaded){
-        super(path,closeRunnable,shouldStayLoaded);
+    private VarFile(@NotNull Path path,@NotNull Runnable closeRunnable){
+        super(path,closeRunnable);
     }
-
 
     //METHODS (STATICS)
-    @Deprecated
     public static@NotNull VarFile getVarSync(@NotNull Plugin plugin,@NotNull String key){
-        return getVarSync(plugin,key,null,null,null);
+        return getVarSync(plugin,key,null,null);
     }
-    public static@NotNull VarFile getVarSync(@NotNull Plugin plugin,@NotNull String key,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded,@Nullable Consumer<@NotNull Var>notCachedConsumer,@Nullable Runnable unloadRunnable){
-        final long nanoTime=System.nanoTime();
-
-        final Path path=getVarPath(plugin,key);
-        final String completePath=String.join("/","file",path.toString());
-
-        final VarFile cached=getIfCached(completePath);
-        if(cached!=null){
-            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getVarSync",System.nanoTime()-nanoTime);
-            return cached;
-        }
-
-        final CompletableFuture<Var>async;
-        synchronized(asyncLoads){
-            async=asyncLoads.get(completePath);
-        }
-
-        if(async!=null){
-            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getVarSync",System.nanoTime()-nanoTime);
-            return(VarFile)async.join();
-        }
-
-        final VarFile var=new VarFile(path,new Unload(key,unloadRunnable),shouldStayLoaded);
-
-        if(Files.exists(path)){
-            try{
-                synchronized(var.data){
-                    VarSerializer.deserializeDataSync(Files.readAllBytes(path),var.data);
-                }
-            }catch(IOException e){
-                PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getVarSync",System.nanoTime()-nanoTime);
-                throw new RuntimeException("Failed to load sync var: "+key,e);
-            }
-        }
-
-        synchronized(vars){
-            vars.put(completePath,new WeakReference<>(var));
-            if(notCachedConsumer!=null)notCachedConsumer.accept(var);
-        }
-
-        PerformanceTracker.increment(PerformanceTracker.Types.VAR,"getVarSync",System.nanoTime()-nanoTime);
-
-        return var;
+    public static@NotNull VarFile getVarSync(@NotNull Plugin plugin,@NotNull String key,@Nullable Runnable unloadRunnable,@Nullable Consumer<@NotNull Var>notCachedConsumer){
+        return getVarAsync(plugin,key,unloadRunnable,notCachedConsumer).join();
     }
     public static @NotNull CompletableFuture<@NotNull VarFile>getVarAsync(@NotNull Plugin plugin,@NotNull String key){
-        return getVarAsync(plugin,key,null,null,null);
+        return getVarAsync(plugin,key,null,null);
     }
-    public static @NotNull CompletableFuture<@NotNull VarFile>getVarAsync(@NotNull Plugin plugin,@NotNull String key,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded,@Nullable Consumer<@NotNull Var> notCachedConsumer,@Nullable Runnable unloadRunnable){
+    public static @NotNull CompletableFuture<@NotNull VarFile>getVarAsync(@NotNull Plugin plugin,@NotNull String key,@Nullable Runnable unloadRunnable,@Nullable Consumer<@NotNull Var>notCachedConsumer){
         final Path path=getVarPath(plugin,key);
         final String completePath=String.join("/","file",path.toString());
 
@@ -88,7 +43,7 @@ public final class VarFile extends Var{
         }
         if(existing!=null)return existing.thenApply(var->(VarFile)var);
 
-        final VarFile var=new VarFile(path,new Unload(key,unloadRunnable),shouldStayLoaded);
+        final VarFile var=new VarFile(path,new Unload(key,unloadRunnable));
         final CompletableFuture<VarFile>future;
 
         if(Files.exists(path)){
@@ -149,33 +104,6 @@ public final class VarFile extends Var{
     //ABSTRACT
     public void saveSync(){
         saveAsync().join();
-
-//        if(!isDirty())return;
-//        final long nanoTime=System.nanoTime();
-//
-//        final Path path=super.getPath();
-//        try{
-//            final byte[]bytes;
-//            synchronized(super.data){
-//                bytes=VarSerializer.serializeDataSync(super.data);
-//            }
-//            if(bytes==null||bytes.length==0){
-//                Files.deleteIfExists(path);
-//
-//                PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
-//                return;
-//            }
-//
-//            Files.createDirectories(path.getParent());
-//            Files.write(path,bytes);
-//        }catch(IOException e){
-//            PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
-//            throw new RuntimeException("Failed to save data synchronously: "+path,e);
-//        }
-//
-//        setDirty(false);
-//
-//        PerformanceTracker.increment(PerformanceTracker.Types.VAR,"saveSync",System.nanoTime()-nanoTime);
     }
     public @NotNull CompletableFuture<@Nullable Void>saveAsync() {
         if(!isDirty())return CompletableFuture.completedFuture(null);
@@ -203,10 +131,6 @@ public final class VarFile extends Var{
             }
         },Var.THREADPOOL)
                 .exceptionally(ex -> {
-                    // ❗ Sauvegarde échouée → on garde dirty = true
-                    // ❗ Le fichier existant n'est PAS touché
-
-                    // Optionnel mais fortement recommandé :
                     ex.printStackTrace();
 
                     return null;

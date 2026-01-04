@@ -26,10 +26,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
+import java.util.function.Supplier;
 
 @SuppressWarnings({"unused","UnusedReturnValue","unchecked"})
-public sealed abstract class Var permits VarFile,VarSql{
+public abstract class Var{
     //VARIABLES (STATICS)
     public static int THREAD_AMOUNT;
     public static ThreadPool THREADPOOL;
@@ -47,21 +47,22 @@ public sealed abstract class Var permits VarFile,VarSql{
     protected final@NotNull Object2ObjectOpenHashMap<@NotNull String,@NotNull VarEntry<?>>data=new Object2ObjectOpenHashMap<>();
     private final@NotNull Path path;
     private boolean dirty;
-
-    private final@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>> shouldStayLoaded;
+    private @Nullable Supplier<CompletableFuture<Boolean>> shouldStayLoadedSupplier;
 
     private final@NotNull Cleaner.Cleanable cleanable;
 
     //CONSTRUCTOR
-    protected Var(@NotNull Path path,@NotNull Runnable closeRunnable,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>>shouldStayLoaded){
+    protected Var(@NotNull Path path,@NotNull Runnable cleanupRunnable){
         this.path=path;
 
-        this.cleanable=Core.getCleaner().register(this,closeRunnable);
+        this.cleanable=Core.getCleaner().register(this,cleanupRunnable);
 
-        if(shouldStayLoaded!=null){
-            this.shouldStayLoaded=shouldStayLoaded;
-            shouldStayLoadedVars.add(this);
-        }else this.shouldStayLoaded=null;
+        Core.getServerImplementation().global().runDelayed(()->{
+            final CompletableFuture<Boolean>completable=shouldStayLoaded();
+            if(completable!=null)completable.thenAccept(bool->{
+                if(!bool)shouldStayLoadedVars.add(this);
+            });
+        },1L);
     }
 
     //METHODS (STATICS)
@@ -88,12 +89,13 @@ public sealed abstract class Var permits VarFile,VarSql{
 
         final AtomicInteger remaining=new AtomicInteger(shouldStayLoadedVars.size());
         for(final Var var:new HashSet<>(shouldStayLoadedVars)){
-            if(var.shouldStayLoaded==null){
+            final CompletableFuture<Boolean>completable=var.shouldStayLoaded();
+            if(completable==null){
                 if(remaining.decrementAndGet()==0)cleanupVars();
                 continue;
             }
 
-            var.shouldStayLoaded.apply(var).thenAccept(bool->{
+            completable.thenAccept(bool->{
                 if(!bool)shouldStayLoadedVars.remove(var);
 
                 if(remaining.decrementAndGet()==0)cleanupVars();
@@ -115,6 +117,14 @@ public sealed abstract class Var permits VarFile,VarSql{
     }
 
     //METHODS (INSTANCES)
+
+    //UTILS
+    public void setShouldStayLoadedSupplier(@Nullable Supplier<CompletableFuture<@NotNull Boolean>>supplier){
+        this.shouldStayLoadedSupplier=supplier;
+    }
+    public@Nullable CompletableFuture<@NotNull Boolean>shouldStayLoaded(){
+        return this.shouldStayLoadedSupplier!=null?this.shouldStayLoadedSupplier.get():null;
+    }
 
     //SAVE
     /**

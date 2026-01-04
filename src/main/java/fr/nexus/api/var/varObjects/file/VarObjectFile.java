@@ -9,7 +9,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public abstract class VarObjectFile<R>extends VarObjectBackend<R> {
@@ -19,14 +18,12 @@ public abstract class VarObjectFile<R>extends VarObjectBackend<R> {
     }
 
     //METHODS (STATICS)
-    public static<R,T extends VarObjectFile<R>>@NotNull T getVarObjectSync(@NotNull Class<T>clazz, @NotNull R reference, @NotNull VarObjectFileFactory<R,T> factory, @NotNull Plugin plugin, @NotNull String varPath,@Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>> shouldStayLoaded,@Nullable Consumer<@NotNull Var>notCachedConsumer,@Nullable Runnable unloadRunnable){
-        return getVarObjectSyncInner("file",clazz,()->
-                factory.create(clazz,reference,plugin,varPath,VarFile.getVarSync(plugin,varPath,shouldStayLoaded,notCachedConsumer,unloadRunnable))
-                ,clazz.getName(),plugin.getName(),varPath);
+    public static<R,T extends VarObjectFile<R>>@NotNull T getVarObjectSync(@NotNull Class<T>clazz, @NotNull R reference, @NotNull VarObjectFileFactory<R,T> factory, @NotNull Plugin plugin, @NotNull String varPath,@Nullable Consumer<@NotNull Var>notCachedConsumer,@Nullable Runnable unloadRunnable){
+        return getVarObjectAsync(clazz,reference,factory,plugin,varPath,notCachedConsumer,unloadRunnable).join();
     }
-    public static<R,T extends VarObjectFile<R>>@NotNull CompletableFuture<T> getVarObjectAsync(@NotNull Class<T>clazz, @NotNull R reference, @NotNull VarObjectFileFactory<R,T> factory, @NotNull Plugin plugin, @NotNull String varPath, @Nullable Function<@NotNull Var,@NotNull CompletableFuture<@NotNull Boolean>> shouldStayLoaded,@Nullable Consumer<@NotNull Var> notCachedConsumer,@Nullable Runnable unloadRunnable){
+    public static<R,T extends VarObjectFile<R>>@NotNull CompletableFuture<T> getVarObjectAsync(@NotNull Class<T>clazz, @NotNull R reference, @NotNull VarObjectFileFactory<R,T> factory, @NotNull Plugin plugin, @NotNull String varPath,@Nullable Consumer<@NotNull Var>notCachedConsumer,@Nullable Runnable unloadRunnable){
         return getVarObjectAsyncInner("file",clazz,()->
-                VarFile.getVarAsync(plugin,varPath,shouldStayLoaded,notCachedConsumer,unloadRunnable).thenApply(var->factory.create(clazz,reference,plugin,varPath,var))
+                VarFile.getVarAsync(plugin,varPath,unloadRunnable,notCachedConsumer).thenApply(var->factory.create(clazz,reference,plugin,varPath,var))
                 ,clazz.getName(),plugin.getName(),varPath);
     }
 }
