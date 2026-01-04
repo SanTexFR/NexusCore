@@ -120,7 +120,11 @@ class VarSerializer {
              LZ4BlockInputStream lz4In = new LZ4BlockInputStream(bais, DECOMPRESSOR)) {
 
             byte[] sizeBytes = new byte[4];
-            bais.read(sizeBytes);
+            int read = bais.read(sizeBytes);
+            if (read != 4) {
+                throw new IOException("Impossible de lire la taille originale");
+            }
+
             int originalLength = ByteBuffer.wrap(sizeBytes).getInt();
 
             byte[] decompressed = lz4In.readAllBytes();

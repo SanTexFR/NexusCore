@@ -28,7 +28,7 @@ public class ItemBuilder{
 
     //CONSTRUCTOR
     private ItemBuilder(@NotNull Material material){
-        this.itemStack=new ItemStack(material);
+        this.itemStack=ItemStack.of(material);
         this.meta=this.itemStack.getItemMeta();
     }
 

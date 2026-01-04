@@ -51,7 +51,7 @@ public class MapVarType<T,T2>extends VarVersion implements Vars,CollectionUtils{
 
     //RAW TYPE
     public @NotNull String getStringType(){
-        return"Map<"+this.varMapType.getStringType()+"¦"+this.keyVarType.getStringType()+"¦"+this.valueVarType.getStringType()+">";
+        return"M<"+this.varMapType.getStringType()+"¦"+this.keyVarType.getStringType()+"¦"+this.valueVarType.getStringType()+">";
     }
 
     //SERIALIZATION

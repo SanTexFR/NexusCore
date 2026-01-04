@@ -43,7 +43,7 @@ class CommandHandler extends Command{
         }
 
         if(customCommand.permission!=null)
-            this.setPermission(customCommand.permission);
+            this.setPermission(String.join(";",customCommand.permission));
 
         this.tabCompleter=tabCompleterInstance;
     }

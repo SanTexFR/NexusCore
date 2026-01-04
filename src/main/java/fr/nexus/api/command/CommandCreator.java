@@ -23,7 +23,7 @@ public class CommandCreator{
     protected@Nullable String usage;
     protected@Nullable String usageMessage;
     protected@Nullable String@Nullable[]aliases;
-    protected@Nullable String permission;
+    protected@Nullable String[]permission;
 
     //CONSTRUCTOR
     private CommandCreator(@NotNull String command){
@@ -72,7 +72,7 @@ public class CommandCreator{
         this.aliases=aliases;
         return this;
     }
-    public@NotNull CommandCreator setPermission(@Nullable String permission){
+    public@NotNull CommandCreator setPermission(@Nullable String...permission){
         this.permission=permission;
         return this;
     }
