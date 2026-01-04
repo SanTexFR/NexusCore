@@ -1,15 +1,15 @@
 package fr.nexus.api.var.types.parents.normal.bukkit;
 
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class ItemStackType extends VarType<ItemStack>{
+public final class ItemStackType extends InternalVarType<ItemStack>{
     //VARIABLES(STATICS)
-    private static final @NotNull ItemStack AIR_ITEM_STACK=new ItemStack(Material.AIR);
+    private static final @NotNull ItemStack AIR_ITEM_STACK=ItemStack.of(Material.AIR);
 
     //METHODS(INSTANCES)
     public byte@NotNull[] serializeSync(@Nullable ItemStack value) {

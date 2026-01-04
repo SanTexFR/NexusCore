@@ -1,10 +1,10 @@
 package fr.nexus.api.var.types.parents.normal.java;
 
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class IntegerType extends VarType<Integer>{
+public final class IntegerType extends InternalVarType<Integer>{
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull Integer value){
         return addVersionToBytes(toVarInt(zigZagEncode(value)));

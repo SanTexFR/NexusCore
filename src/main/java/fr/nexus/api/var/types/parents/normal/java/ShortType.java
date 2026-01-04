@@ -1,10 +1,10 @@
 package fr.nexus.api.var.types.parents.normal.java;
 
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class ShortType extends VarType<Short>{
+public final class ShortType extends InternalVarType<Short>{
     //METHODS
     public byte@NotNull[]serializeSync(@NotNull Short value){
         final int zig=(value<<1)^(value>>15);

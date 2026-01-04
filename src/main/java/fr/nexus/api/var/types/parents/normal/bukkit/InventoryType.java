@@ -1,7 +1,7 @@
 package fr.nexus.api.var.types.parents.normal.bukkit;
 
 import fr.nexus.api.var.types.VarTypes;
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
@@ -12,9 +12,9 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class InventoryType extends VarType<Inventory> {
+public final class InventoryType extends InternalVarType<Inventory> {
     //VARIABLES (STATICS)
-    private static final @NotNull ItemStack AIR_ITEM_STACK = new ItemStack(Material.AIR);
+    private static final @NotNull ItemStack AIR_ITEM_STACK = ItemStack.of(Material.AIR);
 
     //METHODS(INSTANCES)
     @Override

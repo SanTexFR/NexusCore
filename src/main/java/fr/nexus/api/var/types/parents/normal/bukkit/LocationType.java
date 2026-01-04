@@ -1,7 +1,7 @@
 package fr.nexus.api.var.types.parents.normal.bukkit;
 
 import fr.nexus.api.var.types.VarTypes;
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import java.nio.ByteBuffer;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class LocationType extends VarType<Location>{
+public final class LocationType extends InternalVarType<Location>{
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull Location value){
         final byte[]serializedWorld=VarTypes.WORLD.serializeSync(value.getWorld());

@@ -1,14 +1,14 @@
 package fr.nexus.api.var.types.parents.normal.java.date;
 
 import fr.nexus.api.var.types.VarTypes;
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class LocalDateTimeType extends VarType<LocalDateTime>{
+public final class LocalDateTimeType extends InternalVarType<LocalDateTime>{
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull LocalDateTime value){
         return addVersionToBytes(VarTypes.LONG.serializeSync(value.toInstant(ZoneOffset.UTC).toEpochMilli()));

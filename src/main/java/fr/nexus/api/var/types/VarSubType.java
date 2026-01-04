@@ -1,6 +1,7 @@
 package fr.nexus.api.var.types;
 
 import fr.nexus.api.var.types.parents.Vars;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

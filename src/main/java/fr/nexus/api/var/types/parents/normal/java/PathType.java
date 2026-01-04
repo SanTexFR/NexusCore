@@ -1,13 +1,13 @@
 package fr.nexus.api.var.types.parents.normal.java;
 
 import fr.nexus.api.var.types.VarTypes;
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class PathType extends VarType<Path>{
+public final class PathType extends InternalVarType<Path>{
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull Path value){
         return VarTypes.STRING.serializeSync(value.toAbsolutePath().toString());

@@ -1,6 +1,6 @@
 package fr.nexus.api.var.types.parents.normal.bukkit;
 
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.bukkit.Bukkit;
 import org.bukkit.block.data.BlockData;
 import org.jetbrains.annotations.NotNull;
@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class BlockDataType extends VarType<BlockData>{
+public final class BlockDataType extends InternalVarType<BlockData>{
     //METHODS
     public byte@NotNull[]serializeSync(@NotNull BlockData data){
         final byte[]dataBytes=data.getAsString().getBytes(StandardCharsets.UTF_8);

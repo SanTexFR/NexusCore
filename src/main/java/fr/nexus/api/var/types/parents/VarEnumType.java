@@ -1,6 +1,7 @@
 package fr.nexus.api.var.types.parents;
 
 import fr.nexus.api.var.types.VarTypes;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -10,11 +11,11 @@ public abstract class VarEnumType<T extends Enum<T>>extends VarType<T>{
     private@Nullable T defaultReturn;
 
     //CONSTRUCTOR
-    protected VarEnumType(@NotNull Class<@NotNull T>typeClazz){
-        super(typeClazz,1);
+    protected VarEnumType(@NotNull Plugin handler,@NotNull Class<@NotNull T>typeClazz){
+        super(handler,typeClazz,1);
     }
-    protected VarEnumType(@NotNull Class<@NotNull T>typeClazz,@Nullable T defaultReturn){
-        super(typeClazz,1);
+    protected VarEnumType(@NotNull Plugin handler,@NotNull Class<@NotNull T>typeClazz,@Nullable T defaultReturn){
+        super(handler,typeClazz,1);
         this.defaultReturn=defaultReturn;
     }
 

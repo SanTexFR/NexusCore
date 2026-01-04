@@ -1,10 +1,10 @@
 package fr.nexus.api.var.types.parents.normal.java;
 
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
-public final class ShortArrayType extends VarType<short[]>{
+public final class ShortArrayType extends InternalVarType<short[]>{
     @Override
     public byte@NotNull[]serializeSync(short @NotNull[]value){
         byte[]lenBytes=IntegerType.toVarInt(value.length);

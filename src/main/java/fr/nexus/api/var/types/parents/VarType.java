@@ -3,6 +3,7 @@ package fr.nexus.api.var.types.parents;
 import fr.nexus.api.var.types.VarSubType;
 import fr.nexus.api.var.types.VarVersion;
 import fr.nexus.utils.CollectionUtils;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,32 +21,30 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     private static final@NotNull Map<@NotNull String,@NotNull VarSubType<?>>types=new HashMap<>();
 
     //VARIABLES (INSTANCES)
-    private final@NotNull Class<@NotNull T>typeClazz;
+    private@NotNull Plugin handler;
+    private@NotNull Class<@NotNull T>typeClazz;
 
     //CONSTRUCTOR
-    protected VarType(){
+    protected VarType(@NotNull Plugin handler){
         super(1);
-        this.typeClazz=(Class<T>)((ParameterizedType)getClass()
+        init(handler,(Class<T>)((ParameterizedType)getClass()
                 .getGenericSuperclass())
-                .getActualTypeArguments()[0];
-
-        init();
+                .getActualTypeArguments()[0]);
     }
-    protected VarType(int version){
+    protected VarType(@NotNull Plugin handler,int version){
         super(version);
-        this.typeClazz=(Class<T>)((ParameterizedType)getClass()
+        init(handler,(Class<T>)((ParameterizedType)getClass()
                 .getGenericSuperclass())
-                .getActualTypeArguments()[0];
-
-        init();
+                .getActualTypeArguments()[0]);
     }
-    protected VarType(@NotNull Class<@NotNull T>typeClazz,int version){
+    protected VarType(@NotNull Plugin handler,@NotNull Class<@NotNull T>typeClazz,int version){
         super(version);
+        init(handler,typeClazz);
+    }
+    private void init(@NotNull Plugin handler,@NotNull Class<@NotNull T>typeClazz){
+        this.handler=handler;
         this.typeClazz=typeClazz;
 
-        init();
-    }
-    private void init(){
         types.put(getStringType(),this);
 
         final VarSubType<?>list=lists();
@@ -69,6 +68,11 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
 
     //METHODS (INSTANCES)
 
+    //HANDLER
+    public@NotNull Plugin getHandler(){
+        return this.handler;
+    }
+
     //CLAZZ
     public@NotNull Class<@NotNull T>getTypeClazz(){
         return this.typeClazz;
@@ -81,7 +85,11 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
 
     //RAW TYPE
     public@NotNull String getStringType(){
-        return"Normal<"+this.typeClazz.getName()+">";
+        return"Normal<"+getRawStringType()+">";
+    }
+
+    private@NotNull String getRawStringType(){
+        return this.handler.getName()+"¦"+this.typeClazz.getSimpleName();
     }
 
     //SERIALIZATION-SYNC
@@ -124,7 +132,7 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     public final class ConcurrentSkipListSetType implements VarSubType<ConcurrentSkipListSet<T>>{
         //RAW TYPE
         public@NotNull String getStringType(){
-            return"ConcurrentSkipListSet<"+VarType.this.typeClazz.getName()+">";
+            return"ConcurrentSkipListSet<"+getRawStringType()+">";
         }
 
         //SERIALIZATION-SYNC
@@ -152,7 +160,7 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     public final class ConcurrentSetType implements VarSubType<ConcurrentHashMap.KeySetView<T,Boolean>>{
         //RAW TYPE
         public@NotNull String getStringType(){
-            return"ConcurrentSet<"+VarType.this.typeClazz.getName()+">";
+            return"ConcurrentSet<"+getRawStringType()+">";
         }
 
         //SERIALIZATION-SYNC
@@ -180,7 +188,7 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     public final class LinkedSetType implements VarSubType<LinkedHashSet<T>>{
         //RAW TYPE
         public@NotNull String getStringType(){
-            return"LinkedSet<"+VarType.this.typeClazz.getName()+">";
+            return"LinkedSet<"+getRawStringType()+">";
         }
 
         //SERIALIZATION-SYNC
@@ -208,7 +216,7 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     public final class TreeSetType implements VarSubType<TreeSet<T>>{
         //RAW TYPE
         public@NotNull String getStringType(){
-            return"TreeSet<"+VarType.this.typeClazz.getName()+">";
+            return"TreeSet<"+getRawStringType()+">";
         }
 
         //SERIALIZATION-SYNC
@@ -237,7 +245,7 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     public final class SetType implements VarSubType<Set<T>>{
         //RAW TYPE
         public@NotNull String getStringType(){
-            return"Set<"+VarType.this.typeClazz.getName()+">";
+            return"Set<"+getRawStringType()+">";
         }
 
         //SERIALIZATION-SYNC
@@ -265,7 +273,7 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     public final class ListType implements VarSubType<List<T>>{
         //RAW TYPE
         public@NotNull String getStringType(){
-            return"List<"+VarType.this.typeClazz.getName()+">";
+            return"List<"+getRawStringType()+">";
         }
 
         //SERIALIZATION-SYNC
@@ -293,7 +301,7 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     public final class ArrayType implements VarSubType<T[]>{
         //RAW TYPE
         public@NotNull String getStringType(){
-            return"Array<"+VarType.this.typeClazz.getName()+">";
+            return"Array<"+getRawStringType()+">";
         }
 
         //SERIALIZATION-SYNC
@@ -326,7 +334,7 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     public final class PriorityBlockingQueueType implements VarSubType<PriorityBlockingQueue<T>>{
         //RAW TYPE
         public@NotNull String getStringType(){
-            return"PriorityBlockingQueue<"+VarType.this.typeClazz.getName()+">";
+            return"PriorityBlockingQueue<"+getRawStringType()+">";
         }
 
         //SERIALIZATION-SYNC
@@ -354,7 +362,7 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     public final class PriorityQueueType implements VarSubType<PriorityQueue<T>>{
         //RAW TYPE
         public@NotNull String getStringType(){
-            return"PriorityQueue<"+VarType.this.typeClazz.getName()+">";
+            return"PriorityQueue<"+getRawStringType()+">";
         }
 
         //SERIALIZATION-SYNC
@@ -382,7 +390,7 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     public final class ArrayDequeType implements VarSubType<ArrayDeque<T>>{
         //RAW TYPE
         public@NotNull String getStringType(){
-            return"ArrayDeque<"+VarType.this.typeClazz.getName()+">";
+            return"ArrayDeque<"+getRawStringType()+">";
         }
 
         //SERIALIZATION-SYNC
@@ -410,7 +418,7 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     public final class StackType implements VarSubType<Stack<T>>{
         //RAW TYPE
         public@NotNull String getStringType(){
-            return"Stack<"+VarType.this.typeClazz.getName()+">";
+            return"Stack<"+getRawStringType()+">";
         }
 
         //SERIALIZATION-SYNC

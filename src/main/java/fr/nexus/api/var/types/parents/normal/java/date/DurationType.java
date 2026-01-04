@@ -1,13 +1,13 @@
 package fr.nexus.api.var.types.parents.normal.java.date;
 
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class DurationType extends VarType<Duration>{
+public final class DurationType extends InternalVarType<Duration>{
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull Duration value){
         final ByteBuffer buffer=ByteBuffer.allocate(Long.BYTES*2);

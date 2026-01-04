@@ -1,12 +1,12 @@
 package fr.nexus.api.var.types.parents.normal.bukkit;
 
 import fr.nexus.api.var.types.VarTypes;
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.bukkit.util.BoundingBox;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class BoundingBoxType extends VarType<BoundingBox>{
+public final class BoundingBoxType extends InternalVarType<BoundingBox>{
     //METHODS
     public byte@NotNull[]serializeSync(@NotNull BoundingBox value){
         return VarTypes.DOUBLEARRAY.serializeSync(new double[]{value.getMinX(),value.getMinY(),value.getMinZ(), value.getMaxX(),value.getMaxY(),value.getMaxZ()});

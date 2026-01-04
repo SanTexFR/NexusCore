@@ -1,12 +1,12 @@
 package fr.nexus.api.var.types.parents.normal.bukkit;
 
 import fr.nexus.api.var.types.VarTypes;
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class MaterialType extends VarType<Material>{
+public final class MaterialType extends InternalVarType<Material>{
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull Material value){
         return addVersionToBytes(VarTypes.STRING.serializeSync(value.name()));

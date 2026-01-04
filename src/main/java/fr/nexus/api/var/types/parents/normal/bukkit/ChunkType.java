@@ -1,7 +1,7 @@
 package fr.nexus.api.var.types.parents.normal.bukkit;
 
 import fr.nexus.api.var.types.VarTypes;
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.bukkit.Chunk;
 import org.jetbrains.annotations.NotNull;
 
@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class ChunkType extends VarType<Chunk>{
+public final class ChunkType extends InternalVarType<Chunk>{
     //SYNC
     public byte@NotNull[]serializeSync(@NotNull Chunk value){
         final byte[]serializedWorld=VarTypes.WORLD.serializeSync(value.getWorld());

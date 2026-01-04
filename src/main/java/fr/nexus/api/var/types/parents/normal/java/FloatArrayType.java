@@ -1,10 +1,10 @@
 package fr.nexus.api.var.types.parents.normal.java;
 
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
-public final class FloatArrayType extends VarType<float[]> {
+public final class FloatArrayType extends InternalVarType<float[]> {
     @Override
     public byte @NotNull [] serializeSync(float @NotNull [] value) {
 

@@ -1,13 +1,13 @@
 package fr.nexus.api.var.types.parents.normal.java.date;
 
 import fr.nexus.api.var.types.VarTypes;
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.LocalDate;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class LocalDateType extends VarType<LocalDate>{
+public final class LocalDateType extends InternalVarType<LocalDate>{
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull LocalDate value){
         return addVersionToBytes(VarTypes.LONG.serializeSync(value.toEpochDay()));

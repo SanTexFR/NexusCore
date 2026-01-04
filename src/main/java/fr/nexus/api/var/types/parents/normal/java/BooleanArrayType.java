@@ -1,10 +1,10 @@
 package fr.nexus.api.var.types.parents.normal.java;
 
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class BooleanArrayType extends VarType<boolean[]>{
+public final class BooleanArrayType extends InternalVarType<boolean[]>{
     //METHODS
     public byte@NotNull[]serializeSync(boolean@NotNull[]value){
         final int length=value.length;

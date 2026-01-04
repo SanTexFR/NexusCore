@@ -1,10 +1,10 @@
 package fr.nexus.api.var.types.parents.normal.java;
 
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
-public final class DoubleArrayType extends VarType<double[]> {
+public final class DoubleArrayType extends InternalVarType<double[]> {
     @Override
     public byte @NotNull [] serializeSync(double @NotNull [] value) {
 

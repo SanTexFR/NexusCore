@@ -1,10 +1,10 @@
 package fr.nexus.api.var.types.parents.normal.java;
 
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
-public final class LongType extends VarType<Long>{
+public final class LongType extends InternalVarType<Long>{
     @Override
     public byte@NotNull[]serializeSync(@NotNull Long value){
         final byte[]encoded=toVarLong(value);

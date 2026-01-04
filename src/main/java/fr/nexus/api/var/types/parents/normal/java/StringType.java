@@ -1,12 +1,12 @@
 package fr.nexus.api.var.types.parents.normal.java;
 
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.StandardCharsets;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class StringType extends VarType<String>{
+public final class StringType extends InternalVarType<String> {
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull String str){
         return addVersionToBytes(str.getBytes(StandardCharsets.UTF_8));

@@ -1,12 +1,12 @@
 package fr.nexus.api.var.types.parents.normal.bukkit;
 
 import fr.nexus.api.var.types.VarTypes;
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class VectorType extends VarType<Vector>{
+public final class VectorType extends InternalVarType<Vector>{
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull Vector value){
         return VarTypes.DOUBLE_ARRAY.serializeSync(new Double[]{value.getX(),value.getY(),value.getZ()});

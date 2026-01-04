@@ -1,12 +1,12 @@
 package fr.nexus.api.var.types.parents.normal.bukkit;
 
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import fr.nexus.api.var.types.parents.normal.java.IntegerType;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class DeprecatedMaterialType extends VarType<Material>{
+public final class DeprecatedMaterialType extends InternalVarType<Material>{
     //METHODS
     public byte@NotNull[]serializeSync(@NotNull Material value){
         return addVersionToBytes(IntegerType.toVarInt(value.ordinal()));

@@ -1,10 +1,10 @@
 package fr.nexus.api.var.types.parents.normal.java;
 
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class CharacterType extends VarType<Character>{
+public final class CharacterType extends InternalVarType<Character>{
     //METHODS
     public byte@NotNull[] serializeSync(@NotNull Character value){
         final char c=value;

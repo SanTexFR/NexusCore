@@ -1,12 +1,12 @@
 package fr.nexus.api.var.types.parents.normal.java;
 
-import fr.nexus.api.var.types.parents.VarType;
+import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public final class UUIDType extends VarType<UUID>{
+public final class UUIDType extends InternalVarType<UUID> {
     //METHODS
     public byte@NotNull[]serializeSync(@NotNull UUID uuid){
         final byte[]bytes=new byte[16];
