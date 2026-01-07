@@ -3,8 +3,8 @@
 //import fr.nexus.api.var.types.VarSubType;
 //import fr.nexus.api.var.types.VarTypes;
 //import fr.nexus.api.var.types.parents.Vars;
-//import fr.nexus.api.var.types.parents.map.MapType;
-//import fr.nexus.api.var.types.parents.map.MapVarType;
+//import fr.nexus.api.var.types.parents.map.java.MapType;
+//import fr.nexus.api.var.types.parents.map.java.MapVarType;
 //import fr.nexus.api.var.types.parents.VarType;
 //import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 //import net.jpountz.lz4.LZ4BlockOutputStream;

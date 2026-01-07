@@ -31,24 +31,24 @@
 //     * }</pre>
 //     *
 //     * @param e    classe de l'événement Bukkit
-//     * @param consumer lambda à exécuter quand l'événement survient
+//     * @param supplier lambda à exécuter quand l'événement survient
 //     * @param <E>      type de l'événement
 //     */
-//    public static<E extends@NotNull Event>void register(@NotNull Class<E>e,@NotNull Consumer<E>consumer){
-//        register(e,consumer,EventPriority.NORMAL);
+//    public static<E extends@NotNull Event>void register(@NotNull Class<E>e,@NotNull Consumer<E>supplier){
+//        register(e,supplier,EventPriority.NORMAL);
 //    }
 //    /**
 //     * Enregistre un listener avec une priorité spécifique.
 //     * - Si aucun handler n'existe encore pour (eventClass, priority),
 //     *   il est créé et enregistré auprès du {@link PluginManager}.
-//     * - Le consumer est ajouté à la liste des callbacks à exécuter.
+//     * - Le supplier est ajouté à la liste des callbacks à exécuter.
 //     *
 //     * @param e    classe de l'événement Bukkit
-//     * @param consumer lambda à exécuter
+//     * @param supplier lambda à exécuter
 //     * @param priority priorité d'exécution
 //     * @param <E>      type de l'événement
 //     */
-//    public static<E extends@NotNull Event>void register(@NotNull Class<E>e,@NotNull Consumer<E>consumer,@NotNull EventPriority priority){
+//    public static<E extends@NotNull Event>void register(@NotNull Class<E>e,@NotNull Consumer<E>supplier,@NotNull EventPriority priority){
 //        final long nanoTime=System.nanoTime();
 //
 //        final String key=buildKey(e,priority);
@@ -61,7 +61,7 @@
 //
 //        //ADD CONSUMER
 //        eventsRegistered.computeIfAbsent(key,k->Collections.synchronizedList(new ArrayList<>()))
-//                .add(consumer);
+//                .add(supplier);
 //
 //        PerformanceTracker.increment(PerformanceTracker.Types.LISTENER,"register",System.nanoTime()-nanoTime);
 //    }
@@ -78,8 +78,8 @@
 //
 //            final long nanoTime=System.nanoTime();
 //
-//            for(Consumer<?extends Event>consumer:consumers)
-//                ((Consumer<Event>)consumer).accept(event);
+//            for(Consumer<?extends Event>supplier:consumers)
+//                ((Consumer<Event>)supplier).accept(event);
 //
 //            PerformanceTracker.increment(PerformanceTracker.Types.LISTENER,key,System.nanoTime()-nanoTime);
 //        },Core.getInstance(),false);

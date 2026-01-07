@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public class GuiManager{
     //VARIABLES (STATICS)
+    public static final@NotNull ConcurrentHashMap<@NotNull String,@NotNull Gui>reuseGuis=new ConcurrentHashMap<>();
     public static final@NotNull Set<@NotNull Gui>guiReferences=new HashSet<>();
     public static final@NotNull ConcurrentHashMap<@NotNull Inventory,@NotNull WeakReference<Gui>>guis=new ConcurrentHashMap<>();
     static{
@@ -26,6 +27,7 @@ public class GuiManager{
     //CLEANUP
     static void cleanupGuis(){
         guis.entrySet().removeIf(entry->entry.getValue().get()==null);
+        reuseGuis.clear();
     }
 
     //GUI

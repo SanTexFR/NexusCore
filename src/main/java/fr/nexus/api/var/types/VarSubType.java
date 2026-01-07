@@ -13,7 +13,7 @@ public interface VarSubType<V>extends Vars{
         return true;
     }
 
-    byte@NotNull[] serializeSync(@NotNull V value);
+    byte@NotNull[]serializeSync(@NotNull V value);
     @Nullable V deserializeSync(byte@NotNull[]bytes);
 
     @NotNull CompletableFuture<byte@NotNull[]>serializeAsync(@NotNull V value);

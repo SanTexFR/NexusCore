@@ -32,6 +32,7 @@ public final class Core extends JavaPlugin{
 
     private static long CLEANUP_INTERVAL;
     private static@Nullable TaskImplementation<?> cleanupTask;
+    private static@NotNull UUID lastCleanupUUID=UUID.randomUUID();
 
     //VARIABLES (STATICS)
     private static Core instance;
@@ -112,6 +113,12 @@ public final class Core extends JavaPlugin{
     }
     public static @NotNull Cleaner getCleaner(){
         return cleaner;
+    }
+    public static@NotNull UUID getLastCleanupUUID(){
+        return lastCleanupUUID;
+    }
+    public static void setLastCleanupUUID(@NotNull UUID uuid){
+        lastCleanupUUID=uuid;
     }
 
     public static void reload(boolean safe){

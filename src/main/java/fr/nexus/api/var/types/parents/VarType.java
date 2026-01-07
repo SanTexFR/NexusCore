@@ -124,318 +124,93 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
 
 
 
+    //INNER
+    private final class CollectionVarType<C extends Collection<T>> implements VarSubType<C> {
+        private final@NotNull String prefix;
+        private final@NotNull java.util.function.Supplier<@NotNull C>supplier;
 
-    //INNER CONCURRENT-SKIP-LIST-SET
-    public@NotNull ConcurrentSkipListSetType concurrent_skip_list_sets(){
-        return new ConcurrentSkipListSetType();
-    }
-    public final class ConcurrentSkipListSetType implements VarSubType<ConcurrentSkipListSet<T>>{
-        //RAW TYPE
+        public CollectionVarType(@NotNull String prefix,@NotNull java.util.function.Supplier<@NotNull C>supplier){
+            this.prefix=prefix;
+            this.supplier=supplier;
+        }
+
         public@NotNull String getStringType(){
-            return"ConcurrentSkipListSet<"+getRawStringType()+">";
+            return this.prefix+"<"+getRawStringType()+">";
         }
-
-        //SERIALIZATION-SYNC
-        public byte@NotNull[] serializeSync(@NotNull ConcurrentSkipListSet<T>set){
-            return serializeCollection(set,VarType.this::serializeSync);
+        public byte@NotNull[]serializeSync(@NotNull C coll){
+            return serializeCollection(coll,VarType.this::serializeSync);
         }
-        public@Nullable ConcurrentSkipListSet<T> deserializeSync(byte@NotNull[]bytes){
-            return(ConcurrentSkipListSet<T>)deserializeCollection(bytes,new ConcurrentSkipListSet<>(),VarType.this::deserializeSync);
+        public C deserializeSync(byte@NotNull[]bytes){
+            return(C)deserializeCollection(bytes,this.supplier.get(),VarType.this::deserializeSync);
         }
-
-        //SERIALIZATION-ASYNC
-        public@NotNull CompletableFuture<byte@NotNull[]>serializeAsync(@NotNull ConcurrentSkipListSet<T>set){
-            return serializeCollectionAsync(set,VarType.this::serializeAsync);
+        public@NotNull CompletableFuture<byte[]>serializeAsync(@NotNull C coll) {
+            return serializeCollectionAsync(coll,VarType.this::serializeAsync);
         }
-        public@NotNull CompletableFuture<@Nullable ConcurrentSkipListSet<T>>deserializeAsync(byte @NotNull[]bytes){
-            return deserializeCollectionAsync(bytes,new ConcurrentSkipListSet<>(),VarType.this::deserializeAsync)
-                    .thenApply(result->(ConcurrentSkipListSet<T>)result);
+        public@NotNull CompletableFuture<C>deserializeAsync(byte@NotNull[]bytes){
+            return deserializeCollectionAsync(bytes,this.supplier.get(),VarType.this::deserializeAsync)
+                    .thenApply(res->(C)res);
         }
     }
 
-    //INNER CONCURRENT-SET
-    public@NotNull ConcurrentSetType concurrent_sets(){
-        return new ConcurrentSetType();
+    //COLLECTIONS
+    public @NotNull VarSubType<List<T>>lists(){
+        return new CollectionVarType<>("List",ArrayList::new);
     }
-    public final class ConcurrentSetType implements VarSubType<ConcurrentHashMap.KeySetView<T,Boolean>>{
-        //RAW TYPE
-        public@NotNull String getStringType(){
-            return"ConcurrentSet<"+getRawStringType()+">";
-        }
-
-        //SERIALIZATION-SYNC
-        public byte@NotNull[] serializeSync(@NotNull ConcurrentHashMap.KeySetView<@NotNull T,Boolean>set){
-            return serializeCollection(set,VarType.this::serializeSync);
-        }
-        public@Nullable ConcurrentHashMap.KeySetView<@NotNull T,Boolean>deserializeSync(byte@NotNull[]bytes){
-            return(ConcurrentHashMap.KeySetView<@NotNull T,Boolean>)deserializeCollection(bytes,ConcurrentHashMap.newKeySet(),VarType.this::deserializeSync);
-        }
-
-        //SERIALIZATION-ASYNC
-        public@NotNull CompletableFuture<byte@NotNull[]>serializeAsync(@NotNull ConcurrentHashMap.KeySetView<@NotNull T,Boolean>set){
-            return serializeCollectionAsync(set,VarType.this::serializeAsync);
-        }
-        public@NotNull CompletableFuture<ConcurrentHashMap.KeySetView<@Nullable T,Boolean>>deserializeAsync(byte @NotNull[]bytes){
-            return deserializeCollectionAsync(bytes,ConcurrentHashMap.newKeySet(),VarType.this::deserializeAsync)
-                    .thenApply(result->(ConcurrentHashMap.KeySetView<T,Boolean>)result);
-        }
+    public @NotNull VarSubType<Set<T>>sets(){
+        return new CollectionVarType<>("Set",HashSet::new);
     }
-
-    //INNER LINKED-SET
-    public@NotNull LinkedSetType linked_sets(){
-        return new LinkedSetType();
+    public @NotNull VarSubType<LinkedHashSet<T>>linked_sets() {
+        return new CollectionVarType<>("LinkedSet",LinkedHashSet::new);
     }
-    public final class LinkedSetType implements VarSubType<LinkedHashSet<T>>{
-        //RAW TYPE
-        public@NotNull String getStringType(){
-            return"LinkedSet<"+getRawStringType()+">";
-        }
-
-        //SERIALIZATION-SYNC
-        public byte@NotNull[] serializeSync(@NotNull LinkedHashSet<T>set){
-            return serializeCollection(set,VarType.this::serializeSync);
-        }
-        public@Nullable LinkedHashSet<T> deserializeSync(byte@NotNull[]bytes){
-            return(LinkedHashSet<T>)deserializeCollection(bytes,new LinkedHashSet<>(),VarType.this::deserializeSync);
-        }
-
-        //SERIALIZATION-ASYNC
-        public@NotNull CompletableFuture<byte@NotNull[]>serializeAsync(@NotNull LinkedHashSet<T>set){
-            return serializeCollectionAsync(set,VarType.this::serializeAsync);
-        }
-        public@NotNull CompletableFuture<@Nullable LinkedHashSet<T>>deserializeAsync(byte @NotNull[]bytes){
-            return deserializeCollectionAsync(bytes,new HashSet<>(),VarType.this::deserializeAsync)
-                    .thenApply(result->(LinkedHashSet<T>)result);
-        }
+    public @NotNull VarSubType<TreeSet<T>>tree_sets(){
+        return new CollectionVarType<>("TreeSet",TreeSet::new);
+    }
+    public @NotNull VarSubType<ConcurrentSkipListSet<T>>concurrent_skip_list_sets(){
+        return new CollectionVarType<>("ConcurrentSkipListSet",ConcurrentSkipListSet::new);
+    }
+    public @NotNull VarSubType<ConcurrentHashMap.KeySetView<T,Boolean>>concurrent_sets() {
+        return new CollectionVarType<>("ConcurrentSet",ConcurrentHashMap::newKeySet);
+    }
+    public @NotNull VarSubType<PriorityQueue<T>>priority_queues(){
+        return new CollectionVarType<>("PriorityQueue",PriorityQueue::new);
+    }
+    public @NotNull VarSubType<PriorityBlockingQueue<T>>priority_blocking_queues(){
+        return new CollectionVarType<>("PriorityBlockingQueue",PriorityBlockingQueue::new);
+    }
+    public @NotNull VarSubType<ArrayDeque<T>>array_deques(){
+        return new CollectionVarType<>("ArrayDeque",ArrayDeque::new);
+    }
+    public @NotNull VarSubType<Stack<T>>stacks(){
+        return new CollectionVarType<>("Stack",Stack::new);
     }
 
-    //INNER TREE-SET
-    public@NotNull TreeSetType tree_sets(){
-        return new TreeSetType();
-    }
-    public final class TreeSetType implements VarSubType<TreeSet<T>>{
-        //RAW TYPE
-        public@NotNull String getStringType(){
-            return"TreeSet<"+getRawStringType()+">";
-        }
-
-        //SERIALIZATION-SYNC
-        public byte@NotNull[] serializeSync(@NotNull TreeSet<T>set){
-            return serializeCollection(set,VarType.this::serializeSync);
-        }
-        public@Nullable TreeSet<T>deserializeSync(byte@NotNull[]bytes){
-            return(TreeSet<T>)deserializeCollection(bytes,new TreeSet<>(),VarType.this::deserializeSync);
-        }
-
-        //SERIALIZATION-ASYNC
-        public@NotNull CompletableFuture<byte@NotNull[]>serializeAsync(@NotNull TreeSet<T>set){
-            return serializeCollectionAsync(set,VarType.this::serializeAsync);
-        }
-        public@NotNull CompletableFuture<@Nullable TreeSet<T>>deserializeAsync(byte @NotNull[]bytes){
-            return deserializeCollectionAsync(bytes,new TreeSet<>(),VarType.this::deserializeAsync)
-                    .thenApply(result->(TreeSet<T>)result);
-        }
-    }
-
-
-    //INNER SET
-    public@NotNull SetType sets(){
-        return new SetType();
-    }
-    public final class SetType implements VarSubType<Set<T>>{
-        //RAW TYPE
-        public@NotNull String getStringType(){
-            return"Set<"+getRawStringType()+">";
-        }
-
-        //SERIALIZATION-SYNC
-        public byte@NotNull[] serializeSync(@NotNull Set<T>set){
-            return serializeCollection(set,VarType.this::serializeSync);
-        }
-        public@Nullable Set<T> deserializeSync(byte@NotNull[]bytes){
-            return(Set<T>)deserializeCollection(bytes,new HashSet<>(),VarType.this::deserializeSync);
-        }
-
-        //SERIALIZATION-ASYNC
-        public@NotNull CompletableFuture<byte@NotNull[]>serializeAsync(@NotNull Set<T>set){
-            return serializeCollectionAsync(set,VarType.this::serializeAsync);
-        }
-        public@NotNull CompletableFuture<@Nullable Set<T>>deserializeAsync(byte @NotNull[]bytes){
-            return deserializeCollectionAsync(bytes,new HashSet<>(),VarType.this::deserializeAsync)
-                    .thenApply(result->(Set<T>)result);
-        }
-    }
-
-    //INNER LIST
-    public@NotNull ListType lists(){
-        return new ListType();
-    }
-    public final class ListType implements VarSubType<List<T>>{
-        //RAW TYPE
-        public@NotNull String getStringType(){
-            return"List<"+getRawStringType()+">";
-        }
-
-        //SERIALIZATION-SYNC
-        public byte@NotNull[] serializeSync(@NotNull List<T>list){
-            return serializeCollection(list,VarType.this::serializeSync);
-        }
-        public@Nullable List<T> deserializeSync(byte@NotNull[]bytes){
-            return(List<T>)deserializeCollection(bytes,new ArrayList<>(),VarType.this::deserializeSync);
-        }
-
-        //SERIALIZATION-ASYNC
-        public@NotNull CompletableFuture<byte@NotNull[]>serializeAsync(@NotNull List<T>list){
-            return serializeCollectionAsync(list,VarType.this::serializeAsync);
-        }
-        public@NotNull CompletableFuture<@Nullable List<T>>deserializeAsync(byte @NotNull[]bytes){
-            return deserializeCollectionAsync(bytes,new ArrayList<>(),VarType.this::deserializeAsync)
-                    .thenApply(result->(List<T>)result);
-        }
-    }
-
-    //INNER ARRAY
-    public@NotNull ArrayType arrays(){
+    //ARRAY
+    public @NotNull ArrayType arrays() {
         return new ArrayType();
     }
+
     public final class ArrayType implements VarSubType<T[]>{
-        //RAW TYPE
-        public@NotNull String getStringType(){
-            return"Array<"+getRawStringType()+">";
+        public @NotNull String getStringType(){
+            return "Array<"+getRawStringType()+">";
         }
 
-        //SERIALIZATION-SYNC
-        public byte@NotNull[] serializeSync(@NotNull T@NotNull[]array){
+        public byte@NotNull[]serializeSync(@NotNull T@NotNull[]array) {
             return VarType.this.lists().serializeSync(Arrays.asList(array));
         }
-        public@Nullable T[] deserializeSync(byte@NotNull[]bytes){
-            final List<T>deserializedList=VarType.this.lists().deserializeSync(bytes);
-            return deserializedList==null?null:deserializedList.toArray((T[])Array.newInstance(getTypeClazz(),deserializedList.size()));
+
+        public@NotNull T[]deserializeSync(byte @NotNull[]bytes){
+            final List<T>list=VarType.this.lists().deserializeSync(bytes);
+            return list==null?null:list.toArray((T[])Array.newInstance(getTypeClazz(),list.size()));
         }
 
-        //SERIALIZATION-ASYNC
-        public@NotNull CompletableFuture<byte @NotNull[]>serializeAsync(@NotNull T @NotNull[]array){
+        public@NotNull CompletableFuture<byte[]>serializeAsync(@NotNull T@NotNull[]array){
             return VarType.this.lists().serializeAsync(Arrays.asList(array));
         }
-        public@NotNull CompletableFuture<@Nullable T[]>deserializeAsync(byte @NotNull[]bytes){
-            return VarType.this.lists().deserializeAsync(bytes).thenApply(deserializedList->{
-                if(deserializedList==null)return null;
-                return deserializedList.toArray((T[]) Array.newInstance(getTypeClazz(),deserializedList.size()));
-            });
-        }
-    }
 
-
-
-    //INNER PRIORITY-BLOCKING-QUEUE
-    public@NotNull PriorityBlockingQueueType priority_blocking_queues(){
-        return new PriorityBlockingQueueType();
-    }
-    public final class PriorityBlockingQueueType implements VarSubType<PriorityBlockingQueue<T>>{
-        //RAW TYPE
-        public@NotNull String getStringType(){
-            return"PriorityBlockingQueue<"+getRawStringType()+">";
-        }
-
-        //SERIALIZATION-SYNC
-        public byte@NotNull[] serializeSync(@NotNull PriorityBlockingQueue<T>set){
-            return serializeCollection(set,VarType.this::serializeSync);
-        }
-        public@Nullable PriorityBlockingQueue<T>deserializeSync(byte@NotNull[]bytes){
-            return(PriorityBlockingQueue<T>)deserializeCollection(bytes,new PriorityBlockingQueue<>(),VarType.this::deserializeSync);
-        }
-
-        //SERIALIZATION-ASYNC
-        public@NotNull CompletableFuture<byte@NotNull[]>serializeAsync(@NotNull PriorityBlockingQueue<T>set){
-            return serializeCollectionAsync(set,VarType.this::serializeAsync);
-        }
-        public@NotNull CompletableFuture<@Nullable PriorityBlockingQueue<T>>deserializeAsync(byte @NotNull[]bytes){
-            return deserializeCollectionAsync(bytes,new PriorityBlockingQueue<>(),VarType.this::deserializeAsync)
-                    .thenApply(result->(PriorityBlockingQueue<T>)result);
-        }
-    }
-
-    //INNER PRIORITY-QUEUE
-    public@NotNull PriorityQueueType priority_queues(){
-        return new PriorityQueueType();
-    }
-    public final class PriorityQueueType implements VarSubType<PriorityQueue<T>>{
-        //RAW TYPE
-        public@NotNull String getStringType(){
-            return"PriorityQueue<"+getRawStringType()+">";
-        }
-
-        //SERIALIZATION-SYNC
-        public byte@NotNull[] serializeSync(@NotNull PriorityQueue<T>set){
-            return serializeCollection(set,VarType.this::serializeSync);
-        }
-        public@Nullable PriorityQueue<T>deserializeSync(byte@NotNull[]bytes){
-            return(PriorityQueue<T>)deserializeCollection(bytes,new PriorityQueue<>(),VarType.this::deserializeSync);
-        }
-
-        //SERIALIZATION-ASYNC
-        public@NotNull CompletableFuture<byte@NotNull[]>serializeAsync(@NotNull PriorityQueue<T>set){
-            return serializeCollectionAsync(set,VarType.this::serializeAsync);
-        }
-        public@NotNull CompletableFuture<@Nullable PriorityQueue<T>>deserializeAsync(byte @NotNull[]bytes){
-            return deserializeCollectionAsync(bytes,new PriorityQueue<>(),VarType.this::deserializeAsync)
-                    .thenApply(result->(PriorityQueue<T>)result);
-        }
-    }
-
-    //INNER QUEUE
-    public@NotNull ArrayDequeType array_deques(){
-        return new ArrayDequeType();
-    }
-    public final class ArrayDequeType implements VarSubType<ArrayDeque<T>>{
-        //RAW TYPE
-        public@NotNull String getStringType(){
-            return"ArrayDeque<"+getRawStringType()+">";
-        }
-
-        //SERIALIZATION-SYNC
-        public byte@NotNull[] serializeSync(@NotNull ArrayDeque<T>set){
-            return serializeCollection(set,VarType.this::serializeSync);
-        }
-        public@Nullable ArrayDeque<T>deserializeSync(byte@NotNull[]bytes){
-            return(ArrayDeque<T>)deserializeCollection(bytes,new ArrayDeque<>(),VarType.this::deserializeSync);
-        }
-
-        //SERIALIZATION-ASYNC
-        public@NotNull CompletableFuture<byte@NotNull[]>serializeAsync(@NotNull ArrayDeque<T>set){
-            return serializeCollectionAsync(set,VarType.this::serializeAsync);
-        }
-        public@NotNull CompletableFuture<@Nullable ArrayDeque<T>>deserializeAsync(byte @NotNull[]bytes){
-            return deserializeCollectionAsync(bytes,new ArrayDeque<>(),VarType.this::deserializeAsync)
-                    .thenApply(result->(ArrayDeque<T>)result);
-        }
-    }
-
-    //INNER QUEUE
-    public@NotNull StackType stacks(){
-        return new StackType();
-    }
-    public final class StackType implements VarSubType<Stack<T>>{
-        //RAW TYPE
-        public@NotNull String getStringType(){
-            return"Stack<"+getRawStringType()+">";
-        }
-
-        //SERIALIZATION-SYNC
-        public byte@NotNull[] serializeSync(@NotNull Stack<T>set){
-            return serializeCollection(set,VarType.this::serializeSync);
-        }
-        public@Nullable Stack<T>deserializeSync(byte@NotNull[]bytes){
-            return(Stack<T>)deserializeCollection(bytes,new Stack<>(),VarType.this::deserializeSync);
-        }
-
-        //SERIALIZATION-ASYNC
-        public@NotNull CompletableFuture<byte@NotNull[]>serializeAsync(@NotNull Stack<T>set){
-            return serializeCollectionAsync(set,VarType.this::serializeAsync);
-        }
-        public@NotNull CompletableFuture<@Nullable Stack<T>>deserializeAsync(byte @NotNull[]bytes){
-            return deserializeCollectionAsync(bytes,new Stack<>(),VarType.this::deserializeAsync)
-                    .thenApply(result->(Stack<T>)result);
+        public@NotNull CompletableFuture<T[]>deserializeAsync(byte@NotNull[]bytes){
+            return VarType.this.lists().deserializeAsync(bytes).thenApply(list->
+                    list==null?null:list.toArray((T[])Array.newInstance(getTypeClazz(),list.size()))
+            );
         }
     }
 }

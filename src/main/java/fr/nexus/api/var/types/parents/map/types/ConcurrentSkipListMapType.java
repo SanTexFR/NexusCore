@@ -2,7 +2,6 @@ package fr.nexus.api.var.types.parents.map.types;
 
 import fr.nexus.api.var.types.parents.map.MapType;
 
-import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 @SuppressWarnings({"unused","UnusedReturnValue","unchecked"})

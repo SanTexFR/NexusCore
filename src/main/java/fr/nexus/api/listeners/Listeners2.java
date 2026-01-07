@@ -101,13 +101,13 @@
 //        return processors.computeIfAbsent(clazz, k -> new AsyncEventProcessor<>());
 //    }
 //
-//    public static<E extends@NotNull Event>void register(@NotNull Class<E> eventClass,@NotNull Consumer<E> consumer) {
-//        register(eventClass,consumer,EventPriority.NORMAL);
+//    public static<E extends@NotNull Event>void register(@NotNull Class<E> eventClass,@NotNull Consumer<E> supplier) {
+//        register(eventClass,supplier,EventPriority.NORMAL);
 //    }
-//    public static<E extends@NotNull Event>void register(@NotNull Class<E>eventClass,@NotNull Consumer<E>consumer,@NotNull EventPriority eventPriority) {
+//    public static<E extends@NotNull Event>void register(@NotNull Class<E>eventClass,@NotNull Consumer<E>supplier,@NotNull EventPriority eventPriority) {
 //        String key = buildKey(eventClass, eventPriority);
 //
-//        ConsumerWrapper<E, Object> wrapper = new ConsumerWrapper<>(null,null, (e, r) -> consumer.accept(e),null);
+//        ConsumerWrapper<E, Object> wrapper = new ConsumerWrapper<>(null,null, (e, r) -> supplier.accept(e),null);
 //        eventsRegistered.computeIfAbsent(key, k -> Collections.synchronizedList(new ArrayList<>()))
 //                .add(wrapper);
 //

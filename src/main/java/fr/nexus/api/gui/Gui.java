@@ -22,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -34,6 +35,8 @@ public class Gui implements GuiBackground{
     private@Nullable Long effectiveCooldownMs;
 
     private@Nullable GuiItem background;
+
+    private@Nullable GuiReuse reuse;
 
     private final@NotNull WeakReference<Gui>weakReference;
 
@@ -55,6 +58,10 @@ public class Gui implements GuiBackground{
     public Gui(int rows,@Nullable String title){
         this(rows,title!=null?Component.text(title):null);
     }
+    public Gui(@NotNull GuiReuse reuse,int rows,@Nullable String title){
+        this(rows,title!=null?Component.text(title):null);
+    }
+
     public Gui(int rows,@Nullable Component title){
         this.weakReference=new WeakReference<>(this);
 
@@ -82,6 +89,21 @@ public class Gui implements GuiBackground{
     }
 
 
+    //METHODS(STATICS)
+    public static@NotNull CompletableFuture<@Nullable Gui>getIfCached(@NotNull GuiReuse reuse){
+
+        final Gui gui=GuiManager.reuseGuis.get(reuse.key());
+
+        if(gui==null||gui.getReuse()==null)
+            return CompletableFuture.completedFuture(null);
+
+        return gui.getReuse()
+                .supplier()
+                .get()
+                .thenApply(valid->valid?gui:null);
+    }
+
+
     //METHODS (INSTANCES)
 
     //WEAK-REFERENCE
@@ -92,6 +114,18 @@ public class Gui implements GuiBackground{
     //INVENTORY
     public@NotNull Inventory getInventory(){
         return this.inventory;
+    }
+
+    //REUSE
+    public void setReuse(@NotNull GuiReuse reuse){
+        if(this.reuse!=null)GuiManager.reuseGuis.get(this.reuse.key());
+
+        this.reuse=reuse;
+
+        GuiManager.reuseGuis.put(reuse.key(),this);
+    }
+    public@Nullable GuiReuse getReuse(){
+        return this.reuse;
     }
 
     //COOLDOWN
