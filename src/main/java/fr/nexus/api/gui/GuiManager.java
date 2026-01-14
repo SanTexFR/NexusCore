@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,7 +28,9 @@ public class GuiManager{
     //CLEANUP
     static void cleanupGuis(){
         guis.entrySet().removeIf(entry->entry.getValue().get()==null);
-        reuseGuis.clear();
+        new HashMap<>(reuseGuis).forEach((key,gui)->{
+            if(gui.getInventory().getViewers().isEmpty())reuseGuis.remove(key);
+        });
     }
 
     //GUI
