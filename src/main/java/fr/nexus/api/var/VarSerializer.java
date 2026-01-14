@@ -137,9 +137,17 @@ class VarSerializer {
     }
 
     private static void writeByteArray(ByteArrayOutputStream baos, byte[] bytes) throws IOException {
-        baos.write(ByteBuffer.allocate(4).putInt(bytes.length).array());
+        byte[] buffer = new byte[4];
+        int len = bytes.length;
+        buffer[0] = (byte) (len >> 24);
+        buffer[1] = (byte) (len >> 16);
+        buffer[2] = (byte) (len >> 8);
+        buffer[3] = (byte) len;
+
+        baos.write(buffer);
         baos.write(bytes);
     }
+
 
     // LOAD
     public static void deserializeDataSync(byte[] serializedData, @NotNull Object2ObjectOpenHashMap<@NotNull String, @NotNull VarEntry<?>> data) {
