@@ -191,6 +191,23 @@ public class Utils{
         });
     }
 
+
+    public static@Nullable String getPlayerHeadTexture(@NotNull OfflinePlayer offP){
+        return offP.getPlayerProfile().getProperties().stream()
+                .filter(profile->profile.getName().equals("textures"))
+                .map(ProfileProperty::getValue)
+                .findFirst()
+                .orElse(null);
+    }
+    public static@Nullable String getPlayerHeadTexture(@NotNull Player p){
+        return p.getPlayerProfile().getProperties().stream()
+                .filter(profile->profile.getName().equals("textures"))
+                .map(ProfileProperty::getValue)
+                .findFirst()
+                .orElse(null);
+    }
+
+
     //LISTENERS
     private static void onPlayerJoin(PlayerJoinEvent e){
         final Player p=e.getPlayer();

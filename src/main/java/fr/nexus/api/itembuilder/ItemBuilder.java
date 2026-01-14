@@ -57,6 +57,8 @@ public class ItemBuilder{
             builder.itemStack.setItemMeta(metaClone);
             builder.meta = builder.itemStack.getItemMeta(); // mise à jour du meta dans ItemBuilder
         }
+        builder.setQuantity(other.getAmount());
+
         PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"cloneFrom",System.nanoTime()-nanoTime);
         return builder;
     }

@@ -203,7 +203,7 @@ class VarSerializer {
 
                     final VarSubType<Object> keyType = (VarSubType<Object>) VarType.getTypes().get(keyTypeStr);
                     final VarSubType<Object> valueType = (VarSubType<Object>) VarType.getTypes().get(valueTypeStr);
-                    if (keyType == null || valueType == null) throw new CompletionException(new IOException("VarType inconnu pour map"));
+                    if (keyType == null || valueType == null) throw new CompletionException(new IOException("VarType inconnu pour map: "+keyTypeStr+" ou : "+valueTypeStr));
 
                     final MapVarType<Object, Object> mapVarType = new MapVarType<>(mapType, keyType, valueType);
                     CompletableFuture<Map<Object, Object>> valueFuture =

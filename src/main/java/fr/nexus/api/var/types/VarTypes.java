@@ -1,5 +1,6 @@
 package fr.nexus.api.var.types;
 
+import com.google.common.util.concurrent.AtomicDouble;
 import fr.nexus.Core;
 import fr.nexus.api.var.types.parents.normal.adventure.ComponentType;
 import fr.nexus.api.var.types.parents.normal.big.BigDecimalType;
@@ -13,6 +14,7 @@ import fr.nexus.api.var.types.parents.normal.java.date.*;
 import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.BoundingBox;
@@ -29,11 +31,15 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public interface VarTypes{
     static void generateFileTypes() throws IOException {
         Map<String, String> typesMap = new LinkedHashMap<>();
+        typesMap.put("EnchantmentType", "Enchantment");
         typesMap.put("StringType", "String");
         typesMap.put("UUIDType", "UUID");
         typesMap.put("IntegerType", "Integer");
@@ -73,6 +79,10 @@ public interface VarTypes{
         typesMap.put("InventoryType", "Inventory");
         typesMap.put("VectorType", "Vector");
         typesMap.put("BoundingBoxType", "BoundingBox");
+        typesMap.put("AtomicBooleanType", "AtomicBoolean");
+        typesMap.put("AtomicDoubleType", "AtomicDouble");
+        typesMap.put("AtomicIntegerType", "AtomicInteger");
+        typesMap.put("AtomicLongType", "AtomicLong");
 
         File genFolder = new File(Core.getInstance().getDataFolder(), "generated");
         if (!genFolder.exists()) genFolder.mkdirs();
@@ -110,6 +120,20 @@ public interface VarTypes{
     private static void writeLine(FileWriter w, String varName, String suffix, String generic, String method) throws IOException {
         w.write("    @NotNull VarSubType<" + generic + "> " + varName + "_" + suffix + " = " + varName + "." + method + ";\n");
     }
+
+    // ENCHANTMENT
+    @NotNull EnchantmentType ENCHANTMENT = new EnchantmentType();
+    @NotNull VarSubType<ConcurrentSkipListSet<Enchantment>> ENCHANTMENT_CONCURRENT_SKIP_LIST_SET = ENCHANTMENT.concurrent_skip_list_sets();
+    @NotNull VarSubType<ConcurrentHashMap.KeySetView<Enchantment, Boolean>> ENCHANTMENT_CONCURRENT_SET = ENCHANTMENT.concurrent_sets();
+    @NotNull VarSubType<LinkedHashSet<Enchantment>> ENCHANTMENT_LINKED_SET = ENCHANTMENT.linked_sets();
+    @NotNull VarSubType<TreeSet<Enchantment>> ENCHANTMENT_TREE_SET = ENCHANTMENT.tree_sets();
+    @NotNull VarSubType<Set<Enchantment>> ENCHANTMENT_SET = ENCHANTMENT.sets();
+    @NotNull VarSubType<List<Enchantment>> ENCHANTMENT_LIST = ENCHANTMENT.lists();
+    @NotNull VarSubType<PriorityBlockingQueue<Enchantment>> ENCHANTMENT_PRIORITY_BLOCKING_QUEUE = ENCHANTMENT.priority_blocking_queues();
+    @NotNull VarSubType<PriorityQueue<Enchantment>> ENCHANTMENT_PRIORITY_QUEUE = ENCHANTMENT.priority_queues();
+    @NotNull VarSubType<ArrayDeque<Enchantment>> ENCHANTMENT_ARRAY_DEQUE = ENCHANTMENT.array_deques();
+    @NotNull VarSubType<Stack<Enchantment>> ENCHANTMENT_STACK = ENCHANTMENT.stacks();
+    @NotNull EnchantmentType.ArrayType ENCHANTMENT_ARRAY = ENCHANTMENT.arrays();
 
     // STRING
     @NotNull StringType STRING = new StringType();
@@ -656,4 +680,60 @@ public interface VarTypes{
     @NotNull VarSubType<ArrayDeque<BoundingBox>> BOUNDINGBOX_ARRAY_DEQUE = BOUNDINGBOX.array_deques();
     @NotNull VarSubType<Stack<BoundingBox>> BOUNDINGBOX_STACK = BOUNDINGBOX.stacks();
     @NotNull BoundingBoxType.ArrayType BOUNDINGBOX_ARRAY = BOUNDINGBOX.arrays();
+
+    // ATOMICBOOLEAN
+    @NotNull AtomicBooleanType ATOMICBOOLEAN = new AtomicBooleanType();
+    @NotNull VarSubType<ConcurrentSkipListSet<AtomicBoolean>> ATOMICBOOLEAN_CONCURRENT_SKIP_LIST_SET = ATOMICBOOLEAN.concurrent_skip_list_sets();
+    @NotNull VarSubType<ConcurrentHashMap.KeySetView<AtomicBoolean, Boolean>> ATOMICBOOLEAN_CONCURRENT_SET = ATOMICBOOLEAN.concurrent_sets();
+    @NotNull VarSubType<LinkedHashSet<AtomicBoolean>> ATOMICBOOLEAN_LINKED_SET = ATOMICBOOLEAN.linked_sets();
+    @NotNull VarSubType<TreeSet<AtomicBoolean>> ATOMICBOOLEAN_TREE_SET = ATOMICBOOLEAN.tree_sets();
+    @NotNull VarSubType<Set<AtomicBoolean>> ATOMICBOOLEAN_SET = ATOMICBOOLEAN.sets();
+    @NotNull VarSubType<List<AtomicBoolean>> ATOMICBOOLEAN_LIST = ATOMICBOOLEAN.lists();
+    @NotNull VarSubType<PriorityBlockingQueue<AtomicBoolean>> ATOMICBOOLEAN_PRIORITY_BLOCKING_QUEUE = ATOMICBOOLEAN.priority_blocking_queues();
+    @NotNull VarSubType<PriorityQueue<AtomicBoolean>> ATOMICBOOLEAN_PRIORITY_QUEUE = ATOMICBOOLEAN.priority_queues();
+    @NotNull VarSubType<ArrayDeque<AtomicBoolean>> ATOMICBOOLEAN_ARRAY_DEQUE = ATOMICBOOLEAN.array_deques();
+    @NotNull VarSubType<Stack<AtomicBoolean>> ATOMICBOOLEAN_STACK = ATOMICBOOLEAN.stacks();
+    @NotNull AtomicBooleanType.ArrayType ATOMICBOOLEAN_ARRAY = ATOMICBOOLEAN.arrays();
+
+    // ATOMICDOUBLE
+    @NotNull AtomicDoubleType ATOMICDOUBLE = new AtomicDoubleType();
+    @NotNull VarSubType<ConcurrentSkipListSet<AtomicDouble>> ATOMICDOUBLE_CONCURRENT_SKIP_LIST_SET = ATOMICDOUBLE.concurrent_skip_list_sets();
+    @NotNull VarSubType<ConcurrentHashMap.KeySetView<AtomicDouble, Boolean>> ATOMICDOUBLE_CONCURRENT_SET = ATOMICDOUBLE.concurrent_sets();
+    @NotNull VarSubType<LinkedHashSet<AtomicDouble>> ATOMICDOUBLE_LINKED_SET = ATOMICDOUBLE.linked_sets();
+    @NotNull VarSubType<TreeSet<AtomicDouble>> ATOMICDOUBLE_TREE_SET = ATOMICDOUBLE.tree_sets();
+    @NotNull VarSubType<Set<AtomicDouble>> ATOMICDOUBLE_SET = ATOMICDOUBLE.sets();
+    @NotNull VarSubType<List<AtomicDouble>> ATOMICDOUBLE_LIST = ATOMICDOUBLE.lists();
+    @NotNull VarSubType<PriorityBlockingQueue<AtomicDouble>> ATOMICDOUBLE_PRIORITY_BLOCKING_QUEUE = ATOMICDOUBLE.priority_blocking_queues();
+    @NotNull VarSubType<PriorityQueue<AtomicDouble>> ATOMICDOUBLE_PRIORITY_QUEUE = ATOMICDOUBLE.priority_queues();
+    @NotNull VarSubType<ArrayDeque<AtomicDouble>> ATOMICDOUBLE_ARRAY_DEQUE = ATOMICDOUBLE.array_deques();
+    @NotNull VarSubType<Stack<AtomicDouble>> ATOMICDOUBLE_STACK = ATOMICDOUBLE.stacks();
+    @NotNull AtomicDoubleType.ArrayType ATOMICDOUBLE_ARRAY = ATOMICDOUBLE.arrays();
+
+    // ATOMICINTEGER
+    @NotNull AtomicIntegerType ATOMICINTEGER = new AtomicIntegerType();
+    @NotNull VarSubType<ConcurrentSkipListSet<AtomicInteger>> ATOMICINTEGER_CONCURRENT_SKIP_LIST_SET = ATOMICINTEGER.concurrent_skip_list_sets();
+    @NotNull VarSubType<ConcurrentHashMap.KeySetView<AtomicInteger, Boolean>> ATOMICINTEGER_CONCURRENT_SET = ATOMICINTEGER.concurrent_sets();
+    @NotNull VarSubType<LinkedHashSet<AtomicInteger>> ATOMICINTEGER_LINKED_SET = ATOMICINTEGER.linked_sets();
+    @NotNull VarSubType<TreeSet<AtomicInteger>> ATOMICINTEGER_TREE_SET = ATOMICINTEGER.tree_sets();
+    @NotNull VarSubType<Set<AtomicInteger>> ATOMICINTEGER_SET = ATOMICINTEGER.sets();
+    @NotNull VarSubType<List<AtomicInteger>> ATOMICINTEGER_LIST = ATOMICINTEGER.lists();
+    @NotNull VarSubType<PriorityBlockingQueue<AtomicInteger>> ATOMICINTEGER_PRIORITY_BLOCKING_QUEUE = ATOMICINTEGER.priority_blocking_queues();
+    @NotNull VarSubType<PriorityQueue<AtomicInteger>> ATOMICINTEGER_PRIORITY_QUEUE = ATOMICINTEGER.priority_queues();
+    @NotNull VarSubType<ArrayDeque<AtomicInteger>> ATOMICINTEGER_ARRAY_DEQUE = ATOMICINTEGER.array_deques();
+    @NotNull VarSubType<Stack<AtomicInteger>> ATOMICINTEGER_STACK = ATOMICINTEGER.stacks();
+    @NotNull AtomicIntegerType.ArrayType ATOMICINTEGER_ARRAY = ATOMICINTEGER.arrays();
+
+    // ATOMICLONG
+    @NotNull AtomicLongType ATOMICLONG = new AtomicLongType();
+    @NotNull VarSubType<ConcurrentSkipListSet<AtomicLong>> ATOMICLONG_CONCURRENT_SKIP_LIST_SET = ATOMICLONG.concurrent_skip_list_sets();
+    @NotNull VarSubType<ConcurrentHashMap.KeySetView<AtomicLong, Boolean>> ATOMICLONG_CONCURRENT_SET = ATOMICLONG.concurrent_sets();
+    @NotNull VarSubType<LinkedHashSet<AtomicLong>> ATOMICLONG_LINKED_SET = ATOMICLONG.linked_sets();
+    @NotNull VarSubType<TreeSet<AtomicLong>> ATOMICLONG_TREE_SET = ATOMICLONG.tree_sets();
+    @NotNull VarSubType<Set<AtomicLong>> ATOMICLONG_SET = ATOMICLONG.sets();
+    @NotNull VarSubType<List<AtomicLong>> ATOMICLONG_LIST = ATOMICLONG.lists();
+    @NotNull VarSubType<PriorityBlockingQueue<AtomicLong>> ATOMICLONG_PRIORITY_BLOCKING_QUEUE = ATOMICLONG.priority_blocking_queues();
+    @NotNull VarSubType<PriorityQueue<AtomicLong>> ATOMICLONG_PRIORITY_QUEUE = ATOMICLONG.priority_queues();
+    @NotNull VarSubType<ArrayDeque<AtomicLong>> ATOMICLONG_ARRAY_DEQUE = ATOMICLONG.array_deques();
+    @NotNull VarSubType<Stack<AtomicLong>> ATOMICLONG_STACK = ATOMICLONG.stacks();
+    @NotNull AtomicLongType.ArrayType ATOMICLONG_ARRAY = ATOMICLONG.arrays();
 }
