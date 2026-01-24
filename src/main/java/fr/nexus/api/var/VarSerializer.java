@@ -34,70 +34,80 @@ class VarSerializer {
     public static @NotNull CompletableFuture<byte[]> serializeDataAsync(
             @NotNull Object2ObjectOpenHashMap<@NotNull String, @NotNull VarEntry<?>> data) {
 
-        if (data.isEmpty()) return CompletableFuture.completedFuture(new byte[]{});
+        return CompletableFuture.supplyAsync(() -> {
 
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream(Math.max(8192, 200 * data.size()));
-        final List<CompletableFuture<Void>> futures = new ArrayList<>();
+            if (data.isEmpty()) return new byte[]{};
 
-        data.forEach((key, varEntry) -> {
-            if (!varEntry.persistent()) return;
+            final ByteArrayOutputStream baos =
+                    new ByteArrayOutputStream(Math.max(8192, 200 * data.size()));
+            final List<CompletableFuture<Void>> futures = new ArrayList<>();
 
-            final byte[] keyBytes = VarTypes.STRING.serializeSync(key);
-            final Vars type = varEntry.type();
+            data.forEach((key, varEntry) -> {
+                if (!varEntry.persistent()) return;
 
-            if (type.isWrapper()) {
-                final byte[] varTypeBytes = VarTypes.STRING.serializeSync(type.getStringType());
+                final byte[] keyBytes = VarTypes.STRING.serializeSync(key);
+                final Vars type = varEntry.type();
+
+                if (type.isWrapper()) {
+                    final byte[] varTypeBytes = VarTypes.STRING.serializeSync(type.getStringType());
+                    CompletableFuture<byte[]> valueFuture =
+                            type.needAsync()
+                                    ? ((VarSubType<Object>) type).serializeAsync(varEntry.value())
+                                    : CompletableFuture.completedFuture(
+                                    ((VarSubType<Object>) type).serializeSync(varEntry.value()));
+
+                    futures.add(valueFuture.thenAccept(valueBytes -> {
+                        synchronized (baos) {
+                            try {
+                                baos.write(ByteBuffer.allocate(4).putInt(0).array());
+                                writeByteArray(baos, keyBytes);
+                                writeByteArray(baos, varTypeBytes);
+                                writeByteArray(baos, valueBytes);
+                            } catch (IOException e) {
+                                throw new CompletionException(e);
+                            }
+                        }
+                    }));
+                    return;
+                }
+
+                // MAP
+                final MapVarType<?, ?> mapVar = (MapVarType<?, ?>) type;
+                final byte[] mapTypeBytes = VarTypes.STRING.serializeSync(mapVar.getVarMapType().getStringType());
+                final byte[] keyTypeBytes = VarTypes.STRING.serializeSync(mapVar.getKeyVarType().getStringType());
+                final byte[] valueTypeBytes = VarTypes.STRING.serializeSync(mapVar.getValueVarType().getStringType());
+
                 CompletableFuture<byte[]> valueFuture =
                         type.needAsync()
-                                ? ((VarSubType<Object>) type).serializeAsync(varEntry.value())
-                                : CompletableFuture.completedFuture(((VarSubType<Object>) type).serializeSync(varEntry.value()));
+                                ? ((MapVarType<Object, Object>) mapVar)
+                                .serializeAsync((Map<Object, Object>) varEntry.value())
+                                : CompletableFuture.completedFuture(
+                                ((MapVarType<Object, Object>) mapVar)
+                                        .serializeSync((Map<Object, Object>) varEntry.value()));
 
                 futures.add(valueFuture.thenAccept(valueBytes -> {
                     synchronized (baos) {
                         try {
-                            baos.write(ByteBuffer.allocate(4).putInt(0).array());
+                            baos.write(ByteBuffer.allocate(4).putInt(1).array());
                             writeByteArray(baos, keyBytes);
-                            writeByteArray(baos, varTypeBytes);
+                            writeByteArray(baos, mapTypeBytes);
+                            writeByteArray(baos, keyTypeBytes);
+                            writeByteArray(baos, valueTypeBytes);
                             writeByteArray(baos, valueBytes);
                         } catch (IOException e) {
                             throw new CompletionException(e);
                         }
                     }
                 }));
-                return;
-            }
+            });
 
-            // MAP
-            final MapVarType<?, ?> mapVar = (MapVarType<?, ?>) type;
-            final byte[] mapTypeBytes = VarTypes.STRING.serializeSync(mapVar.getVarMapType().getStringType());
-            final byte[] keyTypeBytes = VarTypes.STRING.serializeSync(mapVar.getKeyVarType().getStringType());
-            final byte[] valueTypeBytes = VarTypes.STRING.serializeSync(mapVar.getValueVarType().getStringType());
+            // attend tous les futurs puis compresse une seule fois
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            return compress(baos.toByteArray());
 
-            CompletableFuture<byte[]> valueFuture =
-                    type.needAsync()
-                            ? ((MapVarType<Object, Object>) mapVar).serializeAsync((Map<Object, Object>) varEntry.value())
-                            : CompletableFuture.completedFuture(((MapVarType<Object, Object>) mapVar).serializeSync((Map<Object, Object>) varEntry.value()));
-
-            futures.add(valueFuture.thenAccept(valueBytes -> {
-                synchronized (baos) {
-                    try {
-                        baos.write(ByteBuffer.allocate(4).putInt(1).array());
-                        writeByteArray(baos, keyBytes);
-                        writeByteArray(baos, mapTypeBytes);
-                        writeByteArray(baos, keyTypeBytes);
-                        writeByteArray(baos, valueTypeBytes);
-                        writeByteArray(baos, valueBytes);
-                    } catch (IOException e) {
-                        throw new CompletionException(e);
-                    }
-                }
-            }));
-        });
-
-        // attend tous les futurs puis compresse une seule fois
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                .thenApply(v -> compress(baos.toByteArray()));
+        }, Var.THREADPOOL); // ✅ SEUL AJOUT CRITIQUE
     }
+
 
     // COMPRESSION / DECOMPRESSION
     private static byte[] compress(byte[] input) {

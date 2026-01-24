@@ -140,6 +140,12 @@ public class Gui implements GuiBackground{
     public@NotNull ConcurrentHashMap<@NotNull UUID,@NotNull Long>getCooldowns(){
         return this.cooldowns;
     }
+    public void addCooldown(@NotNull UUID uuid,@NotNull Long effectiveCooldownMs){
+        this.cooldowns.put(uuid,effectiveCooldownMs);
+    }
+    public void removeCooldown(@NotNull UUID uuid){
+        this.cooldowns.remove(uuid);
+    }
 
     //GUI-ITEMS
     public void addGuiItem(int x,int y,@NotNull GuiItem guiItem){

@@ -17,6 +17,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffect;
 import org.bukkit.util.BoundingBox;
 import org.jetbrains.annotations.NotNull;
 
@@ -83,6 +84,7 @@ public interface VarTypes{
         typesMap.put("AtomicDoubleType", "AtomicDouble");
         typesMap.put("AtomicIntegerType", "AtomicInteger");
         typesMap.put("AtomicLongType", "AtomicLong");
+        typesMap.put("PotionEffectType", "PotionEffect");
 
         File genFolder = new File(Core.getInstance().getDataFolder(), "generated");
         if (!genFolder.exists()) genFolder.mkdirs();
@@ -120,6 +122,20 @@ public interface VarTypes{
     private static void writeLine(FileWriter w, String varName, String suffix, String generic, String method) throws IOException {
         w.write("    @NotNull VarSubType<" + generic + "> " + varName + "_" + suffix + " = " + varName + "." + method + ";\n");
     }
+
+    // POTION EFFECT
+    @NotNull PotionEffectType POTIONEFFECT = new PotionEffectType();
+    @NotNull VarSubType<ConcurrentSkipListSet<PotionEffect>> POTIONEFFECT_CONCURRENT_SKIP_LIST_SET = POTIONEFFECT.concurrent_skip_list_sets();
+    @NotNull VarSubType<ConcurrentHashMap.KeySetView<PotionEffect, Boolean>> POTIONEFFECT_CONCURRENT_SET = POTIONEFFECT.concurrent_sets();
+    @NotNull VarSubType<LinkedHashSet<PotionEffect>> POTIONEFFECT_LINKED_SET = POTIONEFFECT.linked_sets();
+    @NotNull VarSubType<TreeSet<PotionEffect>> POTIONEFFECT_TREE_SET = POTIONEFFECT.tree_sets();
+    @NotNull VarSubType<Set<PotionEffect>> POTIONEFFECT_SET = POTIONEFFECT.sets();
+    @NotNull VarSubType<List<PotionEffect>> POTIONEFFECT_LIST = POTIONEFFECT.lists();
+    @NotNull VarSubType<PriorityBlockingQueue<PotionEffect>> POTIONEFFECT_PRIORITY_BLOCKING_QUEUE = POTIONEFFECT.priority_blocking_queues();
+    @NotNull VarSubType<PriorityQueue<PotionEffect>> POTIONEFFECT_PRIORITY_QUEUE = POTIONEFFECT.priority_queues();
+    @NotNull VarSubType<ArrayDeque<PotionEffect>> POTIONEFFECT_ARRAY_DEQUE = POTIONEFFECT.array_deques();
+    @NotNull VarSubType<Stack<PotionEffect>> POTIONEFFECT_STACK = POTIONEFFECT.stacks();
+    @NotNull PotionEffectType.ArrayType POTIONEFFECT_ARRAY = POTIONEFFECT.arrays();
 
     // ENCHANTMENT
     @NotNull EnchantmentType ENCHANTMENT = new EnchantmentType();
