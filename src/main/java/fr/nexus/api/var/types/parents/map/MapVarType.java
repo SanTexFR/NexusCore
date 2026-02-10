@@ -87,7 +87,7 @@ public class MapVarType<T,T2> extends VarVersion implements Vars, CollectionUtil
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         Map<T, T2> map = (Map<T, T2>) varMapType.getSupplier().get();
 
-        int mapSize = IntegerType.fromVarInt(readVarIntFromBuffer(buffer));
+        int mapSize = IntegerType.fromVarInt(buffer);
         for (int i = 0; i < mapSize; i++) {
             byte[] kBytes = readVarBytesFromBuffer(buffer);
             byte[] vBytes = readVarBytesFromBuffer(buffer);
@@ -151,7 +151,7 @@ public class MapVarType<T,T2> extends VarVersion implements Vars, CollectionUtil
 
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         Map<T, T2> map = (Map<T, T2>) varMapType.getSupplier().get();
-        int mapSize = IntegerType.fromVarInt(readVarIntFromBuffer(buffer));
+        int mapSize = IntegerType.fromVarInt(buffer);
 
         List<CompletableFuture<Void>> futures = new ArrayList<>(mapSize);
         for (int i = 0; i < mapSize; i++) {
@@ -173,21 +173,9 @@ public class MapVarType<T,T2> extends VarVersion implements Vars, CollectionUtil
     // ----------------------------
     // UTIL - VarInt helpers
     // ----------------------------
-    private static byte[] readVarIntFromBuffer(ByteBuffer buffer) {
-        List<Byte> bytes = new ArrayList<>();
-        while (true) {
-            byte b = buffer.get();
-            bytes.add(b);
-            if ((b & 0x80) == 0) break;
-        }
-        byte[] arr = new byte[bytes.size()];
-        for (int i = 0; i < arr.length; i++) arr[i] = bytes.get(i);
-        return arr;
-    }
 
     private static byte[] readVarBytesFromBuffer(ByteBuffer buffer) {
-        byte[] lengthBytes = readVarIntFromBuffer(buffer);
-        int length = IntegerType.fromVarInt(lengthBytes);
+        int length = IntegerType.fromVarInt(buffer);
         byte[] data = new byte[length];
         buffer.get(data);
         return data;

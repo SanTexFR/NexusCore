@@ -14,7 +14,7 @@ public final class DeprecatedMaterialType extends InternalVarType<Material>{
     public@NotNull Material deserializeSync(int version,byte[]bytes){
         if(version!=1)throw createUnsupportedVersionException(version);
 
-        final int ordinal=IntegerType.fromVarInt(bytes);
+        final int ordinal=IntegerType.readVarIntFromBytes(bytes);
         return Material.values()[ordinal];
     }
 }

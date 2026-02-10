@@ -3,62 +3,81 @@ package fr.nexus.api.var.types.parents.normal.java;
 import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
-@SuppressWarnings({"unused","UnusedReturnValue"})
-public final class IntegerType extends InternalVarType<Integer>{
-    //METHODS
-    public byte@NotNull[] serializeSync(@NotNull Integer value){
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+
+@SuppressWarnings({"unused", "UnusedReturnValue"})
+public final class IntegerType extends InternalVarType<Integer> {
+    @Override
+    public byte @NotNull [] serializeSync(@NotNull Integer value) {
         return addVersionToBytes(toVarInt(zigZagEncode(value)));
     }
-    public@NotNull Integer deserializeSync(int version,byte[]bytes){
-        if(version==1){
-            return zigZagDecode(fromVarInt(bytes));
-        }else throw createUnsupportedVersionException(version);
+
+    @Override
+    public @NotNull Integer deserializeSync(int version, byte[] bytes) {
+        if (version == 1) {
+            // 1. VarInt (décompresse)
+            // 2. ZigZag (remet les négatifs)
+            return zigZagDecode(readVarIntFromBytes(bytes));
+        } else {
+            throw createUnsupportedVersionException(version);
+        }
     }
 
-    //INT UTILS
-    public static int zigZagEncode(int n){
-        return(n<<1)^(n>>31);
+    public static int zigZagEncode(int n) {
+        return (n << 1) ^ (n >> 31);
     }
 
-    public static int zigZagDecode(int n){
-        return (n>>>1)^-(n&1);
+    public static int zigZagDecode(int n) {
+        return (n >>> 1) ^ -(n & 1);
     }
 
-    public static byte[]toVarInt(int value){
-        final byte[]buffer=new byte[5];
-        int index=0;
+    public static void writeVarInt(OutputStream out, int value){
+        try{
+            while ((value & -128) != 0) {
+                out.write(value & 127 | 128);
+                value >>>= 7;
+            }
+            out.write(value);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-        while((value&~0x7F)!=0){
-            buffer[index++]=(byte)((value&0x7F)|0x80);
-            value>>>=7;
+    public static int fromVarInt(ByteBuffer buffer) {
+        int value = 0;
+        int position = 0;
+        byte currentByte;
+
+        while (true) {
+            currentByte = buffer.get();
+            value |= (currentByte & 127) << position;
+
+            if ((currentByte & 128) == 0) break;
+            position += 7;
+
+            if (position >= 32) throw new RuntimeException("VarInt trop grand (corrompu ?)");
         }
 
-        buffer[index++]=(byte)value;
-
-        final byte[]result=new byte[index];
-        System.arraycopy(buffer,0,result,0,index);
-
-        return result;
+        return value;
     }
 
-    @SuppressWarnings("ForLoopReplaceableByForEach")
-    public static int fromVarInt(byte[] bytes) {
-        int value=0;
-        int position=0;
-        for(int i=0;i<bytes.length;i++){
-            final byte b=bytes[i];
+    public static byte[] toVarInt(int value) {
+        byte[] buffer = new byte[5]; // Max taille d'un VarInt
+        int index = 0;
 
-            value|=(b&0x7F)<<position;
-
-            if((b&0x80)==0)
-                return value;
-
-            position+=7;
-
-            if(position>=32)
-                throw new RuntimeException("VarInt trop long");
+        while ((value & -128) != 0) {
+            buffer[index++] = (byte) ((value & 127) | 128);
+            value >>>= 7;
         }
+        buffer[index++] = (byte) value;
 
-        throw new IllegalArgumentException("VarInt invalide ou tronqué");
+        return index == 5 ? buffer : Arrays.copyOf(buffer, index);
+    }
+
+    public static int readVarIntFromBytes(byte[] bytes) {
+        return fromVarInt(ByteBuffer.wrap(bytes));
     }
 }
