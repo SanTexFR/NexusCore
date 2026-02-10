@@ -223,10 +223,13 @@ public abstract class Var{
      */
     public void remove(@NotNull String key){
         final long nanoTime=System.nanoTime();
+        boolean changed;
 
         synchronized(this.data){
-            this.data.remove(key);
+            changed=this.data.remove(key)!=null;
         }
+
+        if(!changed)return;
 
         if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.NONE,key,null));
         else Core.getServerImplementation().global().run(()->
@@ -260,11 +263,26 @@ public abstract class Var{
         setValue(type,key,value,true);
     }
     public<V>void setValue(@NotNull VarSubType<V>type,@NotNull String key,@Nullable V value,boolean isPersistent){
-        if(value!=null){
-            synchronized(this.data){
+        boolean changed=false;
+
+        synchronized(this.data){
+            VarEntry<?>oldEntry=this.data.get(key);
+
+            if(value!=null){
+                if(oldEntry!=null&&oldEntry.type().equals(type)&&Objects.equals(oldEntry.value(),value))
+                    return;
+
                 this.data.put(key,new VarEntry<>(value,type,isPersistent));
+                changed=true;
+            }else{
+                if(oldEntry!=null){
+                    this.data.remove(key);
+                    changed=true;
+                }
             }
-        }else removeWithoutEvent(key);
+        }
+
+        if(!changed)return;
 
         setDirty(true);
 
@@ -325,14 +343,28 @@ public abstract class Var{
         putMap(mapType,keyType,valueType,key,map,true);
     }
     public<T,T2,M extends Map<T,T2>>void putMap(@NotNull MapType<M> mapType,@NotNull VarSubType<T>keyType,@NotNull VarSubType<T2>valueType,@NotNull String key,@Nullable M map,boolean isPersistent){
-        if(map!=null&&!map.isEmpty()){
-            final MapVarType<?,?>type=new MapVarType<>(mapType,keyType,valueType);
-            synchronized(this.data){
-                this.data.put(key,new VarEntry<>(map,type,isPersistent));
+        boolean changed=false;
+
+        synchronized(this.data){
+            VarEntry<?>oldEntry=this.data.get(key);
+
+            if(map!=null&&!map.isEmpty()){
+                final MapVarType<?,?>newType=new MapVarType<>(mapType,keyType,valueType);
+
+                if(oldEntry!=null&&oldEntry.type().equals(newType)&&Objects.equals(oldEntry.value(),map))
+                    return;
+
+                this.data.put(key,new VarEntry<>(map,newType,isPersistent));
+                changed=true;
+            }else{
+                if(oldEntry!=null){
+                    this.data.remove(key);
+                    changed=true;
+                }
             }
-        } else {
-            removeWithoutEvent(key);
         }
+
+        if(!changed)return;
 
         setDirty(true);
 
