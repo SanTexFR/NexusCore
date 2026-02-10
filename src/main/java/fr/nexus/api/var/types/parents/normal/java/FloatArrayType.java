@@ -3,60 +3,52 @@ package fr.nexus.api.var.types.parents.normal.java;
 import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.ByteArrayOutputStream;
+
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public final class FloatArrayType extends InternalVarType<float[]> {
+
     @Override
     public byte @NotNull [] serializeSync(float @NotNull [] value) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(5 + value.length * 4);
 
-        int length = value.length;
+        // 1. Taille du tableau en VarInt (Gain de 3 octets si length < 128)
+        IntegerType.writeVarInt(baos, value.length);
 
-        // Chaque float devient un int → 4 bytes via VarTypes.INTEGER
-        // Total = 4 (length) + length * 4
-        byte[] data = new byte[4 + length * 4];
-
-        // write length
-        data[0] = (byte) (length >>> 24);
-        data[1] = (byte) (length >>> 16);
-        data[2] = (byte) (length >>> 8);
-        data[3] = (byte) (length);
-
-        int pos = 4;
-
+        // 2. Données brutes
         for (float v : value) {
             int bits = Float.floatToIntBits(v);
-
-            data[pos++] = (byte) (bits >>> 24);
-            data[pos++] = (byte) (bits >>> 16);
-            data[pos++] = (byte) (bits >>> 8);
-            data[pos++] = (byte)  bits;
+            baos.write(bits >>> 24);
+            baos.write(bits >>> 16);
+            baos.write(bits >>> 8);
+            baos.write(bits);
         }
 
-        return addVersionToBytes(data);
+        return addVersionToBytes(baos.toByteArray());
     }
 
+    @Override
     public float @NotNull [] deserializeSync(int version, byte[] bytes) {
-        if (version != 1)
-            throw createUnsupportedVersionException(version);
+        if (version != 1) throw createUnsupportedVersionException(version);
 
-        // read array length
-        int length =
-                ((bytes[0] & 0xFF) << 24) |
-                        ((bytes[1] & 0xFF) << 16) |
-                        ((bytes[2] & 0xFF) << 8) |
-                        (bytes[3] & 0xFF);
+        // On utilise un wrapper ByteBuffer (ou on le fait manuellement avec un index)
+        // Manuellement ici pour la performance pure (si tu veux)
+
+        int offset = 0;
+
+        // Lecture manuelle VarInt pour le length (réimplémentation locale rapide)
+        // Ou tu utilises IntegerType.readVarInt(ByteBuffer.wrap(bytes)) qui est plus simple
+        java.nio.ByteBuffer buffer = java.nio.ByteBuffer.wrap(bytes);
+        int length = IntegerType.fromVarInt(buffer);
 
         float[] result = new float[length];
 
-        int pos = 4;
-
         for (int i = 0; i < length; i++) {
-
-            int bits =
-                    ((bytes[pos++] & 0xFF) << 24) |
-                            ((bytes[pos++] & 0xFF) << 16) |
-                            ((bytes[pos++] & 0xFF) << 8)  |
-                            ((bytes[pos++] & 0xFF));
-
+            // Lecture des 4 octets
+            int bits = ((buffer.get() & 0xFF) << 24) |
+                    ((buffer.get() & 0xFF) << 16) |
+                    ((buffer.get() & 0xFF) << 8)  |
+                    ((buffer.get() & 0xFF));
             result[i] = Float.intBitsToFloat(bits);
         }
 

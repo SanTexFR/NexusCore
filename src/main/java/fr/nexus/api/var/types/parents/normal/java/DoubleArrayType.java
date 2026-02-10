@@ -3,66 +3,47 @@ package fr.nexus.api.var.types.parents.normal.java;
 import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
+
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public final class DoubleArrayType extends InternalVarType<double[]> {
+
     @Override
     public byte @NotNull [] serializeSync(double @NotNull [] value) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(5 + value.length * 8);
 
-        int length = value.length;
-        byte[] data = new byte[4 + length * 8]; // 4 bytes = length, 8 bytes per double
+        // Taille en VarInt
+        IntegerType.writeVarInt(baos, value.length);
 
-        // write length
-        data[0] = (byte) (length >>> 24);
-        data[1] = (byte) (length >>> 16);
-        data[2] = (byte) (length >>> 8);
-        data[3] = (byte) (length);
-
-        int pos = 4;
-
+        // Données
         for (double v : value) {
             long bits = Double.doubleToLongBits(v);
-
-            data[pos++] = (byte) (bits >>> 56);
-            data[pos++] = (byte) (bits >>> 48);
-            data[pos++] = (byte) (bits >>> 40);
-            data[pos++] = (byte) (bits >>> 32);
-            data[pos++] = (byte) (bits >>> 24);
-            data[pos++] = (byte) (bits >>> 16);
-            data[pos++] = (byte) (bits >>> 8);
-            data[pos++] = (byte) (bits);
+            baos.write((byte)(bits >>> 56));
+            baos.write((byte)(bits >>> 48));
+            baos.write((byte)(bits >>> 40));
+            baos.write((byte)(bits >>> 32));
+            baos.write((byte)(bits >>> 24));
+            baos.write((byte)(bits >>> 16));
+            baos.write((byte)(bits >>> 8));
+            baos.write((byte)(bits));
         }
 
-        return addVersionToBytes(data);
+        return addVersionToBytes(baos.toByteArray());
     }
 
+    @Override
     public double @NotNull [] deserializeSync(int version, byte[] bytes) {
-        if (version != 1)
-            throw createUnsupportedVersionException(version);
+        if (version != 1) throw createUnsupportedVersionException(version);
 
-        // read array length
-        int length =
-                ((bytes[0] & 0xFF) << 24) |
-                        ((bytes[1] & 0xFF) << 16) |
-                        ((bytes[2] & 0xFF) << 8) |
-                        (bytes[3] & 0xFF);
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        int length = IntegerType.fromVarInt(buffer);
 
         double[] result = new double[length];
 
-        int pos = 4;
-
         for (int i = 0; i < length; i++) {
-
-            long bits =
-                    ((long) (bytes[pos++] & 0xFF) << 56) |
-                            ((long) (bytes[pos++] & 0xFF) << 48) |
-                            ((long) (bytes[pos++] & 0xFF) << 40) |
-                            ((long) (bytes[pos++] & 0xFF) << 32) |
-                            ((long) (bytes[pos++] & 0xFF) << 24) |
-                            ((long) (bytes[pos++] & 0xFF) << 16) |
-                            ((long) (bytes[pos++] & 0xFF) << 8)  |
-                            ((long) (bytes[pos++] & 0xFF));
-
-            result[i] = Double.longBitsToDouble(bits);
+            // ByteBuffer gère le getLong automatiquement (Big Endian par défaut)
+            result[i] = buffer.getLong();
         }
 
         return result;
