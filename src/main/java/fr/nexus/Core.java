@@ -25,7 +25,6 @@ import java.lang.ref.Cleaner;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
 
@@ -83,14 +82,14 @@ public final class Core extends JavaPlugin{
 
         Listeners.register(CoreReloadEvent.class,Core::onCoreReload);
 
-        getServerImplementation().global().runDelayed(()->{
-            System.out.println("----Start----");
-            try{
-                test();
-            } catch (RuntimeException e) {
-                throw new RuntimeException(e);
-            }
-        },40L);
+//        getServerImplementation().global().runDelayed(()->{
+//            System.out.println("----Start----");
+//            try{
+//                test();
+//            } catch (RuntimeException e) {
+//                throw new RuntimeException(e);
+//            }
+//        },40L);
     }
 
     private static void test(){
