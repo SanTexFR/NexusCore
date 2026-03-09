@@ -28,7 +28,7 @@ class VarSerializer {
     private static final LZ4Factory factory = LZ4Factory.fastestInstance();
     private static final LZ4Compressor COMPRESSOR = factory.fastCompressor();
     private static final LZ4FastDecompressor DECOMPRESSOR = factory.fastDecompressor();
-    private static final ExecutorService LOOM_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
+    public static final ExecutorService LOOM_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
     private static final String SIG_SEP = "§";
 
     // --- FAST BUFFER V2 (String Optimized) ---

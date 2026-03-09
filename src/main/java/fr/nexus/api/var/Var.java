@@ -269,8 +269,11 @@ public abstract class Var{
             VarEntry<?>oldEntry=this.data.get(key);
 
             if(value!=null){
-                if(oldEntry!=null&&oldEntry.type().equals(type)&&Objects.equals(oldEntry.value(),value))
-                    return;
+                if (oldEntry != null && oldEntry.type().equals(type)) {
+                    if (oldEntry.value() != value && Objects.equals(oldEntry.value(), value)) {
+                        return;
+                    }
+                }
 
                 this.data.put(key,new VarEntry<>(value,type,isPersistent));
                 changed=true;
@@ -351,8 +354,11 @@ public abstract class Var{
             if(map!=null&&!map.isEmpty()){
                 final MapVarType<?,?>newType=new MapVarType<>(mapType,keyType,valueType);
 
-                if(oldEntry!=null&&oldEntry.type().equals(newType)&&Objects.equals(oldEntry.value(),map))
-                    return;
+                if (oldEntry != null && oldEntry.type().equals(newType)) {
+                    if (oldEntry.value() != map && Objects.equals(oldEntry.value(), map)) {
+                        return;
+                    }
+                }
 
                 this.data.put(key,new VarEntry<>(map,newType,isPersistent));
                 changed=true;

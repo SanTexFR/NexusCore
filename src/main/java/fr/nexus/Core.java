@@ -89,7 +89,7 @@ public final class Core extends JavaPlugin{
 //            } catch (RuntimeException e) {
 //                throw new RuntimeException(e);
 //            }
-//        },40L);
+//        },20L);
     }
 
     private static void test(){

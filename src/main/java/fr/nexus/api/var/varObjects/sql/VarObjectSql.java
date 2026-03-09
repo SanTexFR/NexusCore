@@ -3,6 +3,8 @@ package fr.nexus.api.var.varObjects.sql;
 import fr.nexus.api.var.Var;
 import fr.nexus.api.var.varObjects.VarObjectBackend;
 import fr.nexus.api.var.VarSql;
+import fr.nexus.api.var.varObjects.file.VarObjectFile;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,5 +26,9 @@ public abstract class VarObjectSql<R>extends VarObjectBackend<R>{
         return getVarObjectAsyncInner("sql",clazz,()->
                         VarSql.getVarAsync(db,table,path,notCachedConsumer,unloadRunnable).thenApply(var->factory.create(clazz,reference,db,table,path,var))
                 ,clazz.getName(),db,table,path);
+    }
+
+    public static <T extends VarObjectFile<?>> boolean isLoaded(@NotNull Class<T> clazz, @NotNull Plugin plugin, @NotNull String varPath) {
+        return VarObjectBackend.isLoaded("sql", clazz, clazz.getName(), plugin.getName(), varPath);
     }
 }

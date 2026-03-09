@@ -53,7 +53,7 @@ public class VarFile extends Var{
                 } catch(IOException e){
                     throw new CompletionException(e);
                 }
-            },Var.THREADPOOL).thenCompose(bytes->{
+            },VarSerializer.LOOM_EXECUTOR).thenCompose(bytes->{
                 synchronized(var.data){
                     return VarSerializer.deserializeDataAsync(bytes,var.data)
                             .thenApply(unused->var);
@@ -129,7 +129,7 @@ public class VarFile extends Var{
             }catch(Throwable t){
                 throw new CompletionException(t);
             }
-        },Var.THREADPOOL)
+        },VarSerializer.LOOM_EXECUTOR)
                 .exceptionally(ex -> {
                     ex.printStackTrace();
 

@@ -56,6 +56,12 @@ public abstract class VarObjectBackend<R>{
 
     //METHODS (STATICS)
 
+    //LOAD
+    protected static <T extends VarObjectBackend<?>> boolean isLoaded(@NotNull String keyPrefix, @NotNull Class<T> clazz, @NotNull Object... keyArgs) {
+        final String completePath = getKey(keyPrefix, clazz.getName(), stringify(keyArgs));
+        return getIfCached(completePath, clazz) != null;
+    }
+
     //GET
     protected static<R,T extends VarObjectBackend<R>>@NotNull T getVarObjectSyncInner(@NotNull String keyPrefix, @NotNull Class<T> clazz,@NotNull Supplier<T>factory, @NotNull Object...keyArgs){
         return getVarObjectAsyncInner(keyPrefix,clazz,()->CompletableFuture.completedFuture(factory.get()),keyArgs).join();

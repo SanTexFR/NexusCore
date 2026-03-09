@@ -85,14 +85,14 @@ public class VarSql extends Var{
                     }catch(SQLException e){
                         throw new CompletionException(e);
                     }
-                },Var.THREADPOOL)
+                },VarSerializer.LOOM_EXECUTOR)
                 .thenApplyAsync(unused->{
                     try{
                         return getValue(hikari,tableName,path);
                     }catch(SQLException e){
                         throw new CompletionException(e);
                     }
-                },Var.THREADPOOL)
+                },VarSerializer.LOOM_EXECUTOR)
                 .thenCompose(bytes->{
                     synchronized(var.data){
                         return VarSerializer.deserializeDataAsync(bytes,var.data)
@@ -155,7 +155,7 @@ public class VarSql extends Var{
                         }
 
                         setDirty(false);
-                    },Var.THREADPOOL)
+                    },VarSerializer.LOOM_EXECUTOR)
                     .exceptionally(ex -> {
                         ex.printStackTrace();
 

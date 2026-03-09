@@ -26,4 +26,8 @@ public abstract class VarObjectFile<R>extends VarObjectBackend<R> {
                 VarFile.getVarAsync(plugin,varPath,unloadRunnable,notCachedConsumer).thenApply(var->factory.create(clazz,reference,plugin,varPath,var))
                 ,clazz.getName(),plugin.getName(),varPath);
     }
+
+    public static <T extends VarObjectFile<?>> boolean isLoaded(@NotNull Class<T> clazz, @NotNull Plugin plugin, @NotNull String varPath) {
+        return VarObjectBackend.isLoaded("file", clazz, clazz.getName(), plugin.getName(), varPath);
+    }
 }
