@@ -145,7 +145,7 @@ public class CoreCommand {
             }
             case"var"->{
                 s.sendMessage("§e - Vars: "+Var.vars.size());
-                s.sendMessage("§e - AsyncLoads: "+Var.vars.size());
+                s.sendMessage("§e - AsyncLoads: "+Var.asyncLoads.size());
             }case"gui"->{
                 s.sendMessage("§e - Guis: "+GuiManager.guis.size());
                 s.sendMessage("§e - GuiReferences: "+GuiManager.guiReferences.size());
