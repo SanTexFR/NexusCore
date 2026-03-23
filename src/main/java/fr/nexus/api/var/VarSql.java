@@ -81,7 +81,9 @@ public class VarSql extends Var{
         final CompletableFuture<VarSql>future=CompletableFuture
                 .runAsync(()->{
                     try{
-                        checkOrCreateTable(hikari,tableName);
+                        synchronized (tableName.intern()) {
+                            checkOrCreateTable(hikari, tableName);
+                        }
                     }catch(SQLException e){
                         throw new CompletionException(e);
                     }
@@ -132,8 +134,27 @@ public class VarSql extends Var{
     }
 
     //ABSTRACT
+//ABSTRACT
     public void saveSync(){
-        saveAsync().join();
+        if(!isDirty()) return;
+
+        final HikariDataSource hikari;
+        synchronized(dataSources){
+            hikari = dataSources.get(this.database);
+        }
+        if(hikari == null) return;
+
+        synchronized(super.data){
+            try {
+                // On sérialise de manière synchrone pour l'arrêt du serveur
+                byte[] serializedData = VarSerializer.serializeDataSync(super.data);
+                putValue(hikari, this.tableName, this.dataPath, serializedData);
+                setDirty(false);
+            } catch (Exception e) {
+                logger.severe("Erreur lors de la sauvegarde synchrone de " + this.dataPath);
+                e.printStackTrace();
+            }
+        }
     }
     public@NotNull CompletableFuture<@Nullable Void>saveAsync(){
         if(!isDirty())return CompletableFuture.completedFuture(null);
@@ -184,7 +205,10 @@ public class VarSql extends Var{
             }
 
             final HikariConfig config=new HikariConfig();
-            config.setJdbcUrl("jdbc:mysql://"+host+":"+port+"/"+database+"?useSSL=false");
+//            config.setJdbcUrl("jdbc:mysql://"+host+":"+port+"/"+database+"?useSSL=false");
+            config.setJdbcUrl("jdbc:postgresql://" + host + ":" + port + "/" + database);
+            config.setDriverClassName("org.postgresql.Driver");
+
             config.setUsername(username);
             config.setPassword(password);
             config.setMaximumPoolSize(10);
@@ -199,47 +223,104 @@ public class VarSql extends Var{
             }
         }
     }
-    private static void onServerStop(ServerStopEvent e){
-        synchronized(dataSources){
-            for(final HikariDataSource ds:dataSources.values())
-                ds.close();
-        }
-    }
+    private static void onServerStop(ServerStopEvent e) {
+        logger.info("Sauvegarde finale des données SQL avant l'arrêt...");
 
-    //LOAD
-    private static void checkOrCreateTable(@NotNull HikariDataSource dataSource,@NotNull String tableName)throws SQLException{
-        try(final Connection conn=dataSource.getConnection()){
-            final DatabaseMetaData meta=conn.getMetaData();
-
-            try(ResultSet tables=meta.getTables(null,null,tableName,new String[]{"TABLE"})){
-                if(!tables.next()){
-                    try(final Statement stmt=conn.createStatement()){
-                        stmt.executeUpdate(
-                                "CREATE TABLE "+tableName+" ("+
-                                        "path VARCHAR(255) PRIMARY KEY, "+
-                                        "value LONGBLOB"+
-                                        ")"
-                        );
-                        return;
+        // On travaille sur une copie pour éviter les ConcurrentModificationException
+        synchronized (vars) {
+            for (WeakReference<?> weak : vars.values()) {
+                Object obj = weak.get();
+                if (obj instanceof VarSql varSql) {
+                    if (varSql.isDirty()) {
+                        try {
+                            // On appelle la sauvegarde synchrone
+                            varSql.saveSync();
+                        } catch (Exception ex) {
+                            logger.severe("Impossible de sauvegarder " + varSql.dataPath + " à l'arrêt !");
+                        }
                     }
                 }
             }
+        }
 
-            boolean keyOk=false,valueOk=false;
-            try(final ResultSet columns=meta.getColumns(null,null,tableName,null)) {
-                while(columns.next()){
-                    final String columnName=columns.getString("COLUMN_NAME").toLowerCase();
-                    final String columnType=columns.getString("TYPE_NAME").toUpperCase();
-
-                    if(columnName.equals("path") && columnType.contains("CHAR"))keyOk=true;
-                    if(columnName.equals("value") && columnType.contains("LONGBLOB"))valueOk=true;
+        // Une fois que tout est sauvegardé, on ferme les pools proprement
+        synchronized (dataSources) {
+            for (final HikariDataSource ds : dataSources.values()) {
+                if (!ds.isClosed()) {
+                    ds.close();
                 }
             }
+        }
+        logger.info("Bases de données déconnectées.");
+    }
 
-            if(!keyOk||!valueOk)
-                throw new SQLException("Table '" + tableName + "' must have columns: path (VARCHAR), value (LONGBLOB)");
+    //LOAD
+    private static void checkOrCreateTable(@NotNull HikariDataSource dataSource, @NotNull String tableName) throws SQLException {
+        try (final Connection conn = dataSource.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(
+                        "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
+                                "path VARCHAR(255) PRIMARY KEY, " +
+                                "value BYTEA" +
+                                ")"
+                );
+            }
+
+            final DatabaseMetaData meta = conn.getMetaData();
+            boolean keyOk = false, valueOk = false;
+
+
+            try (final ResultSet columns = meta.getColumns(null, null, tableName.toLowerCase(), null)) {
+                while (columns.next()) {
+                    final String columnName = columns.getString("COLUMN_NAME").toLowerCase();
+                    final String columnType = columns.getString("TYPE_NAME").toUpperCase();
+
+                    if (columnName.equals("path") && (columnType.contains("VARCHAR") || columnType.contains("CHAR"))) keyOk = true;
+                    if (columnName.equals("value") && (columnType.contains("BYTEA") || columnType.contains("OID"))) valueOk = true;
+                }
+            }
         }
     }
+//    private static void checkOrCreateTable(@NotNull HikariDataSource dataSource,@NotNull String tableName)throws SQLException{
+//        try(final Connection conn=dataSource.getConnection()){
+//            final DatabaseMetaData meta=conn.getMetaData();
+//
+//            try(ResultSet tables=meta.getTables(null,null,tableName,new String[]{"TABLE"})){
+//                if(!tables.next()){
+//                    try(final Statement stmt=conn.createStatement()){
+////                        stmt.executeUpdate(
+////                                "CREATE TABLE "+tableName+" ("+
+////                                        "path VARCHAR(255) PRIMARY KEY, "+
+////                                        "value LONGBLOB"+
+////                                        ")"
+////                        );
+//                        stmt.executeUpdate(
+//                                "CREATE TABLE " + tableName + " (" +
+//                                        "path VARCHAR(255) PRIMARY KEY, " +
+//                                        "value BYTEA" +
+//                                        ")"
+//                        );
+//                        return;
+//                    }
+//                }
+//            }
+//
+//            boolean keyOk=false,valueOk=false;
+//            try(final ResultSet columns=meta.getColumns(null,null,tableName,null)) {
+//                while(columns.next()){
+//                    final String columnName=columns.getString("COLUMN_NAME").toLowerCase();
+//                    final String columnType=columns.getString("TYPE_NAME").toUpperCase();
+//
+//                    if(columnName.equals("path") && columnType.contains("CHAR"))keyOk=true;
+////                    if(columnName.equals("value") && columnType.contains("LONGBLOB"))valueOk=true;
+//                    if (columnName.equals("value") && (columnType.contains("BYTEA") || columnType.contains("OID"))) valueOk = true;
+//                }
+//            }
+//
+//            if(!keyOk||!valueOk)
+//                throw new SQLException("Table '" + tableName + "' must have columns: path (VARCHAR), value (LONGBLOB)");
+//        }
+//    }
     private static byte[]getValue(@NotNull HikariDataSource dataSource,@NotNull String tableName,@NotNull String path)throws SQLException{
         final String sql="SELECT value FROM "+tableName+" WHERE path = ?";
         try(final Connection conn=dataSource.getConnection();
@@ -265,7 +346,9 @@ public class VarSql extends Var{
 
             }
         }else{
-            final String sql="INSERT INTO "+tableName+" (path, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)";
+//            final String sql="INSERT INTO "+tableName+" (path, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)";
+            final String sql = "INSERT INTO " + tableName + " (path, value) VALUES (?, ?) " +
+                    "ON CONFLICT (path) DO UPDATE SET value = EXCLUDED.value";
 
             try(final Connection conn=dataSource.getConnection();
                  final PreparedStatement stmt=conn.prepareStatement(sql)){
@@ -273,7 +356,6 @@ public class VarSql extends Var{
                 stmt.setString(1,path);
                 stmt.setBytes(2,value);
                 stmt.executeUpdate();
-
             }
         }
     }

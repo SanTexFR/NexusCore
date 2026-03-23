@@ -57,8 +57,7 @@ public abstract class VarObjectBackend<R>{
     //METHODS (STATICS)
 
     //LOAD
-    protected static <T extends VarObjectBackend<?>> boolean isLoaded(@NotNull String keyPrefix, @NotNull Class<T> clazz, @NotNull Object... keyArgs) {
-        final String completePath = getKey(keyPrefix, clazz.getName(), stringify(keyArgs));
+    protected static <T extends VarObjectBackend<?>> boolean isLoaded(@NotNull String completePath, @NotNull Class<T> clazz) {
         return getIfCached(completePath, clazz) != null;
     }
 

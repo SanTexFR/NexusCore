@@ -28,6 +28,7 @@ public abstract class VarObjectFile<R>extends VarObjectBackend<R> {
     }
 
     public static <T extends VarObjectFile<?>> boolean isLoaded(@NotNull Class<T> clazz, @NotNull Plugin plugin, @NotNull String varPath) {
-        return VarObjectBackend.isLoaded("file", clazz, clazz.getName(), plugin.getName(), varPath);
+        String path = getKey("file", clazz.getName(), plugin.getName(), varPath);
+        return VarObjectBackend.isLoaded(path, clazz);
     }
 }
