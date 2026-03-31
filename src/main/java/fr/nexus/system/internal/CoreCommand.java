@@ -47,7 +47,7 @@ public class CoreCommand {
                             switch(args[0].toLowerCase()){
                                 case"config"->{
                                     if(args.length<2||!args[1].equalsIgnoreCase("reload")){
-                                        c.sendMessage("§cVeuillez indiquez un argument valide. (/core config <reload> <safe, nosafe>)");
+                                        c.sendMessage("§cVeuillez indiquez un argument valide. (/core config <reload> <all, key> <safe, nosafe>)");
                                         return;
                                     }
 
@@ -109,6 +109,8 @@ public class CoreCommand {
         TabCompleterHandler.create("core").addArg(sender->()->"config").addDisplay(sender->
                 ()->Set.of("reload")).perform();
         TabCompleterHandler.create("core").addArg(sender->()->"config").addArg(sender->()->"reload").addDisplay(sender->
+                ()->Set.of("all","<key>")).perform();
+        TabCompleterHandler.create("core").addArg(sender->()->"config").addArg(sender->()->"reload").addArg(null).addDisplay(sender->
                 ()->Set.of("safe","nosafe")).perform();
         TabCompleterHandler.create("core").addArg(sender->()->"mesh").addDisplay(sender->
                 ()->Set.of("save")).perform();
@@ -118,10 +120,11 @@ public class CoreCommand {
                 ()->Set.of("listeners","var","gui","utils")).perform();
     }
     private static void reloadConfiguration(@NotNull CommandSender sender,@NotNull String[]args){
-        boolean nosafe=(args.length>2&&args[2].equalsIgnoreCase("nosafe"));
+        String key=args.length>2?args[2]:null;
+        boolean nosafe=(args.length>3&&args[3].equalsIgnoreCase("nosafe"));
 
         final long time=System.currentTimeMillis();
-        Core.reload(nosafe);
+        Core.reload(key!=null&&key.equalsIgnoreCase("all")?null:key,nosafe);
 
         if(nosafe)sender.sendMessage("§eConfiguration non sécurisée rechargée en "+(System.currentTimeMillis()-time)+"ms !");
         else sender.sendMessage("§eConfiguration sécurisée rechargée en "+(System.currentTimeMillis()-time)+"ms !");

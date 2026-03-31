@@ -155,12 +155,12 @@ public final class Core extends JavaPlugin{
         lastCleanupUUID=uuid;
     }
 
-    public static void reload(boolean safe){
+    public static void reload(@Nullable String key,boolean safe){
         getInstance().reloadConfig();
         getInstance().saveDefaultConfig();
 
-        if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new CoreReloadEvent(safe));
-        else Core.getServerImplementation().global().run(()->Bukkit.getPluginManager().callEvent(new CoreReloadEvent(safe)));
+        if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new CoreReloadEvent(key,safe));
+        else Core.getServerImplementation().global().run(()->Bukkit.getPluginManager().callEvent(new CoreReloadEvent(key,safe)));
     }
 
 

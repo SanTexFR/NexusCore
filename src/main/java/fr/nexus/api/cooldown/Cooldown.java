@@ -1,5 +1,6 @@
 package fr.nexus.api.cooldown;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import fr.nexus.Core;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
@@ -27,8 +28,7 @@ public class Cooldown{
 
         long endMillis = System.currentTimeMillis() + ticks * 50;
 
-        BukkitTask task = Bukkit.getScheduler().runTaskLater(
-                Core.getInstance(),
+        TaskImplementation<?> task = Core.getServerImplementation().global().runDelayed(
                 () -> cooldowns.remove(id),
                 ticks
         );
@@ -36,5 +36,12 @@ public class Cooldown{
         cooldowns.put(id, new CooldownData(endMillis, task));
     }
 
-    private record CooldownData(long millis,@NotNull BukkitTask task){}
+    public static void cancelCooldown(@NotNull String id) {
+        CooldownData data = cooldowns.remove(id);
+        if (data != null) {
+            data.task.cancel(); // Stoppe la tâche de suppression planifiée
+        }
+    }
+
+    private record CooldownData(long millis,@NotNull TaskImplementation<?> task){}
 }

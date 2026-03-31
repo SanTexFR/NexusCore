@@ -15,6 +15,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -62,6 +63,17 @@ public class Gui implements GuiBackground{
         this(rows,title!=null?Component.text(title):null);
     }
 
+    public Gui(@Nullable InventoryHolder owner,int rows,@Nullable Component title){
+        this.weakReference=new WeakReference<>(this);
+
+        final int size=Math.max(1,Math.min(6,rows))*9;
+        if(title==null)this.inventory=Bukkit.createInventory(null,size);
+        else this.inventory=Bukkit.createInventory(owner,size,title);
+
+        GuiManager.addGui(this.inventory,this);
+
+        this.cleanable=Core.getCleaner().register(this,new Unload(this.globalGuiTickConsumer));
+    }
     public Gui(int rows,@Nullable Component title){
         this.weakReference=new WeakReference<>(this);
 
@@ -74,8 +86,22 @@ public class Gui implements GuiBackground{
         this.cleanable=Core.getCleaner().register(this,new Unload(this.globalGuiTickConsumer));
     }
 
+    public Gui(@Nullable InventoryHolder owner,@NotNull InventoryType type,@Nullable String title){
+        this(owner,type,title!=null?Component.text(title):null);
+    }
     public Gui(@NotNull InventoryType type,@Nullable String title){
         this(type,title!=null?Component.text(title):null);
+    }
+
+    public Gui(@Nullable InventoryHolder owner,@NotNull InventoryType type,@Nullable Component title){
+        this.weakReference=new WeakReference<>(this);
+
+        if(title==null)this.inventory=Bukkit.createInventory(null,type);
+        else this.inventory=Bukkit.createInventory(owner,type,title);
+
+        GuiManager.addGui(this.inventory,this);
+
+        this.cleanable=Core.getCleaner().register(this,new Unload(this.globalGuiTickConsumer));
     }
     public Gui(@NotNull InventoryType type,@Nullable Component title){
         this.weakReference=new WeakReference<>(this);
