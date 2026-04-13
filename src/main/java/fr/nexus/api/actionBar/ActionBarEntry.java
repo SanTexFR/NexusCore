@@ -33,8 +33,8 @@ public class ActionBarEntry {
 
     // --- PATTERN BUILDER ---
     public static class Builder {
-        private Supplier<Component> textSupplier = () -> Component.empty();
-        private int priority = 10; // Priorité par défaut (0 = ultra prioritaire)
+        private Supplier<Component> textSupplier = Component::empty;
+        private int priority = ActionBarPriority.NORMAL.level();
         private int durationTicks = 60; // 3 secondes par défaut
         private int updateRateTicks = 20; // 1 update par seconde par défaut
 
@@ -48,6 +48,10 @@ public class ActionBarEntry {
             return this;
         }
 
+        public Builder priority(@NotNull ActionBarPriority priority) {
+            this.priority = priority.level();
+            return this;
+        }
         public Builder priority(int priority) {
             this.priority = Math.max(0, priority);
             return this;
