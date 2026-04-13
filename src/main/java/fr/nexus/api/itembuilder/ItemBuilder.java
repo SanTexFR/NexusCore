@@ -4,6 +4,7 @@ import fr.nexus.Core;
 import fr.nexus.system.internal.performanceTracker.PerformanceTracker;
 import fr.nexus.utils.Utils;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
@@ -185,6 +186,12 @@ public class ItemBuilder{
     public@NotNull ItemBuilder setDisplayName(@Nullable Component displayName){
         final long nanoTime=System.nanoTime();
 
+        if(displayName!=null){
+            displayName=Component.text()
+                    .decoration(TextDecoration.ITALIC,false)
+                    .append(displayName)
+                    .build();
+        }
         this.meta.displayName(displayName);
 
         PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"setDisplayName",System.nanoTime()-nanoTime);
@@ -225,12 +232,21 @@ public class ItemBuilder{
         PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"setLore",System.nanoTime()-nanoTime);
         return this;
     }
-    public@NotNull ItemBuilder setLore(@Nullable Component...lore){
-        final long nanoTime=System.nanoTime();
+    public @NotNull ItemBuilder setLore(@Nullable Component... lore) {
+        final long nanoTime = System.nanoTime();
 
-        this.meta.lore(Arrays.stream(lore).toList());
+        if (lore == null) {
+            this.meta.lore(null);
+        } else {
+            List<Component> cleanedLore = Arrays.stream(lore)
+                    .map(line -> line == null ? Component.empty() :
+                            line.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE))
+                    .toList();
 
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"setLore",System.nanoTime()-nanoTime);
+            this.meta.lore(cleanedLore);
+        }
+
+        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER, "setLore", System.nanoTime() - nanoTime);
         return this;
     }
 

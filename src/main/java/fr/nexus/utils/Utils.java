@@ -123,6 +123,26 @@ public class Utils{
             return player;
         },THREADPOOL);
     }
+    public static@NotNull CompletableFuture<@Nullable OfflinePlayer>getOfflinePlayerIfKnown(@NotNull UUID uuid){
+        OfflinePlayer offlinePlayer;
+        synchronized(OFFLINE_LOCK){
+            offlinePlayer=offlinePlayerUUIDCache.get(uuid);
+        }
+        if(offlinePlayer!=null)return CompletableFuture.completedFuture(offlinePlayer);
+
+        offlinePlayer=onlinePlayerUUIDCache.get(uuid);
+        if(offlinePlayer!=null)return CompletableFuture.completedFuture(offlinePlayer);
+
+        return CompletableFuture.supplyAsync(()->{
+            final OfflinePlayer player=Bukkit.getOfflinePlayer(uuid);
+            if(!player.hasPlayedBefore()&&!player.isOnline())return null;
+
+            putOfflinePlayerInCache(player);
+
+            return player;
+        },THREADPOOL);
+    }
+
     public static@NotNull CompletableFuture<@NotNull OfflinePlayer>getOfflinePlayer(@NotNull String name){
         name=name.toLowerCase();
         OfflinePlayer offlinePlayer;
@@ -148,6 +168,35 @@ public class Utils{
             return player;
         },THREADPOOL);
     }
+    public static@NotNull CompletableFuture<@Nullable OfflinePlayer>getOfflinePlayerIfKnown(@NotNull String name){
+        name=name.toLowerCase();
+        OfflinePlayer offlinePlayer;
+        synchronized(OFFLINE_LOCK){
+            offlinePlayer=offlinePlayerNameCache.get(name);
+        }
+        if(offlinePlayer!=null)return CompletableFuture.completedFuture(offlinePlayer);
+
+        offlinePlayer=onlinePlayerNameCache.get(name);
+        if(offlinePlayer!=null)return CompletableFuture.completedFuture(offlinePlayer);
+
+        offlinePlayer=Bukkit.getOfflinePlayerIfCached(name);
+        if(offlinePlayer!=null){
+            putOfflinePlayerInCache(offlinePlayer);
+            return CompletableFuture.completedFuture(offlinePlayer);
+        }
+
+        final String finalName=name;
+        return CompletableFuture.supplyAsync(()->{
+            final OfflinePlayer player=Bukkit.getOfflinePlayer(finalName);
+            if(!player.hasPlayedBefore()&&!player.isOnline())return null;
+
+            putOfflinePlayerInCache(player);
+
+            return player;
+        },THREADPOOL);
+    }
+
+
     private static void putOfflinePlayerInCache(@NotNull OfflinePlayer offlinePlayer){
         final UUID uuid=offlinePlayer.getUniqueId();
         final String name=offlinePlayer.getName();
