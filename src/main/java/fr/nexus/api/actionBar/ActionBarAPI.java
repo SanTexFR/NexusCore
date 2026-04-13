@@ -30,6 +30,17 @@ public class ActionBarAPI {
         }
     }
 
+    public static void removeSpecific(@NotNull Player p, int priority) {
+        PlayerActionBar bar = activeBars.get(p.getUniqueId());
+        if (bar != null) {
+            bar.removePriority(priority);
+        }
+    }
+
+    public static void removeSpecific(@NotNull Player p, @NotNull ActionBarPriority priority) {
+        removeSpecific(p, priority.level());
+    }
+
     // --- MÉTHODES DE COMMODITÉ (POUR ALLER VITE) ---
 
     public static void sendText(@NotNull Player p, @NotNull Component text, int durationTicks) {

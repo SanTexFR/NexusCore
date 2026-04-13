@@ -106,6 +106,28 @@ public class PlayerActionBar {
         this.player.sendActionBar(Component.empty());
     }
 
+    public void removePriority(int priority) {
+        // 1. Si la priorité demandée est celle actuellement affichée
+        if (currentEntry != null && currentEntry.getPriority() == priority) {
+            this.currentEntry = null;
+            this.player.sendActionBar(Component.empty());
+            // Le tick() suivant s'occupera de prendre le prochain message dans waitingEntries
+        }
+
+        // 2. On la supprime aussi de la salle d'attente (si elle y était)
+        this.waitingEntries.remove(priority);
+
+        // 3. Si plus rien n'est à afficher du tout, on coupe la tâche
+        if (currentEntry == null && waitingEntries.isEmpty()) {
+            unload();
+        }
+    }
+
+    // Surcharge pour utiliser ton Record ActionBarPriority
+    public void removePriority(@NotNull ActionBarPriority priority) {
+        removePriority(priority.level());
+    }
+
     public void clearAll() {
         this.waitingEntries.clear();
         this.currentEntry = null;
