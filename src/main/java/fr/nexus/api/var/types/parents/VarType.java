@@ -27,16 +27,16 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
     //CONSTRUCTOR
     protected VarType(@NotNull Plugin handler){
         super(1);
-        init(handler,(Class<T>)((ParameterizedType)getClass()
-                .getGenericSuperclass())
-                .getActualTypeArguments()[0]);
+        java.lang.reflect.Type type = ((ParameterizedType)getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+        init(handler, (Class<T>) getRawClass(type));
     }
-    protected VarType(@NotNull Plugin handler,int version){
+
+    protected VarType(@NotNull Plugin handler, int version){
         super(version);
-        init(handler,(Class<T>)((ParameterizedType)getClass()
-                .getGenericSuperclass())
-                .getActualTypeArguments()[0]);
+        java.lang.reflect.Type type = ((ParameterizedType)getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+        init(handler, (Class<T>) getRawClass(type));
     }
+
     protected VarType(@NotNull Plugin handler,@NotNull Class<@NotNull T>typeClazz,int version){
         super(version);
         init(handler,typeClazz);
@@ -120,6 +120,15 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
             failed.completeExceptionally(e);
             return failed;
         }
+    }
+
+    private static Class<?> getRawClass(java.lang.reflect.Type type) {
+        if (type instanceof Class<?>) {
+            return (Class<?>) type;
+        } else if (type instanceof ParameterizedType) {
+            return (Class<?>) ((ParameterizedType) type).getRawType();
+        }
+        throw new IllegalArgumentException("Type non supporté : " + type);
     }
 
 

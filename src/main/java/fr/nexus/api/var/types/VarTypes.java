@@ -35,6 +35,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public interface VarTypes{
@@ -80,6 +81,7 @@ public interface VarTypes{
         typesMap.put("InventoryType", "Inventory");
         typesMap.put("VectorType", "Vector");
         typesMap.put("BoundingBoxType", "BoundingBox");
+        typesMap.put("AtomicBigDecimalType", "AtomicBigDecimal");
         typesMap.put("AtomicBooleanType", "AtomicBoolean");
         typesMap.put("AtomicDoubleType", "AtomicDouble");
         typesMap.put("AtomicIntegerType", "AtomicInteger");
@@ -696,6 +698,20 @@ public interface VarTypes{
     @NotNull VarSubType<ArrayDeque<BoundingBox>> BOUNDINGBOX_ARRAY_DEQUE = BOUNDINGBOX.array_deques();
     @NotNull VarSubType<Stack<BoundingBox>> BOUNDINGBOX_STACK = BOUNDINGBOX.stacks();
     @NotNull BoundingBoxType.ArrayType BOUNDINGBOX_ARRAY = BOUNDINGBOX.arrays();
+
+    // ATOMICBIGDECIMAL
+    @NotNull AtomicBigDecimalType ATOMICBIGDECIMAL = new AtomicBigDecimalType();
+    @NotNull VarSubType<ConcurrentSkipListSet<AtomicReference<BigDecimal>>> ATOMICBIGDECIMAL_CONCURRENT_SKIP_LIST_SET = ATOMICBIGDECIMAL.concurrent_skip_list_sets();
+    @NotNull VarSubType<ConcurrentHashMap.KeySetView<AtomicReference<BigDecimal>, Boolean>> ATOMICBIGDECIMAL_CONCURRENT_SET = ATOMICBIGDECIMAL.concurrent_sets();
+    @NotNull VarSubType<LinkedHashSet<AtomicReference<BigDecimal>>> ATOMICBIGDECIMAL_LINKED_SET = ATOMICBIGDECIMAL.linked_sets();
+    @NotNull VarSubType<TreeSet<AtomicReference<BigDecimal>>> ATOMICBIGDECIMAL_TREE_SET = ATOMICBIGDECIMAL.tree_sets();
+    @NotNull VarSubType<Set<AtomicReference<BigDecimal>>> ATOMICBIGDECIMAL_SET = ATOMICBIGDECIMAL.sets();
+    @NotNull VarSubType<List<AtomicReference<BigDecimal>>> ATOMICBIGDECIMAL_LIST = ATOMICBIGDECIMAL.lists();
+    @NotNull VarSubType<PriorityBlockingQueue<AtomicReference<BigDecimal>>> ATOMICBIGDECIMAL_PRIORITY_BLOCKING_QUEUE = ATOMICBIGDECIMAL.priority_blocking_queues();
+    @NotNull VarSubType<PriorityQueue<AtomicReference<BigDecimal>>> ATOMICBIGDECIMAL_PRIORITY_QUEUE = ATOMICBIGDECIMAL.priority_queues();
+    @NotNull VarSubType<ArrayDeque<AtomicReference<BigDecimal>>> ATOMICBIGDECIMAL_ARRAY_DEQUE = ATOMICBIGDECIMAL.array_deques();
+    @NotNull VarSubType<Stack<AtomicReference<BigDecimal>>> ATOMICBIGDECIMAL_STACK = ATOMICBIGDECIMAL.stacks();
+    @NotNull AtomicBigDecimalType.ArrayType ATOMICBIGDECIMAL_ARRAY = ATOMICBIGDECIMAL.arrays();
 
     // ATOMICBOOLEAN
     @NotNull AtomicBooleanType ATOMICBOOLEAN = new AtomicBooleanType();

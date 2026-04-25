@@ -123,6 +123,21 @@ public class PlayerActionBar {
         }
     }
 
+    public boolean hasPriority(int priority) {
+        // 1. Est-ce que c'est le message actuellement à l'écran ?
+        if (currentEntry != null && currentEntry.getPriority() == priority) {
+            return true;
+        }
+
+        // 2. Est-ce qu'elle est dans la salle d'attente ?
+        return waitingEntries.containsKey(priority);
+    }
+
+    // Version avec ton Record
+    public boolean hasPriority(@NotNull ActionBarPriority priority) {
+        return hasPriority(priority.level());
+    }
+
     // Surcharge pour utiliser ton Record ActionBarPriority
     public void removePriority(@NotNull ActionBarPriority priority) {
         removePriority(priority.level());

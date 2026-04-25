@@ -305,6 +305,11 @@ class VarSerializer {
                     if (typeId == 0) {
                         String typeStr = readStringFast(buffer);
                         groupType = VarType.getTypes().get(typeStr);
+                        if (groupType == null) {
+                            // LOG l'erreur au lieu de crash
+                            System.err.println("[NexusCore] Type inconnu trouvé dans le fichier : " + typeStr);
+                            continue; // Saute cette variable au lieu d'exploser
+                        }
                     } else {
                         String mapTypeStr = readStringFast(buffer);
                         String keyTypeStr = readStringFast(buffer);

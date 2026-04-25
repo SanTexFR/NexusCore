@@ -41,6 +41,15 @@ public class ActionBarAPI {
         removeSpecific(p, priority.level());
     }
 
+    public static boolean exists(@NotNull Player p, int priority) {
+        PlayerActionBar bar = activeBars.get(p.getUniqueId());
+        return bar != null && bar.hasPriority(priority);
+    }
+
+    public static boolean exists(@NotNull Player p, @NotNull ActionBarPriority priority) {
+        return exists(p, priority.level());
+    }
+
     // --- MÉTHODES DE COMMODITÉ (POUR ALLER VITE) ---
 
     public static void sendText(@NotNull Player p, @NotNull Component text, int durationTicks) {
