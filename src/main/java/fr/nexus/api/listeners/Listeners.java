@@ -1,11 +1,10 @@
 package fr.nexus.api.listeners;
 
 import fr.nexus.Core;
-import fr.nexus.system.ThreadPool;
 import fr.nexus.api.listeners.core.CoreReloadEvent;
 import fr.nexus.api.listeners.events.CoreEvent;
+import fr.nexus.api.var.VarSerializer;
 import fr.nexus.system.internal.performanceTracker.PerformanceTracker;
-import org.bukkit.Bukkit;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventPriority;
@@ -33,21 +32,12 @@ public class Listeners implements Listener{
     //ASYNC
     private static boolean customAsyncBukkitEventEnabled;
 
-    public static ThreadPool THREADPOOL;
-
     public static final@NotNull ConcurrentHashMap<@NotNull String,@NotNull List<@NotNull ConsumerWrapper<CoreEvent<?>,Object>>>asyncEventsRegistered=new ConcurrentHashMap<>();
     private static final@NotNull Set<@NotNull Class<?>>registeredCoreBridges=ConcurrentHashMap.newKeySet();
     private static final@NotNull Set<@NotNull Object>activeEventKeys=ConcurrentHashMap.newKeySet();
 
     //CONSTRUCTOR
     public Listeners(){
-        THREADPOOL=new ThreadPool(
-                Core.getInstance().getConfig().getInt("thread.listeners.amount",1),
-                Core.getInstance().getConfig().getInt("thread.listeners.queue-size",240),
-                "Listeners Async",
-                Thread.NORM_PRIORITY-1
-        );
-
         onCoreReload(null);
     }
 
@@ -155,7 +145,7 @@ public class Listeners implements Listener{
                 continue;
             }
 
-            THREADPOOL.execute(()->{
+            VarSerializer.LOOM_EXECUTOR.execute(()->{
                 obj[0]=consumer.asyncConsumer.apply(coreEvent,obj[0]);
 
                 if(coreEvent.isAsyncCancelled()){

@@ -2,9 +2,6 @@ package fr.nexus.api.var;
 
 import fr.nexus.Core;
 import fr.nexus.api.listeners.core.CoreCleanupEvent;
-import fr.nexus.system.ThreadPool;
-import fr.nexus.api.listeners.core.CoreDisableEvent;
-import fr.nexus.api.listeners.core.CoreInitializeEvent;
 import fr.nexus.system.internal.performanceTracker.PerformanceTracker;
 import fr.nexus.api.listeners.Listeners;
 import fr.nexus.api.var.events.DataSetEvent;

@@ -3,7 +3,7 @@ package fr.nexus.utils;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import fr.nexus.Core;
-import fr.nexus.system.ThreadPool;
+import fr.nexus.api.var.VarSerializer;
 import fr.nexus.api.listeners.core.CoreDisableEvent;
 import fr.nexus.api.listeners.core.CoreInitializeEvent;
 import fr.nexus.api.listeners.Listeners;
@@ -25,8 +25,6 @@ import java.util.concurrent.CompletableFuture;
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public class Utils{
     //VARIABLES (STATICS)
-    public static ThreadPool THREADPOOL;
-
     public static final @NotNull Object2ObjectOpenHashMap<@NotNull UUID,Player>onlinePlayerUUIDCache=new Object2ObjectOpenHashMap<>();
     public static final @NotNull Object2ObjectOpenHashMap<@NotNull String,Player>onlinePlayerNameCache=new Object2ObjectOpenHashMap<>();
 
@@ -45,13 +43,6 @@ public class Utils{
 
     //MAIN LISTENERS
     private static void onCoreInitialize(CoreInitializeEvent e){
-        THREADPOOL=new ThreadPool(
-                Core.getInstance().getConfig().getInt("thread.utils.amount",1),
-                Core.getInstance().getConfig().getInt("thread.utils.queue-size",128),
-                "Utils Async",
-                Thread.NORM_PRIORITY-1
-        );
-
         MAX_OFFLINE_CACHE=Core.getInstance().getConfig().getInt("cache.maxOfflineCache",1);
         offlinePlayerUUIDCache=new LinkedHashMap<>(MAX_OFFLINE_CACHE,0.75f,true){
             @Override
@@ -76,8 +67,6 @@ public class Utils{
         }
         offlinePlayerUUIDCache.clear();
         offlinePlayerNameCache.clear();
-
-        Core.shutdownExecutor(THREADPOOL);
     }
 
     //PLAYER
@@ -121,7 +110,7 @@ public class Utils{
             putOfflinePlayerInCache(player);
 
             return player;
-        },THREADPOOL);
+        },VarSerializer.LOOM_EXECUTOR);
     }
     public static@NotNull CompletableFuture<@Nullable OfflinePlayer>getOfflinePlayerIfKnown(@NotNull UUID uuid){
         OfflinePlayer offlinePlayer;
@@ -140,7 +129,7 @@ public class Utils{
             putOfflinePlayerInCache(player);
 
             return player;
-        },THREADPOOL);
+        },VarSerializer.LOOM_EXECUTOR);
     }
 
     public static@NotNull CompletableFuture<@NotNull OfflinePlayer>getOfflinePlayer(@NotNull String name){
@@ -166,7 +155,7 @@ public class Utils{
             putOfflinePlayerInCache(player);
 
             return player;
-        },THREADPOOL);
+        },VarSerializer.LOOM_EXECUTOR);
     }
     public static@NotNull CompletableFuture<@Nullable OfflinePlayer>getOfflinePlayerIfKnown(@NotNull String name){
         name=name.toLowerCase();
@@ -193,7 +182,7 @@ public class Utils{
             putOfflinePlayerInCache(player);
 
             return player;
-        },THREADPOOL);
+        },VarSerializer.LOOM_EXECUTOR);
     }
 
 

@@ -9,10 +9,10 @@ import fr.nexus.api.listeners.core.CoreInitializeEvent;
 import fr.nexus.api.listeners.core.CoreReloadEvent;
 import fr.nexus.api.listeners.Listeners;
 import fr.nexus.api.var.VarFile;
+import fr.nexus.api.var.VarSerializer;
 import fr.nexus.api.var.types.VarTypes;
 import fr.nexus.system.ClazzInitializer;
 import fr.nexus.system.Logger;
-import fr.nexus.system.ThreadPool;
 import fr.nexus.system.Updater;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
@@ -103,7 +103,7 @@ public final class Core extends JavaPlugin{
                 IntStream.range(0, 1_000_000).parallel().forEach(i -> {
                     var.setValue(VarTypes.UUID,"uuid"+i,uuid);
                 });
-            }).thenRun(() -> {
+            },VarSerializer.LOOM_EXECUTOR).thenRun(() -> {
                 System.out.println("setValueTime: "+(System.currentTimeMillis()-time.get())+"ms");
                 time.set(System.currentTimeMillis());
                 var.saveAsync().thenAccept(bool->{
@@ -117,17 +117,17 @@ public final class Core extends JavaPlugin{
     public void onDisable(){
         final PluginManager pluginManager=Bukkit.getPluginManager();
         pluginManager.callEvent(new CoreDisableEvent());
-        shutdownExecutor(Listeners.THREADPOOL);
+//        shutdownExecutor(Listeners.THREADPOOL);
         pluginManager.callEvent(new CoreCleanupEvent());
     }
-    public static void shutdownExecutor(@NotNull ThreadPool threadPool){
-        try{
-            threadPool.shutdown();
-            threadPool.awaitTermination(5,TimeUnit.SECONDS);
-        }catch(InterruptedException e){
-            logger.severe("shutdownExecutor issue ("+threadPool.getPrefix()+"): {}",e.getMessage());
-        }
-    }
+//    public static void shutdownExecutor(@NotNull ThreadPool threadPool){
+//        try{
+//            threadPool.shutdown();
+//            threadPool.awaitTermination(5,TimeUnit.SECONDS);
+//        }catch(InterruptedException e){
+//            logger.severe("shutdownExecutor issue ("+threadPool.getPrefix()+"): {}",e.getMessage());
+//        }
+//    }
 
     //METHODS (STATICS)
     public static ServerImplementation getServerImplementation(){

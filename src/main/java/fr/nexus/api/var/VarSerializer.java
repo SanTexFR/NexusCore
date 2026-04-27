@@ -22,7 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @SuppressWarnings({"unused", "UnusedReturnValue", "unchecked"})
-class VarSerializer {
+public class VarSerializer {
 
     // --- INSTANCES ---
     private static final LZ4Factory factory = LZ4Factory.fastestInstance();
