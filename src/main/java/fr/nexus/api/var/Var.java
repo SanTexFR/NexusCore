@@ -31,15 +31,10 @@ import java.util.function.Supplier;
 @SuppressWarnings({"unused","UnusedReturnValue","unchecked"})
 public abstract class Var{
     //VARIABLES (STATICS)
-    public static int THREAD_AMOUNT;
-    public static ThreadPool THREADPOOL;
-
     public static final@NotNull Object2ObjectOpenHashMap<@NotNull String,CompletableFuture<Var>>asyncLoads=new Object2ObjectOpenHashMap<>();
     public static final@NotNull Object2ObjectOpenHashMap<@NotNull String,WeakReference<Var>>vars=new Object2ObjectOpenHashMap<>();
     public static final@NotNull Set<@NotNull Var>shouldStayLoadedVars=new HashSet<>();
     static{
-        Listeners.register(CoreInitializeEvent.class,Var::onCoreInitialize);
-        Listeners.register(CoreDisableEvent.class,Var::onCoreDisable);
         Listeners.register(CoreCleanupEvent.class,Var::onCoreCleanup);
     }
 
@@ -68,19 +63,6 @@ public abstract class Var{
     //METHODS (STATICS)
 
     //LISTENERS
-    private static void onCoreInitialize(CoreInitializeEvent e){
-        THREAD_AMOUNT=Core.getInstance().getConfig().getInt("thread.var.amount",1);
-        THREADPOOL=new ThreadPool(
-                THREAD_AMOUNT,
-                Core.getInstance().getConfig().getInt("thread.var.queue-size",512),
-                "Var Async",
-                Thread.NORM_PRIORITY-1
-        );
-    }
-    private static void onCoreDisable(CoreDisableEvent e){
-        Core.shutdownExecutor(THREADPOOL);
-    }
-
     private static void onCoreCleanup(CoreCleanupEvent e){
         if(shouldStayLoadedVars.isEmpty()){
             cleanupVars();
