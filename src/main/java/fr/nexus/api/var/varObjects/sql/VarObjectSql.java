@@ -19,14 +19,14 @@ public abstract class VarObjectSql<R>extends VarObjectBackend<R>{
     }
 
     //METHODS (STATICS)
-    public static<R,T extends VarObjectSql<R>>@NotNull T getVarObjectSync(@NotNull Class<T> clazz, @NotNull R reference, @NotNull VarObjectSqlFactory<R,T> factory, @NotNull String db, @NotNull String table, @NotNull String path,@Nullable Consumer<@NotNull Var>notCachedConsumer,@Nullable Runnable unloadRunnable){
-        return getVarObjectAsync(clazz,reference,factory,db,table,path,notCachedConsumer,unloadRunnable).join();
+    public static <R, K, T extends VarObjectSql<R>> @NotNull T getVarObjectSync(@NotNull Class<T> clazz, @NotNull R reference, @NotNull VarObjectSqlFactory<R,T> factory, @NotNull String db, @NotNull String table, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey, @Nullable Consumer<@NotNull Var> notCachedConsumer, @Nullable Runnable unloadRunnable) {
+        return getVarObjectAsync(clazz,reference,factory,db,table,keyType,pathKey,notCachedConsumer,unloadRunnable).join();
     }
-    public static<R,T extends VarObjectSql<R>>@NotNull CompletableFuture<T> getVarObjectAsync(@NotNull Class<T> clazz, @NotNull R reference, @NotNull VarObjectSqlFactory<R,T> factory, @NotNull String db, @NotNull String table, @NotNull String path,@Nullable Consumer<@NotNull Var>notCachedConsumer,@Nullable Runnable unloadRunnable){
+    public static <R, K, T extends VarObjectSql<R>> @NotNull CompletableFuture<T> getVarObjectAsync(@NotNull Class<T> clazz, @NotNull R reference, @NotNull VarObjectSqlFactory<R,T> factory, @NotNull String db, @NotNull String table, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey, @Nullable Consumer<@NotNull Var> notCachedConsumer, @Nullable Runnable unloadRunnable) {
         return getVarObjectAsyncInner("sql", clazz, () ->
-                        VarSql.getVarAsync(db, table, path, notCachedConsumer, unloadRunnable)
-                                .thenApply(var -> factory.create(clazz, reference, db, table, path, var))
-                , db, table, path);
+                        VarSql.getVarAsync(db, table, keyType, pathKey, notCachedConsumer, unloadRunnable)
+                                .thenApply(var -> factory.create(clazz, reference, db, table, pathKey.toString(), var))
+                , db, table, pathKey.toString());
     }
 
     public static <T extends VarObjectSql<?>> boolean isLoaded(@NotNull Class<T> clazz, @NotNull String db, @NotNull String table, @NotNull String path) {

@@ -250,6 +250,37 @@ public class ItemBuilder{
         return this;
     }
 
+    public @NotNull ItemBuilder addLore(@Nullable Component... lines) {
+        if (lines == null) return this;
+        final long nanoTime = System.nanoTime();
+
+        // Récupérer le lore actuel ou en créer un nouveau
+        List<Component> currentLore = this.meta.lore();
+        if (currentLore == null) currentLore = new ArrayList<>();
+        else currentLore = new ArrayList<>(currentLore); // On copie pour pouvoir modifier
+
+        for (Component line : lines) {
+            if (line == null) {
+                currentLore.add(Component.empty());
+                continue;
+            }
+            // On force le retrait de l'italique par défaut
+            currentLore.add(line.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
+        }
+
+        this.meta.lore(currentLore);
+        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER, "addLore", System.nanoTime() - nanoTime);
+        return this;
+    }
+    public @NotNull ItemBuilder addLore(@NotNull List<Component> lines) {
+        return addLore(lines.toArray(new Component[0]));
+    }
+
+    public @NotNull ItemBuilder clearLore() {
+        this.meta.lore(Collections.emptyList());
+        return this;
+    }
+
     public@NotNull ItemBuilder addEnchant(@NotNull Enchantment enchantment,int level){
         final long nanoTime=System.nanoTime();
 

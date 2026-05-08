@@ -236,7 +236,7 @@ public class VarSerializer {
                     targetCtx.buffer.writeTo(localBuf); // Wait, logic error. Local -> Target.
                     // Correction : On remplace le buffer ou on append.
                     // Le plus simple : on stocke le localBuf et on l'assemblera à la fin.
-                    targetCtx.buffer = localBuf; // On remplace le buffer vide/partiel par le plein
+                    targetCtx.buffer.write(localBuf.buf, 0, localBuf.count); // On remplace le buffer vide/partiel par le plein
                     targetCtx.count = size; // Async types are likely pure async context groups
 
                 }, LOOM_EXECUTOR);
@@ -299,54 +299,60 @@ public class VarSerializer {
                 List<CompletableFuture<Map.Entry<String, VarEntry<?>>>> asyncFutures = new ArrayList<>();
 
                 while (buffer.hasRemaining()) {
-                    byte typeId = buffer.get();
-                    Vars groupType;
+                    try {
+                        byte typeId = buffer.get();
+                        Vars groupType;
 
-                    if (typeId == 0) {
-                        String typeStr = readStringFast(buffer);
-                        groupType = VarType.getTypes().get(typeStr);
-                        if (groupType == null) {
-                            // LOG l'erreur au lieu de crash
-                            System.err.println("[NexusCore] Type inconnu trouvé dans le fichier : " + typeStr);
-                            continue; // Saute cette variable au lieu d'exploser
-                        }
-                    } else {
-                        String mapTypeStr = readStringFast(buffer);
-                        String keyTypeStr = readStringFast(buffer);
-                        String valueTypeStr = readStringFast(buffer);
-                        groupType = new MapVarType<>(MapType.getTypes().get(mapTypeStr),
-                                VarType.getTypes().get(keyTypeStr),
-                                VarType.getTypes().get(valueTypeStr));
-                    }
-
-                    int count = IntegerType.fromVarInt(buffer);
-                    boolean isWrapper = groupType.isWrapper();
-                    boolean needAsync = groupType.needAsync();
-
-                    for (int i = 0; i < count; i++) {
-                        String key = readStringFast(buffer);
-                        byte[] valueByte = readByteArray(buffer);
-
-                        if (!needAsync) {
-                            Object value = isWrapper
-                                    ? ((VarSubType<Object>) groupType).deserializeSync(valueByte)
-                                    : ((MapVarType<Object, Object>) groupType).deserializeSync(valueByte);
-
-                            if (value != null) {
-                                syncEntries.add(new AbstractMap.SimpleEntry<>(key, new VarEntry<>(value, groupType, true)));
+                        if (typeId == 0) {
+                            String typeStr = readStringFast(buffer);
+                            groupType = VarType.getTypes().get(typeStr);
+                            if (groupType == null) {
+                                // LOG l'erreur au lieu de crash
+                                System.err.println("[NexusCore] Type inconnu trouvé dans le fichier : " + typeStr);
+                                continue; // Saute cette variable au lieu d'exploser
                             }
                         } else {
-                            final Vars finalType = groupType;
-                            CompletableFuture<?> valFuture = isWrapper
-                                    ? ((VarSubType<Object>) finalType).deserializeAsync(valueByte)
-                                    : ((MapVarType<Object, Object>) finalType).deserializeAsync(valueByte);
-
-                            asyncFutures.add(valFuture.thenApply(val -> {
-                                if (val == null) return null;
-                                return new AbstractMap.SimpleEntry<>(key, new VarEntry<>(val, finalType, true));
-                            }));
+                            String mapTypeStr = readStringFast(buffer);
+                            String keyTypeStr = readStringFast(buffer);
+                            String valueTypeStr = readStringFast(buffer);
+                            groupType = new MapVarType<>(MapType.getTypes().get(mapTypeStr),
+                                    VarType.getTypes().get(keyTypeStr),
+                                    VarType.getTypes().get(valueTypeStr));
                         }
+
+                        int count = IntegerType.fromVarInt(buffer);
+                        boolean isWrapper = groupType.isWrapper();
+                        boolean needAsync = groupType.needAsync();
+
+                        for (int i = 0; i < count; i++) {
+                            String key = readStringFast(buffer);
+                            byte[] valueByte = readByteArray(buffer);
+
+                            if (!needAsync) {
+                                Object value = isWrapper
+                                        ? ((VarSubType<Object>) groupType).deserializeSync(valueByte)
+                                        : ((MapVarType<Object, Object>) groupType).deserializeSync(valueByte);
+
+                                if (value != null) {
+                                    syncEntries.add(new AbstractMap.SimpleEntry<>(key, new VarEntry<>(value, groupType, true)));
+                                }
+                            } else {
+                                final Vars finalType = groupType;
+                                CompletableFuture<?> valFuture = isWrapper
+                                        ? ((VarSubType<Object>) finalType).deserializeAsync(valueByte)
+                                        : ((MapVarType<Object, Object>) finalType).deserializeAsync(valueByte);
+
+                                asyncFutures.add(valFuture.thenApply(val -> {
+                                    if (val == null) return null;
+                                    return new AbstractMap.SimpleEntry<>(key, new VarEntry<>(val, finalType, true));
+                                }));
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.err.println("[NexusCore] Groupe de données corrompu, saut du groupe restant. "+e.getMessage());
+                        break;
                     }
+
                 }
 
                 // Insertion massive Sync (Trés rapide, pas de lock externe nécessaire si data est thread-confined ou synchro bloc unique)
@@ -415,11 +421,13 @@ public class VarSerializer {
 
     private static byte[] readByteArray(ByteBuffer buffer) {
         int length = IntegerType.fromVarInt(buffer);
+        if (length < 0 || length > buffer.remaining()) {
+            throw new RuntimeException("Taille invalide : " + length);
+        }
         byte[] bytes = new byte[length];
         buffer.get(bytes);
         return bytes;
     }
-
     private static byte[] compress(byte[] input, int length) {
         // LZ4 Compression avec zéro allocation superflue
         int maxCompressedLength = COMPRESSOR.maxCompressedLength(length);

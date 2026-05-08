@@ -52,6 +52,14 @@ public final class IntegerType extends InternalVarType<Integer> {
         byte currentByte;
 
         while (true) {
+            // --- SÉCURITÉ AJOUTÉE ---
+            if (!buffer.hasRemaining()) {
+                // Au lieu de crash violemment, on lance une erreur explicite
+                // ou on retourne une valeur par défaut selon ton besoin.
+                throw new RuntimeException("Fin de buffer inattendue lors de la lecture d'un VarInt (données corrompues)");
+            }
+            // -------------------------
+
             currentByte = buffer.get();
             value |= (currentByte & 127) << position;
 

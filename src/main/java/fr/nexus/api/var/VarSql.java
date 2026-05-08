@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import fr.nexus.Core;
 import fr.nexus.api.listeners.Listeners;
 import fr.nexus.api.listeners.server.ServerStopEvent;
+import fr.nexus.api.var.varObjects.sql.SqlKeyType;
 import fr.nexus.system.Logger;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.bukkit.configuration.ConfigurationSection;
@@ -14,13 +15,16 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.ref.WeakReference;
 import java.nio.file.Path;
 import java.sql.*;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public class VarSql extends Var{
     //VARIABLES (STATICS)
+    private static final@NotNull Set<@NotNull String>verifiedTables=ConcurrentHashMap.newKeySet();
     private static final@NotNull Logger logger=new Logger(Core.getInstance(),VarSql.class);
     private static final@NotNull Object2ObjectOpenHashMap<@NotNull String,HikariDataSource>dataSources=new Object2ObjectOpenHashMap<>();
 
@@ -30,14 +34,18 @@ public class VarSql extends Var{
     }
 
     //VARIABLES (INSTANCES)
-    private final@NotNull String database,tableName,dataPath;
+    private final@NotNull String database,tableName,stringPath;
+    private final @NotNull SqlKeyType<Object> keyType;
+    private final @NotNull Object pathKey;
 
     //CONSTRUCTOR
-    private VarSql(@NotNull Path path,@NotNull String database,@NotNull String tableName,@NotNull String dataPath,@NotNull Runnable cleanupRunnable,@Nullable Consumer<@NotNull Var>notCachedConsumer){
-        super(path,cleanupRunnable);
-        this.database=database;
-        this.tableName=tableName;
-        this.dataPath=dataPath;
+    private <K> VarSql(@NotNull Path path, @NotNull String database, @NotNull String tableName, @NotNull String stringPath, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey, @NotNull Runnable cleanupRunnable, @Nullable Consumer<@NotNull Var> notCachedConsumer) {
+        super(path, cleanupRunnable);
+        this.database = database;
+        this.tableName = tableName;
+        this.stringPath = stringPath;
+        this.keyType = (SqlKeyType<Object>) keyType;
+        this.pathKey = pathKey;
     }
 
 
@@ -48,73 +56,84 @@ public class VarSql extends Var{
         }
     }
 
-    public static@NotNull VarSql getVarSync(@NotNull String database,@NotNull String tableName,@NotNull String path){
-        return getVarSync(database,tableName,path,null,null);
+    public static @NotNull VarSql getVarSync(@NotNull String database, @NotNull String tableName, @NotNull String path) {
+        return getVarSync(database, tableName, SqlKeyType.STRING, path, null, null);
     }
-    public static@NotNull VarSql getVarSync(@NotNull String database,@NotNull String tableName,@NotNull String path,@Nullable Consumer<@NotNull Var>notCachedConsumer,@Nullable Runnable unloadRunnable){
-        return getVarAsync(database,tableName,path,notCachedConsumer,unloadRunnable).join();
+    public static <K> @NotNull VarSql getVarSync(@NotNull String database, @NotNull String tableName, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey, @Nullable Consumer<@NotNull Var> notCachedConsumer, @Nullable Runnable unloadRunnable) {
+        return getVarAsync(database, tableName, keyType, pathKey, notCachedConsumer, unloadRunnable).join();
     }
-    public static@NotNull CompletableFuture<@NotNull VarSql>getVarAsync(@NotNull String database,@NotNull String tableName,@NotNull String path){
-        return getVarAsync(database,tableName,path,null,null);
+    public static <K> @NotNull CompletableFuture<@NotNull VarSql> getVarAsync(@NotNull String database, @NotNull String tableName, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey) {
+        return getVarAsync(database, tableName, keyType, pathKey, null, null);
     }
-    public static@NotNull CompletableFuture<@NotNull VarSql>getVarAsync(@NotNull String database,@NotNull String tableName,@NotNull String path,@Nullable Consumer<@NotNull Var>notCachedConsumer,@Nullable Runnable unloadRunnable){
+
+    public static <K> @NotNull CompletableFuture<@NotNull VarSql> getVarAsync(@NotNull String database, @NotNull String tableName, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey, @Nullable Consumer<@NotNull Var> notCachedConsumer, @Nullable Runnable unloadRunnable) {
         final HikariDataSource hikari;
-        synchronized(dataSources){
-            hikari=dataSources.get(database);
+        synchronized (dataSources) {
+            hikari = dataSources.get(database);
         }
-        if(hikari==null)throw new RuntimeException("Unknown database: "+database);
+        if (hikari == null) throw new RuntimeException("Unknown database: " + database);
 
-        final Path fullPath=Path.of(database,tableName,path);
-        final String key=String.join("/","sql",fullPath.toString());
+        final String stringPath = pathKey.toString();
+        final Path fullPath = Path.of(database, tableName, stringPath);
+        final String key = String.join("/", "sql", fullPath.toString());
 
-        final VarSql cached=getIfCached(key);
-        if(cached!=null)return CompletableFuture.completedFuture(cached);
+        // 1. Vérification du cache
+        final VarSql cached = getIfCached(key);
+        if (cached != null) return CompletableFuture.completedFuture(cached);
 
-        final CompletableFuture<Var>async;
-        synchronized(asyncLoads){
-            async=asyncLoads.get(key);
+        // 2. Vérification si un chargement est déjà en cours
+        final CompletableFuture<Var> async;
+        synchronized (asyncLoads) {
+            async = asyncLoads.get(key);
         }
-        if(async!=null)return async.thenApply(var->(VarSql) var);
+        if (async != null) return async.thenApply(var -> (VarSql) var);
 
-        final VarSql var=new VarSql(fullPath,database,tableName,path,new Unload(key,unloadRunnable),notCachedConsumer);
+        final VarSql var = new VarSql(fullPath, database, tableName, stringPath, keyType, pathKey, new Unload(key, unloadRunnable), notCachedConsumer);
 
-        final CompletableFuture<VarSql>future=CompletableFuture
-                .runAsync(()->{
-                    try{
-                        synchronized (tableName.intern()) {
-                            checkOrCreateTable(hikari, tableName);
+        // 3. Logique de chargement optimisée
+        final CompletableFuture<VarSql> future = CompletableFuture.supplyAsync(() -> {
+            try {
+                // Vérification de la table une seule fois par exécution du serveur
+                if (!verifiedTables.contains(tableName)) {
+                    synchronized (tableName.intern()) {
+                        if (!verifiedTables.contains(tableName)) {
+                            checkOrCreateTable(hikari, tableName, keyType);
+                            verifiedTables.add(tableName);
                         }
-                    }catch(SQLException e){
-                        throw new CompletionException(e);
                     }
-                },VarSerializer.LOOM_EXECUTOR)
-                .thenApplyAsync(unused->{
-                    try{
-                        return getValue(hikari,tableName,path);
-                    }catch(SQLException e){
-                        throw new CompletionException(e);
-                    }
-                },VarSerializer.LOOM_EXECUTOR)
-                .thenCompose(bytes->{
-                    synchronized(var.data){
-                        return VarSerializer.deserializeDataAsync(bytes,var.data)
-                                .thenApply(v->var);
-                    }
-                });
+                }
 
-        synchronized(asyncLoads){
-            asyncLoads.put(key,future.thenApply(v->v));
+                // Récupération des bytes (bloquant, mais sur Loom donc OK)
+                return getValue(hikari, tableName, keyType, pathKey);
+            } catch (SQLException e) {
+                throw new CompletionException(e);
+            }
+        }, VarSerializer.LOOM_EXECUTOR).thenCompose(bytes -> {
+            // Désérialisation (Potentiellement async selon ton VarSerializer)
+            synchronized (var.data) {
+                return VarSerializer.deserializeDataAsync(bytes, var.data)
+                        .thenApply(v -> var);
+            }
+        });
+
+        // 4. Gestion de la map des chargements en cours
+        synchronized (asyncLoads) {
+            asyncLoads.put(key, future.thenApply(v -> v));
         }
 
-        future.whenComplete((res,ex)->{
-            synchronized(asyncLoads){
+        // 5. Finalisation et mise en cache
+        future.whenComplete((res, ex) -> {
+            synchronized (asyncLoads) {
                 asyncLoads.remove(key);
             }
-            if(ex==null){
-                synchronized(vars){
-                    vars.put(key,new WeakReference<>(var));
-                    if(notCachedConsumer!=null)notCachedConsumer.accept(var);
+            if (ex == null) {
+                synchronized (vars) {
+                    vars.put(key, new WeakReference<>(var));
+                    if (notCachedConsumer != null) notCachedConsumer.accept(var);
                 }
+            } else {
+                logger.severe("Erreur lors du chargement SQL pour " + stringPath);
+                ex.printStackTrace();
             }
         });
 
@@ -134,7 +153,6 @@ public class VarSql extends Var{
     }
 
     //ABSTRACT
-//ABSTRACT
     public void saveSync(){
         if(!isDirty()) return;
 
@@ -148,10 +166,10 @@ public class VarSql extends Var{
             try {
                 // On sérialise de manière synchrone pour l'arrêt du serveur
                 byte[] serializedData = VarSerializer.serializeDataSync(super.data);
-                putValue(hikari, this.tableName, this.dataPath, serializedData);
+                putValue(hikari, this.tableName, this.keyType, this.pathKey, serializedData);
                 setDirty(false);
             } catch (Exception e) {
-                logger.severe("Erreur lors de la sauvegarde synchrone de " + this.dataPath);
+                logger.severe("Erreur lors de la sauvegarde synchrone de " + this.pathKey);
                 e.printStackTrace();
             }
         }
@@ -170,7 +188,7 @@ public class VarSql extends Var{
             return VarSerializer.serializeDataAsync(super.data)
                     .thenAcceptAsync(serializedData ->{
                         try{
-                            putValue(hikari,this.tableName,this.dataPath,serializedData);
+                            putValue(hikari, this.tableName, this.keyType, this.pathKey, serializedData);
                         }catch(SQLException e){
                             throw new CompletionException("Failed to save data to DB: "+this.tableName,e);
                         }
@@ -236,7 +254,7 @@ public class VarSql extends Var{
                             // On appelle la sauvegarde synchrone
                             varSql.saveSync();
                         } catch (Exception ex) {
-                            logger.severe("Impossible de sauvegarder " + varSql.dataPath + " à l'arrêt !");
+                            logger.severe("Impossible de sauvegarder " + varSql.stringPath + " à l'arrêt !");
                         }
                     }
                 }
@@ -255,12 +273,12 @@ public class VarSql extends Var{
     }
 
     //LOAD
-    private static void checkOrCreateTable(@NotNull HikariDataSource dataSource, @NotNull String tableName) throws SQLException {
+    private static <K> void checkOrCreateTable(@NotNull HikariDataSource dataSource, @NotNull String tableName, @NotNull SqlKeyType<K> keyType) throws SQLException {
         try (final Connection conn = dataSource.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(
-                        "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
-                                "path VARCHAR(255) PRIMARY KEY, " +
+                        "CREATE TABLE IF NOT EXISTS \"" + tableName + "\" (" +
+                                "path " + keyType.getSqlDeclaration() + " PRIMARY KEY, " +
                                 "value BYTEA" +
                                 ")"
                 );
@@ -269,15 +287,19 @@ public class VarSql extends Var{
             final DatabaseMetaData meta = conn.getMetaData();
             boolean keyOk = false, valueOk = false;
 
-
             try (final ResultSet columns = meta.getColumns(null, null, tableName.toLowerCase(), null)) {
                 while (columns.next()) {
-                    final String columnName = columns.getString("COLUMN_NAME").toLowerCase();
-                    final String columnType = columns.getString("TYPE_NAME").toUpperCase();
+                    String colName = columns.getString("COLUMN_NAME").toLowerCase();
+                    String colType = columns.getString("TYPE_NAME").toUpperCase();
 
-                    if (columnName.equals("path") && (columnType.contains("VARCHAR") || columnType.contains("CHAR"))) keyOk = true;
-                    if (columnName.equals("value") && (columnType.contains("BYTEA") || columnType.contains("OID"))) valueOk = true;
+                    // Validation dynamique du type !
+                    if (colName.equals("path") && keyType.isValidType(colType)) keyOk = true;
+                    else if (colName.equals("value") && (colType.contains("BYTEA") || colType.contains("OID"))) valueOk = true;
                 }
+            }
+
+            if (!keyOk || !valueOk) {
+                throw new SQLException("La table SQL '" + tableName + "' existe déjà mais sa structure est invalide.");
             }
         }
     }
@@ -321,40 +343,32 @@ public class VarSql extends Var{
 //                throw new SQLException("Table '" + tableName + "' must have columns: path (VARCHAR), value (LONGBLOB)");
 //        }
 //    }
-    private static byte[]getValue(@NotNull HikariDataSource dataSource,@NotNull String tableName,@NotNull String path)throws SQLException{
-        final String sql="SELECT value FROM "+tableName+" WHERE path = ?";
-        try(final Connection conn=dataSource.getConnection();
-            final PreparedStatement stmt=conn.prepareStatement(sql)){
+    private static <K> byte[] getValue(@NotNull HikariDataSource dataSource, @NotNull String tableName, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey) throws SQLException {
+    final String sql = "SELECT value FROM " + tableName + " WHERE path = ?";
+    try (final Connection conn = dataSource.getConnection();
+         final PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1,path);
-            try(final ResultSet rs=stmt.executeQuery()){
-                if(rs.next())
-                    return rs.getBytes("value");
-            }
+        keyType.setParameter(stmt, 1, pathKey);
+        try (final ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) return rs.getBytes("value");
         }
-
-        return new byte[]{};
     }
-    private static void putValue(@NotNull HikariDataSource dataSource,@NotNull String tableName,@NotNull String path,byte[]value)throws SQLException{
-        if(value==null||value.length==0){
-            final String sql="DELETE FROM "+tableName+" WHERE path = ?";
-            try (final Connection conn=dataSource.getConnection();
-                 final PreparedStatement stmt=conn.prepareStatement(sql)){
+    return new byte[]{};
+}
 
-                stmt.setString(1,path);
+    private static <K> void putValue(@NotNull HikariDataSource dataSource, @NotNull String tableName, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey, byte[] value) throws SQLException {
+        if (value == null || value.length == 0) {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("DELETE FROM \"" + tableName + "\" WHERE path = ?")) {
+                keyType.setParameter(stmt, 1, pathKey);
                 stmt.executeUpdate();
-
             }
-        }else{
-//            final String sql="INSERT INTO "+tableName+" (path, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)";
-            final String sql = "INSERT INTO " + tableName + " (path, value) VALUES (?, ?) " +
-                    "ON CONFLICT (path) DO UPDATE SET value = EXCLUDED.value";
-
-            try(final Connection conn=dataSource.getConnection();
-                 final PreparedStatement stmt=conn.prepareStatement(sql)){
-
-                stmt.setString(1,path);
-                stmt.setBytes(2,value);
+        } else {
+            final String sql = "INSERT INTO \"" + tableName + "\" (path, value) VALUES (?, ?) ON CONFLICT (path) DO UPDATE SET value = EXCLUDED.value";
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+                keyType.setParameter(stmt, 1, pathKey);
+                stmt.setBytes(2, value);
                 stmt.executeUpdate();
             }
         }
