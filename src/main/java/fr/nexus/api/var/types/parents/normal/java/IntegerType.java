@@ -5,22 +5,29 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public final class IntegerType extends InternalVarType<Integer> {
+
     @Override
     public byte @NotNull [] serializeSync(@NotNull Integer value) {
+        // On encode en ZigZag puis en VarInt
         return addVersionToBytes(toVarInt(zigZagEncode(value)));
     }
 
     @Override
     public @NotNull Integer deserializeSync(int version, byte[] bytes) {
         if (version == 1) {
-            // 1. VarInt (décompresse)
-            // 2. ZigZag (remet les négatifs)
-            return zigZagDecode(readVarIntFromBytes(bytes));
+            try {
+                return zigZagDecode(readVarIntFromBytes(bytes));
+            } catch (Exception e) {
+                // Remplace "NexusCore" par le nom de ton plugin
+                org.bukkit.Bukkit.getLogger().warning("[NexusCore] Erreur de lecture Integer (Données corrompues). Valeur 0 retournée par sécurité.");
+                return 0;
+            }
         } else {
             throw createUnsupportedVersionException(version);
         }
@@ -34,55 +41,52 @@ public final class IntegerType extends InternalVarType<Integer> {
         return (n >>> 1) ^ -(n & 1);
     }
 
-    public static void writeVarInt(OutputStream out, int value){
-        try{
-            while ((value & -128) != 0) {
-                out.write(value & 127 | 128);
-                value >>>= 7;
-            }
-            out.write(value);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public static int fromVarInt(ByteBuffer buffer) {
         int value = 0;
         int position = 0;
         byte currentByte;
 
         while (true) {
-            // --- SÉCURITÉ AJOUTÉE ---
             if (!buffer.hasRemaining()) {
-                // Au lieu de crash violemment, on lance une erreur explicite
-                // ou on retourne une valeur par défaut selon ton besoin.
-                throw new RuntimeException("Fin de buffer inattendue lors de la lecture d'un VarInt (données corrompues)");
+                // Au lieu de throw une RuntimeException qui fait moche dans les logs
+                // On lance une erreur spécifique ou on log proprement.
+                throw new IllegalStateException("VarInt incomplet : Fin de buffer");
             }
-            // -------------------------
 
             currentByte = buffer.get();
-            value |= (currentByte & 127) << position;
+            value |= (currentByte & 0x7F) << position;
 
-            if ((currentByte & 128) == 0) break;
+            if ((currentByte & 0x80) == 0) break;
             position += 7;
 
-            if (position >= 32) throw new RuntimeException("VarInt trop grand (corrompu ?)");
+            if (position >= 32) throw new RuntimeException("VarInt trop grand (corrompu)");
         }
-
         return value;
     }
 
-    public static byte[] toVarInt(int value) {
-        byte[] buffer = new byte[5]; // Max taille d'un VarInt
-        int index = 0;
+    // Utilise ceci pour écrire proprement dans le flux
+    public static void writeVarInt(OutputStream out, int value){
+        try{
+            while ((value & 0xFFFFFF80) != 0) {
+                out.write((value & 0x7F) | 0x80);
+                value >>>= 7;
+            }
+            out.write(value & 0x7F);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
-        while ((value & -128) != 0) {
-            buffer[index++] = (byte) ((value & 127) | 128);
+    }
+
+    public static byte[] toVarInt(int value) {
+        byte[] buffer = new byte[5];
+        int index = 0;
+        while ((value & 0xFFFFFF80) != 0) {
+            buffer[index++] = (byte) ((value & 0x7F) | 0x80);
             value >>>= 7;
         }
         buffer[index++] = (byte) value;
-
-        return index == 5 ? buffer : Arrays.copyOf(buffer, index);
+        return Arrays.copyOf(buffer, index);
     }
 
     public static int readVarIntFromBytes(byte[] bytes) {
