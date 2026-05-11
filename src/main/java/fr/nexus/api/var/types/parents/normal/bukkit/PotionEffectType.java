@@ -61,7 +61,7 @@ public final class PotionEffectType extends InternalVarType<PotionEffect> {
         final int duration = buffer.getInt();
 
         // AMPLIFIER
-        final int amplifier = buffer.get();
+        final int amplifier = buffer.get() & 0xFF;
 
         // FLAGS
         final byte flags = buffer.get();
