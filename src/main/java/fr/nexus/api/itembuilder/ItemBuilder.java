@@ -19,356 +19,177 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 @SuppressWarnings({"unused","UnusedReturnValue","deprecation"})
-public class ItemBuilder{
-    //VARIABLES (STATICS)
-    private static final@NotNull Random random=new Random();
+public class ItemBuilder {
+    private static final @NotNull Random random = new Random();
+    private static final List<Material> MATERIALS = Arrays.stream(Material.values()).filter(Material::isItem).toList();
 
-    //VARIABLES (INSTANCES)
-    private final@NotNull ItemStack itemStack;
-    private@NotNull ItemMeta meta;
+    private final @NotNull ItemStack itemStack;
+    private @NotNull ItemMeta meta;
 
-    //CONSTRUCTOR
-    private ItemBuilder(@NotNull Material material){
-        this.itemStack=ItemStack.of(material);
-        this.meta=this.itemStack.getItemMeta();
+    private ItemBuilder(@NotNull Material material) {
+        this.itemStack = ItemStack.of(material);
+        // On récupère la meta une seule fois au début
+        ItemMeta m = this.itemStack.getItemMeta();
+        if (m == null) throw new IllegalArgumentException("Material " + material + " has no ItemMeta");
+        this.meta = m;
     }
 
-
-    //METHODS (STATICS)
-    public static@NotNull ItemBuilder createItem(@NotNull Material material){
+    public static @NotNull ItemBuilder createItem(@NotNull Material material) {
         return new ItemBuilder(material);
     }
-    public static@NotNull ItemBuilder createItem(){
+
+    public static @NotNull ItemBuilder createItem() {
         return new ItemBuilder(Material.DIRT);
     }
-    public static@NotNull ItemBuilder cloneFrom(@NotNull ItemStack other){
-        final long nanoTime=System.nanoTime();
 
+    public static @NotNull ItemBuilder cloneFrom(@NotNull ItemStack other) {
+        final long nanoTime = System.nanoTime();
         final ItemBuilder builder = createItem(other.getType());
+
         ItemMeta otherMeta = other.getItemMeta();
         if (otherMeta != null) {
-            // Copie complète du meta
-            ItemMeta metaClone = otherMeta.clone();
-
-            // Si le displayName est un Component (Kyori), on le récupère
-            if (otherMeta.hasDisplayName()) {
-                metaClone.displayName(otherMeta.displayName()); // Adventure API
-            }
-
-            builder.itemStack.setItemMeta(metaClone);
-            builder.meta = builder.itemStack.getItemMeta(); // mise à jour du meta dans ItemBuilder
+            builder.meta = otherMeta.clone();
         }
         builder.setQuantity(other.getAmount());
 
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"cloneFrom",System.nanoTime()-nanoTime);
+        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER, "cloneFrom", System.nanoTime() - nanoTime);
         return builder;
     }
 
-    //METHOD (INSTANCES)
-
-    //NBT
-    public static<T,Z>Z getNbt(@NotNull ItemStack item,@NotNull PersistentDataType<T,Z>dataType,@NotNull String key){
-        final long nanoTime=System.nanoTime();
-
-        if(!item.hasItemMeta()){
-            PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"getNbt",System.nanoTime()-nanoTime);
-            return null;
-        }
-
-        final ItemMeta meta=item.getItemMeta();
-        if(meta==null){
-            PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"getNbt",System.nanoTime()-nanoTime);
-            return null;
-        }
-
-        final Z value=meta.getPersistentDataContainer().get(new NamespacedKey(Core.getInstance(),key),dataType);
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"getNbt",System.nanoTime()-nanoTime);
-        return value;
-    }
-    public<T,Z>Z getNbt(@NotNull PersistentDataType<T,Z>dataType,@NotNull String key){
-        return getNbt(this.itemStack,dataType,key);
+    // --- NBT METHODS (STATICS) ---
+    public static <T, Z> Z getNbt(@NotNull ItemStack item, @NotNull PersistentDataType<T, Z> dataType, @NotNull String key) {
+        ItemMeta m = item.getItemMeta();
+        if (m == null) return null;
+        return m.getPersistentDataContainer().get(new NamespacedKey(Core.getInstance(), key), dataType);
     }
 
-    public static<T,Z>@NotNull ItemStack addNbt(@NotNull ItemStack item,@NotNull PersistentDataType<T,Z>dataType,@NotNull String key,@NotNull Z value){
-        final long nanoTime=System.nanoTime();
-
-        final ItemMeta meta=item.getItemMeta();
-        if(meta==null){
-            PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"addNbt",System.nanoTime()-nanoTime);
-            return item;
+    public static <T, Z> @NotNull ItemStack addNbt(@NotNull ItemStack item, @NotNull PersistentDataType<T, Z> dataType, @NotNull String key, @NotNull Z value) {
+        ItemMeta m = item.getItemMeta();
+        if (m != null) {
+            m.getPersistentDataContainer().set(new NamespacedKey(Core.getInstance(), key), dataType, value);
+            item.setItemMeta(m);
         }
-
-        meta.getPersistentDataContainer().set(new NamespacedKey(Core.getInstance(),key),dataType,value);
-
-        item.setItemMeta(meta);
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"addNbt",System.nanoTime()-nanoTime);
         return item;
     }
-    public<T,Z>@NotNull ItemBuilder addNbt(@NotNull PersistentDataType<T,Z>dataType,@NotNull String key,@NotNull Z value){
+
+    // --- NBT METHODS (INSTANCES) ---
+    public <T, Z> Z getNbt(@NotNull PersistentDataType<T, Z> dataType, @NotNull String key) {
+        return this.meta.getPersistentDataContainer().get(new NamespacedKey(Core.getInstance(), key), dataType);
+    }
+
+    public <T, Z> @NotNull ItemBuilder addNbt(@NotNull PersistentDataType<T, Z> dataType, @NotNull String key, @NotNull Z value) {
+        this.meta.getPersistentDataContainer().set(new NamespacedKey(Core.getInstance(), key), dataType, value);
+        return this;
+    }
+
+    public @NotNull ItemBuilder removeNbt(@NotNull String key) {
+        this.meta.getPersistentDataContainer().remove(new NamespacedKey(Core.getInstance(), key));
+        return this;
+    }
+
+    // --- USAGES (Modifient la meta locale directement) ---
+    public @NotNull ItemBuilder cancelStackUsage(boolean state) {
+        return state ? addNbt(PersistentDataType.LONG, "Unstakeable", System.nanoTime()) : removeNbt("Unstakeable");
+    }
+
+    public @NotNull ItemBuilder cancelCraftUsage(boolean state) {
+        return state ? addNbt(PersistentDataType.BOOLEAN, "Uncraftable", true) : removeNbt("Uncraftable");
+    }
+
+    public @NotNull ItemBuilder cancelAnvilUsage(boolean state) {
+        return state ? addNbt(PersistentDataType.BOOLEAN, "CancelAnvilUsage", true) : removeNbt("CancelAnvilUsage");
+    }
+
+    public @NotNull ItemBuilder cancelDisenchantment(boolean state) {
+        return state ? addNbt(PersistentDataType.BOOLEAN, "Undisenchantable", true) : removeNbt("Undisenchantable");
+    }
+
+    public @NotNull ItemBuilder cancelEnchantement(boolean state) {
+        return state ? addNbt(PersistentDataType.BOOLEAN, "Unenchantable", true) : removeNbt("Unenchantable");
+    }
+
+    // --- OTHERS ---
+    public @NotNull ItemBuilder applyTexture(@NotNull String texture) {
+        final long nanoTime = System.nanoTime();
+        // Cas particulier : Utils.applyHeadTexture demande souvent l'ItemStack
         this.itemStack.setItemMeta(this.meta);
-        addNbt(this.itemStack,dataType,key,value);
-        this.meta=this.itemStack.getItemMeta();
+        Utils.applyHeadTexture(this.itemStack, texture);
+        this.meta = this.itemStack.getItemMeta(); // On récupère la meta modifiée par la texture
+        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER, "applyTexture", System.nanoTime() - nanoTime);
         return this;
     }
 
-    public static<T,Z>@NotNull ItemStack removeNbt(@NotNull ItemStack item,@NotNull String key){
-        final long nanoTime=System.nanoTime();
-
-        final ItemMeta meta=item.getItemMeta();
-        if(meta==null){
-            PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"removeNbt",System.nanoTime()-nanoTime);
-            return item;
-        }
-
-        meta.getPersistentDataContainer().remove(new NamespacedKey(Core.getInstance(),key));
-
-        item.setItemMeta(meta);
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"removeNbt",System.nanoTime()-nanoTime);
-        return item;
-    }
-    public<T,Z>@NotNull ItemBuilder removeNbt(@NotNull String key){
-        this.itemStack.setItemMeta(this.meta);
-        removeNbt(this.itemStack,key);
-        this.meta=this.itemStack.getItemMeta();
-        return this;
-    }
-
-    //USAGES
-    public@NotNull ItemBuilder cancelStackUsage(boolean state){
-        if(state)addNbt(this.itemStack,PersistentDataType.LONG,"Unstakeable",System.nanoTime());
-        else removeNbt(this.itemStack,"Unstakeable");
-        return this;
-    }
-    public@NotNull ItemBuilder cancelCraftUsage(boolean state){
-        if(state)addNbt(this.itemStack,PersistentDataType.BOOLEAN,"Uncraftable",true);
-        else removeNbt(this.itemStack,"Uncraftable");
-        return this;
-    }
-    public@NotNull ItemBuilder cancelAnvilUsage(boolean state){
-        if(state)addNbt(this.itemStack,PersistentDataType.BOOLEAN,"CancelAnvilUsage",true);
-        else removeNbt(this.itemStack,"CancelAnvilUsage");
-        return this;
-    }
-    public@NotNull ItemBuilder cancelDisenchantment(boolean state){
-        if(state)addNbt(this.itemStack,PersistentDataType.BOOLEAN,"Undisenchantable",true);
-        else removeNbt(this.itemStack,"Undisenchantable");
-        return this;
-    }
-    public@NotNull ItemBuilder cancelEnchantement(boolean state){
-        if(state)addNbt(this.itemStack,PersistentDataType.BOOLEAN,"Unenchantable",true);
-        else removeNbt(this.itemStack,"Unenchantable");
-        return this;
-    }
-
-    //OTHERS
-    public@NotNull ItemBuilder applyTexture(@NotNull String texture){
-        final long nanoTime=System.nanoTime();
-
-        this.itemStack.setItemMeta(this.meta);
-        Utils.applyHeadTexture(this.itemStack,texture);
-        this.meta=this.itemStack.getItemMeta();
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"applyTexture",System.nanoTime()-nanoTime);
-        return this;
-    }
-    public@NotNull ItemBuilder setQuantity(int quantity){
-        final long nanoTime=System.nanoTime();
-
+    public @NotNull ItemBuilder setQuantity(int quantity) {
         this.itemStack.setAmount(quantity);
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"setQuantity",System.nanoTime()-nanoTime);
         return this;
     }
 
-    public@NotNull ItemBuilder setDisplayName(@Nullable Component displayName){
-        final long nanoTime=System.nanoTime();
-
-        if(displayName!=null){
-            displayName=Component.text()
-                    .decoration(TextDecoration.ITALIC,false)
-                    .append(displayName)
-                    .build();
+    public @NotNull ItemBuilder setDisplayName(@Nullable Component displayName) {
+        if (displayName != null) {
+            displayName = Component.text().decoration(TextDecoration.ITALIC, false).append(displayName).build();
         }
         this.meta.displayName(displayName);
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"setDisplayName",System.nanoTime()-nanoTime);
         return this;
     }
-    public@NotNull ItemBuilder setDisplayName(@Nullable String displayName){
-        final long nanoTime=System.nanoTime();
 
+    public @NotNull ItemBuilder setDisplayName(@Nullable String displayName) {
         this.meta.setDisplayName(displayName);
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"setDisplayName",System.nanoTime()-nanoTime);
         return this;
     }
 
-    public@NotNull ItemBuilder setDurability(int durability){
-        final long nanoTime=System.nanoTime();
-
-        if(this.itemStack.getItemMeta()instanceof Damageable damageable)
-            damageable.setDamage(this.itemStack.getType().getMaxDurability()-durability);
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"setDurability",System.nanoTime()-nanoTime);
-        return this;
-    }
-    public@NotNull ItemBuilder setUnbreakable(boolean state){
-        final long nanoTime=System.nanoTime();
-
-        this.itemStack.getItemMeta().setUnbreakable(state);
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"setUnbreakable",System.nanoTime()-nanoTime);
+    public @NotNull ItemBuilder setDurability(int durability) {
+        if (this.meta instanceof Damageable damageable) {
+            damageable.setDamage(this.itemStack.getType().getMaxDurability() - durability);
+        }
         return this;
     }
 
-    public@NotNull ItemBuilder setLore(@Nullable String...lore){
-        final long nanoTime=System.nanoTime();
-
-        this.meta.setLore(Arrays.asList(lore));
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"setLore",System.nanoTime()-nanoTime);
+    public @NotNull ItemBuilder setUnbreakable(boolean state) {
+        this.meta.setUnbreakable(state);
         return this;
     }
+
     public @NotNull ItemBuilder setLore(@Nullable Component... lore) {
-        final long nanoTime = System.nanoTime();
-
         if (lore == null) {
             this.meta.lore(null);
         } else {
-            List<Component> cleanedLore = Arrays.stream(lore)
-                    .map(line -> line == null ? Component.empty() :
-                            line.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE))
-                    .toList();
-
-            this.meta.lore(cleanedLore);
+            this.meta.lore(Arrays.stream(lore).map(line -> line == null ? Component.empty() :
+                    line.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)).toList());
         }
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER, "setLore", System.nanoTime() - nanoTime);
         return this;
     }
 
     public @NotNull ItemBuilder addLore(@Nullable Component... lines) {
         if (lines == null) return this;
-        final long nanoTime = System.nanoTime();
-
-        // Récupérer le lore actuel ou en créer un nouveau
         List<Component> currentLore = this.meta.lore();
         if (currentLore == null) currentLore = new ArrayList<>();
-        else currentLore = new ArrayList<>(currentLore); // On copie pour pouvoir modifier
+        else currentLore = new ArrayList<>(currentLore);
 
         for (Component line : lines) {
-            if (line == null) {
-                currentLore.add(Component.empty());
-                continue;
-            }
-            // On force le retrait de l'italique par défaut
-            currentLore.add(line.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
+            currentLore.add(line == null ? Component.empty() : line.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
         }
-
         this.meta.lore(currentLore);
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER, "addLore", System.nanoTime() - nanoTime);
-        return this;
-    }
-    public @NotNull ItemBuilder addLore(@NotNull List<Component> lines) {
-        return addLore(lines.toArray(new Component[0]));
-    }
-
-    public @NotNull ItemBuilder clearLore() {
-        this.meta.lore(Collections.emptyList());
         return this;
     }
 
-    public@NotNull ItemBuilder addEnchant(@NotNull Enchantment enchantment,int level){
-        final long nanoTime=System.nanoTime();
-
-        this.meta.addEnchant(enchantment,level,true);
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"addEnchant",System.nanoTime()-nanoTime);
-        return this;
-    }
-    public@NotNull ItemBuilder removeEnchant(@NotNull Enchantment enchantment){
-        final long nanoTime=System.nanoTime();
-
-        this.meta.removeEnchant(enchantment);
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"removeEnchant",System.nanoTime()-nanoTime);
-        return this;
-    }
-
-    public@NotNull ItemBuilder makeGlow(){
-        final long nanoTime=System.nanoTime();
-
-        this.meta.addEnchant(Enchantment.LURE,1,true);
+    public @NotNull ItemBuilder makeGlow() {
+        this.meta.addEnchant(Enchantment.LURE, 1, true);
         this.meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"makeGlow",System.nanoTime()-nanoTime);
         return this;
     }
 
-    public@NotNull ItemBuilder setCustomModelData(@Nullable Integer modelData){
-        final long nanoTime=System.nanoTime();
-
-        this.meta.setCustomModelData(modelData);
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"setCustomModelData",System.nanoTime()-nanoTime);
-        return this;
-    }
-    public@Nullable Integer getCustomModelData(){
-        final long nanoTime=System.nanoTime();
-
-        if(this.meta.hasCustomModelData()){
-            PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"getCustomModelData",System.nanoTime()-nanoTime);
-            return this.meta.getCustomModelData();
-        }
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"getCustomModelData",System.nanoTime()-nanoTime);
-        return null;
-    }
-
-    public@NotNull ItemBuilder hideAllAttributes(){
-        final long nanoTime=System.nanoTime();
-
+    public @NotNull ItemBuilder hideAllAttributes() {
         this.meta.addItemFlags(ItemFlag.values());
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"hideAllAttributes",System.nanoTime()-nanoTime);
         return this;
     }
 
-    //BUILD
-    public@NotNull ItemStack build(){
+    // --- FINAL BUILD ---
+    public @NotNull ItemStack build() {
         this.itemStack.setItemMeta(this.meta);
         return this.itemStack;
     }
 
-    //MATERIALS
-    public static@NotNull Material getRandomMaterial(){
-        final long nanoTime=System.nanoTime();
-
-        final List<ItemStack>itemStacks=Arrays.stream(Material.values())
-                .filter(material->material.isItem()&&!material.isAir())
-                .map(ItemStack::new)
-                .toList();
-
-        int randomIndex=random.nextInt(itemStacks.size());
-        final Material material=itemStacks.get(randomIndex).getType();
-
-        PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER,"getRandomMaterial",System.nanoTime()-nanoTime);
-        return material;
-    }
-
-
-
-    private static final List<Material> MATERIALS;
-    static {
-        MATERIALS = Arrays.stream(Material.values())
-                .filter(Material::isItem)
-                .toList();
-    }
     public static @NotNull List<@NotNull Material> getMaterials() {
         return MATERIALS;
     }
-
 }
