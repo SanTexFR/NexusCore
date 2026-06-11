@@ -194,15 +194,14 @@ public class VarSerializer {
             }
         }
 
-        // PASS 2 : Batch Async Processing
+// PASS 2 : Batch Async Processing
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         for (TypeContext ctx : signatureGroups.values()) {
             if (ctx.asyncValuesToProcess != null && !ctx.asyncValuesToProcess.isEmpty()) {
-                // On lance 1 seul thread pour TOUTES les valeurs de ce type
                 final TypeContext targetCtx = ctx;
                 CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                    // On utilise un buffer local pour ce thread pour éviter la synchro
+                    // On estime la taille : nombre d'items * 128 bytes
                     FastBuffer localBuf = new FastBuffer(targetCtx.asyncValuesToProcess.size() * 128);
                     Vars type = targetCtx.sampleType;
 
@@ -213,9 +212,6 @@ public class VarSerializer {
 
                         localBuf.writeStringFast(key);
 
-                        // Async serialization... qui est en fait exécuté sync dans ce thread déporté
-                        // Astuce: serializeAsync renvoie un Future, mais ici on est DÉJÀ dans un worker thread.
-                        // Si l'implémentation de serializeAsync est bien faite, on peut join direct.
                         byte[] bytes;
                         if (type.isWrapper()) {
                             bytes = ((VarSubType<Object>) type).serializeAsync(val).join();
@@ -227,17 +223,12 @@ public class VarSerializer {
                         localBuf.write(bytes, 0, bytes.length);
                     }
 
-                    // On merge le résultat dans le buffer principal du contexte
-                    // Attention : ici on modifie ctx.buffer depuis un autre thread, mais
-                    // comme on attendra tous les futures avant l'assemblage final, pas besoin de lock
-                    // TANT QUE 'ctx.buffer' n'est pas touché par d'autres threads en même temps.
-                    // Or, le main thread a fini de toucher à ce ctx (Pass 1 finie).
-                    // Donc c'est thread-safe "par design" (Happen-Before garanti par le join final).
-                    targetCtx.buffer.writeTo(localBuf); // Wait, logic error. Local -> Target.
-                    // Correction : On remplace le buffer ou on append.
-                    // Le plus simple : on stocke le localBuf et on l'assemblera à la fin.
-                    targetCtx.buffer.write(localBuf.buf, 0, localBuf.count); // On remplace le buffer vide/partiel par le plein
-                    targetCtx.count = size; // Async types are likely pure async context groups
+                    // CORRECTION ICI : Utiliser un bloc synchronisé pour éviter tout problème si le design change,
+                    // et surtout on AJOUTE (append) au buffer et au compteur !
+                    synchronized (targetCtx) {
+                        targetCtx.buffer.write(localBuf.buf, 0, localBuf.count);
+                        targetCtx.count += size; // <-- CORRECTION : += au lieu de =
+                    }
 
                 }, LOOM_EXECUTOR);
                 futures.add(future);
@@ -252,8 +243,6 @@ public class VarSerializer {
         // PASS 3 : Final Assembly (Zero-Copy Sizing)
         int totalSize = 4; // Header LZ4
         for (TypeContext ctx : signatureGroups.values()) {
-            // 1 byte header + string sig len + string bytes + varint count + buffer content
-            // Estimation rapide pour allocation
             totalSize += 100 + ctx.buffer.count;
         }
 
@@ -261,9 +250,12 @@ public class VarSerializer {
 
         try {
             for (TypeContext ctx : signatureGroups.values()) {
-                writeTypeHeader(mainBuffer, ctx.sampleType);
-                mainBuffer.writeVarIntFast(ctx.count);
-                ctx.buffer.writeTo(mainBuffer);
+                // On écrit le header du type uniquement si on a des éléments dedans
+                if (ctx.count > 0) {
+                    writeTypeHeader(mainBuffer, ctx.sampleType);
+                    mainBuffer.writeVarIntFast(ctx.count);
+                    ctx.buffer.writeTo(mainBuffer);
+                }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
