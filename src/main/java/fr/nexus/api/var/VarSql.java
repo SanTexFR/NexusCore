@@ -73,8 +73,10 @@ public class VarSql extends Var{
         }
         if (hikari == null) throw new RuntimeException("Unknown database: " + database);
 
+        // FIX ICI : On passe le nom de la table en minuscules pour PostgreSQL, on laisse stringPath tranquille
+        final String finalTableName = tableName.toLowerCase();
         final String stringPath = pathKey.toString();
-        final Path fullPath = Path.of(database, tableName, stringPath);
+        final Path fullPath = Path.of(database, finalTableName, stringPath);
         final String key = String.join("/", "sql", fullPath.toString());
 
         // 1. Vérification du cache
@@ -88,23 +90,23 @@ public class VarSql extends Var{
         }
         if (async != null) return async.thenApply(var -> (VarSql) var);
 
-        final VarSql var = new VarSql(fullPath, database, tableName, stringPath, keyType, pathKey, new Unload(key, unloadRunnable), notCachedConsumer);
+        final VarSql var = new VarSql(fullPath, database, finalTableName, stringPath, keyType, pathKey, new Unload(key, unloadRunnable), notCachedConsumer);
 
         // 3. Logique de chargement optimisée
         final CompletableFuture<VarSql> future = CompletableFuture.supplyAsync(() -> {
             try {
                 // Vérification de la table une seule fois par exécution du serveur
-                if (!verifiedTables.contains(tableName)) {
-                    synchronized (tableName.intern()) {
-                        if (!verifiedTables.contains(tableName)) {
-                            checkOrCreateTable(hikari, tableName, keyType);
-                            verifiedTables.add(tableName);
+                if (!verifiedTables.contains(finalTableName)) {
+                    synchronized (finalTableName.intern()) {
+                        if (!verifiedTables.contains(finalTableName)) {
+                            checkOrCreateTable(hikari, finalTableName, keyType);
+                            verifiedTables.add(finalTableName);
                         }
                     }
                 }
 
                 // Récupération des bytes (bloquant, mais sur Loom donc OK)
-                return getValue(hikari, tableName, keyType, pathKey);
+                return getValue(hikari, finalTableName, keyType, pathKey);
             } catch (SQLException e) {
                 throw new CompletionException(e);
             }
@@ -287,7 +289,8 @@ public class VarSql extends Var{
             final DatabaseMetaData meta = conn.getMetaData();
             boolean keyOk = false, valueOk = false;
 
-            try (final ResultSet columns = meta.getColumns(null, null, tableName.toLowerCase(), null)) {
+            // CORRECTION ICI : On passe directement tableName sans le .toLowerCase()
+            try (final ResultSet columns = meta.getColumns(null, null, tableName, null)) {
                 while (columns.next()) {
                     String colName = columns.getString("COLUMN_NAME").toLowerCase();
                     String colType = columns.getString("TYPE_NAME").toUpperCase();
@@ -344,7 +347,7 @@ public class VarSql extends Var{
 //        }
 //    }
     private static <K> byte[] getValue(@NotNull HikariDataSource dataSource, @NotNull String tableName, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey) throws SQLException {
-    final String sql = "SELECT value FROM " + tableName + " WHERE path = ?";
+        final String sql = "SELECT value FROM \"" + tableName + "\" WHERE path = ?";
     try (final Connection conn = dataSource.getConnection();
          final PreparedStatement stmt = conn.prepareStatement(sql)) {
 
