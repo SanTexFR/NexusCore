@@ -6,7 +6,7 @@ import org.bukkit.GameMode;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-public class GameModeType extends InternalVarType<GameMode>{
+public final class GameModeType extends InternalVarType<GameMode>{
     //METHODS
     public byte@NotNull[]serializeSync(@NotNull GameMode value){
         return addVersionToBytes(VarTypes.STRING.serializeSync(value.name()));
