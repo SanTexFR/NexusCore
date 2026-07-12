@@ -346,6 +346,42 @@ public class VarSql extends Var{
 //                throw new SQLException("Table '" + tableName + "' must have columns: path (VARCHAR), value (LONGBLOB)");
 //        }
 //    }
+    public static @NotNull CompletableFuture<Set<String>> getAllPathsAsync(@NotNull String database, @NotNull String tableName) {
+        final HikariDataSource hikari;
+
+        // Récupération sécurisée du pool de connexion[cite: 3]
+        synchronized (dataSources) {
+            hikari = dataSources.get(database);
+        }
+
+        if (hikari == null) {
+            return CompletableFuture.failedFuture(new IllegalStateException("Unknown database: " + database));
+        }
+
+        // Uniformisation du nom de la table comme fait ailleurs dans la classe[cite: 3]
+        final String finalTableName = tableName.toLowerCase();
+
+        // Exécution asynchrone sur le Loom Executor[cite: 3]
+        return CompletableFuture.supplyAsync(() -> {
+            Set<String> keys = new java.util.HashSet<>();
+            final String sql = "SELECT path FROM \"" + finalTableName + "\"";
+
+            try (final Connection conn = hikari.getConnection();
+                 final PreparedStatement stmt = conn.prepareStatement(sql);
+                 final ResultSet rs = stmt.executeQuery()) {
+
+                while (rs.next()) {
+                    keys.add(rs.getString("path"));
+                }
+            } catch (SQLException e) {
+                throw new CompletionException("Erreur lors de la récupération des clés pour la table: " + finalTableName, e);
+            }
+
+            return keys;
+        }, VarSerializer.LOOM_EXECUTOR);
+    }
+
+
     private static <K> byte[] getValue(@NotNull HikariDataSource dataSource, @NotNull String tableName, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey) throws SQLException {
         final String sql = "SELECT value FROM \"" + tableName + "\" WHERE path = ?";
     try (final Connection conn = dataSource.getConnection();
