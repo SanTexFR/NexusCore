@@ -88,19 +88,44 @@ public class ItemBuilderListeners{
     }
 
     //ANVIL
-    private static void onAnvilPrepare(PrepareAnvilEvent e){
-        final Set<ItemStack>items=new HashSet<>();
-        items.add(e.getInventory().getFirstItem());
-        items.add(e.getInventory().getSecondItem());
+    private static void onAnvilPrepare(PrepareAnvilEvent e) {
+        ItemStack firstItem = e.getInventory().getFirstItem();
+        ItemStack secondItem = e.getInventory().getSecondItem();
 
-        for(final ItemStack item:items){
-            if(item==null||item.getType().equals(Material.AIR))continue;
+        // 1. Sécurité globale (CancelAnvilUsage)
+        final Set<ItemStack> items = new HashSet<>();
+        items.add(firstItem);
+        items.add(secondItem);
 
-            final Boolean bool=ItemBuilder.getNbt(item,PersistentDataType.BOOLEAN, "CancelAnvilUsage");
-            if(bool==null||!bool)continue;
+        for (final ItemStack item : items) {
+            if (item == null || item.getType().equals(Material.AIR)) continue;
 
-            e.getView().setRepairCost(-1);
-            return;
+            final Boolean cancelAll = ItemBuilder.getNbt(item, PersistentDataType.BOOLEAN, "CancelAnvilUsage");
+            if (cancelAll != null && cancelAll) {
+                e.setResult(null);
+                return;
+            }
+        }
+
+        if (firstItem != null && !firstItem.getType().equals(Material.AIR)) {
+            final Boolean cancelRename = ItemBuilder.getNbt(firstItem, PersistentDataType.BOOLEAN, "CancelAnvilRename");
+
+            if (cancelRename != null && cancelRename) {
+                // C'est ici qu'on utilise la nouvelle API 1.21 via la View
+                org.bukkit.inventory.view.AnvilView anvilView = e.getView();
+                String renameText = anvilView.getRenameText();
+
+                // On récupère le nom d'origine (on utilise le plain text pour comparer avec getRenameText())
+                String originalName = "";
+                if (firstItem.hasItemMeta() && firstItem.getItemMeta().hasDisplayName()) {
+                    originalName = firstItem.getItemMeta().getDisplayName();
+                }
+
+                // Si le texte de l'enclume n'est pas nul et diffère du nom de base
+                if (renameText != null && !renameText.equals(originalName)) {
+                    e.setResult(null); // On bloque le résultat
+                }
+            }
         }
     }
 }

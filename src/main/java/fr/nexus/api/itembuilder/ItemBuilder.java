@@ -129,6 +129,11 @@ public class ItemBuilder {
         return this;
     }
 
+    public @NotNull ItemBuilder cancelAnvilRename(boolean state) {
+        if (state) addNbt(PersistentDataType.BOOLEAN, "CancelAnvilRename", true);
+        else removeNbt("CancelAnvilRename");
+        return this;
+    }
     public @NotNull ItemBuilder cancelAnvilUsage(boolean state) {
         if (state) addNbt(PersistentDataType.BOOLEAN, "CancelAnvilUsage", true);
         else removeNbt("CancelAnvilUsage");
