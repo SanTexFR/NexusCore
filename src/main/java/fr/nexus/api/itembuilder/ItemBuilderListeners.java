@@ -107,23 +107,29 @@ public class ItemBuilderListeners{
             }
         }
 
+        // 2. Sécurité spécifique au renommage (CancelAnvilRename)
         if (firstItem != null && !firstItem.getType().equals(Material.AIR)) {
             final Boolean cancelRename = ItemBuilder.getNbt(firstItem, PersistentDataType.BOOLEAN, "CancelAnvilRename");
 
             if (cancelRename != null && cancelRename) {
-                // C'est ici qu'on utilise la nouvelle API 1.21 via la View
                 org.bukkit.inventory.view.AnvilView anvilView = e.getView();
                 String renameText = anvilView.getRenameText();
 
-                // On récupère le nom d'origine (on utilise le plain text pour comparer avec getRenameText())
-                String originalName = "";
-                if (firstItem.hasItemMeta() && firstItem.getItemMeta().hasDisplayName()) {
-                    originalName = firstItem.getItemMeta().getDisplayName();
-                }
+                // Si renameText est nul ou vide, le joueur n'essaie pas de renommer (il fusionne juste)
+                if (renameText != null && !renameText.isEmpty()) {
 
-                // Si le texte de l'enclume n'est pas nul et diffère du nom de base
-                if (renameText != null && !renameText.equals(originalName)) {
-                    e.setResult(null); // On bloque le résultat
+                    // On récupère le nom de l'item tel qu'il apparaît SANS les codes de couleur/format
+                    // car le renameText de l'enclume ne contient jamais les symboles de couleur (§ ou &)
+                    String originalName = "";
+                    if (firstItem.hasItemMeta() && firstItem.getItemMeta().hasDisplayName()) {
+                        // stripColor supprime les codes de couleur pour comparer du texte brut à du texte brut
+                        originalName = org.bukkit.ChatColor.stripColor(firstItem.getItemMeta().getDisplayName());
+                    }
+
+                    // Si le texte tapé ne correspond pas au nom brut d'origine, c'est une tentative de renommage !
+                    if (!renameText.equals(originalName)) {
+                        e.setResult(null); // On bloque le résultat
+                    }
                 }
             }
         }
