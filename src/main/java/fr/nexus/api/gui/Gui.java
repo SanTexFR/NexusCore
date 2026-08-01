@@ -72,8 +72,8 @@ public class Gui implements GuiBackground{
         this.height = Math.max(1,Math.min(6,rows));
 
         final int size=this.height*this.width;
-        if(title==null)this.inventory=Bukkit.createInventory(null,size);
-        else this.inventory=Bukkit.createInventory(owner,size,title);
+        if(title==null)this.inventory=Bukkit.createInventory(new GuiHolder(this),size);
+        else this.inventory=Bukkit.createInventory(owner!=null?owner:new GuiHolder(this),size,title);
 
         GuiManager.addGui(this.inventory,this);
 
@@ -85,8 +85,8 @@ public class Gui implements GuiBackground{
         this.height = Math.max(1,Math.min(6,rows));
 
         final int size=this.height*this.width;
-        if(title==null)this.inventory=Bukkit.createInventory(null,size);
-        else this.inventory=Bukkit.createInventory(null,size,title);
+        if(title==null)this.inventory=Bukkit.createInventory(new GuiHolder(this),size);
+        else this.inventory=Bukkit.createInventory(new GuiHolder(this),size,title);
 
         GuiManager.addGui(this.inventory,this);
 
@@ -105,8 +105,8 @@ public class Gui implements GuiBackground{
         this.width = 9; // Valeur par défaut si appelé par l'ancien constructeur
         this.height = Math.max(1, type.getDefaultSize() / 9);
 
-        if(title==null)this.inventory=Bukkit.createInventory(null,type);
-        else this.inventory=Bukkit.createInventory(owner,type,title);
+        if(title==null)this.inventory=Bukkit.createInventory(new GuiHolder(this),type);
+        else this.inventory=Bukkit.createInventory(owner!=null?owner:new GuiHolder(this),type,title);
 
         GuiManager.addGui(this.inventory,this);
 
@@ -117,8 +117,8 @@ public class Gui implements GuiBackground{
         this.width = 9;
         this.height = Math.max(1, type.getDefaultSize() / 9);
 
-        if(title==null)this.inventory=Bukkit.createInventory(null,type);
-        else this.inventory=Bukkit.createInventory(null,type,title);
+        if(title==null)this.inventory=Bukkit.createInventory(new GuiHolder(this),type);
+        else this.inventory=Bukkit.createInventory(new GuiHolder(this),type,title);
 
         GuiManager.addGui(this.inventory,this);
 
@@ -131,8 +131,8 @@ public class Gui implements GuiBackground{
         this.width = width;
         this.height = height;
 
-        if (title == null) this.inventory = Bukkit.createInventory(owner, type);
-        else this.inventory = Bukkit.createInventory(owner, type, title);
+        if (title == null) this.inventory = Bukkit.createInventory(owner!=null?owner:new GuiHolder(this), type);
+        else this.inventory = Bukkit.createInventory(owner!=null?owner:new GuiHolder(this), type, title);
 
         GuiManager.addGui(this.inventory, this);
 
@@ -338,9 +338,15 @@ public class Gui implements GuiBackground{
     }
 
     //DISPLAY
-    public void display(@NotNull Player...players){
-        for(final Player p:players)
-            p.openInventory(this.inventory);
+    public void display(@NotNull Player... players) {
+        for (final Player p : players) {
+            if (!p.isOnline()) continue;
+
+            // On force l'exécution sur le scheduler propre de l'entité du joueur
+            p.getScheduler().run(Core.getInstance(), task -> {
+                p.openInventory(this.inventory);
+            }, null);
+        }
     }
 
     //EVENT
