@@ -21,6 +21,9 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
     private boolean recursive;
 
     //VARIABLES (INSTANCES)
+    private int guiWidth = 9;
+    private boolean definedBySlots = false;
+
     private int x1,y1,x2,y2;
     private int slot1,slot2;
 
@@ -38,6 +41,18 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
 
 
     //METHODS
+
+    public void setGuiWidth(int guiWidth) {
+        if (this.guiWidth == guiWidth) return;
+        this.guiWidth = guiWidth;
+
+        // Recalcule les positions en fonction de la nouvelle largeur d'inventaire
+        if (this.definedBySlots) {
+            defineSlots(this.slot1, this.slot2);
+        } else {
+            defineSlots(this.x1, this.y1, this.x2, this.y2);
+        }
+    }
 
     //RECURSION
     public void setRecursive(boolean state){
@@ -65,6 +80,7 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
 
     public void defineSlots(int x1,int y1,int x2,int y2){
         if(x2<x1||y2<y1)throw new IllegalArgumentException("Invalid rectangle coordinates");
+        this.definedBySlots = false;
 
         this.x1=x1;
         this.y1=y1;
@@ -72,22 +88,23 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
         this.x2=x2;
         this.y2=y2;
 
-        this.slot1=y1*9+x1;
-        this.slot2=y2*9+x2;
+        this.slot1=y1*this.guiWidth+x1;
+        this.slot2=y2*this.guiWidth+x2;
 
         defineSlotsInPanel();
     }
     public void defineSlots(int slot1,int slot2){
         if(slot2<slot1)throw new RuntimeException("slot2 cannot be lower than slot");
+        this.definedBySlots = true;
 
         this.slot1=slot1;
         this.slot2=slot2;
 
-        this.x1=slot1%9;
-        this.y1=slot1/9;
+        this.x1=slot1%this.guiWidth;
+        this.y1=slot1/this.guiWidth;
 
-        this.x2=slot2%9;
-        this.y2=slot2/9;
+        this.x2=slot2%this.guiWidth;
+        this.y2=slot2/this.guiWidth;
 
         defineSlotsInPanel();
     }
@@ -123,13 +140,13 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
     }
 
     public void addGuiItemAtSlot(int x,int y,@NotNull GuiItem item){
-        addGuiItemAtSlot(y*9+x,item);
+        addGuiItemAtSlot(y*this.guiWidth+x,item);
     }
     public void addGuiItemAtSlot(int x,int y,@NotNull ItemStack item){
-        addGuiItemAtSlot(y*9+x,new GuiItem(item));
+        addGuiItemAtSlot(y*this.guiWidth+x,new GuiItem(item));
     }
     public void addGuiItemAtSlot(int x,int y,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
-        addGuiItemAtSlot(y*9+x,new GuiItem(item,action));
+        addGuiItemAtSlot(y*this.guiWidth+x,new GuiItem(item,action));
     }
     public void addGuiItemAtSlot(int slot,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
         addGuiItemAtSlot(slot,new GuiItem(item,action));
@@ -138,13 +155,13 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
     public abstract void addGuiItemAtSlot(int slot,@NotNull GuiItem item);
 
     public void setGuiItemAtSlot(int x,int y,@NotNull GuiItem item){
-        setGuiItemAtSlot(y*9+x,item);
+        setGuiItemAtSlot(y*this.guiWidth+x,item);
     }
     public void setGuiItemAtSlot(int x,int y,@NotNull ItemStack item){
-        setGuiItemAtSlot(y*9+x,new GuiItem(item));
+        setGuiItemAtSlot(y*this.guiWidth+x,new GuiItem(item));
     }
     public void setGuiItemAtSlot(int x,int y,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
-        setGuiItemAtSlot(y*9+x,new GuiItem(item,action));
+        setGuiItemAtSlot(y*this.guiWidth+x,new GuiItem(item,action));
     }
     public void setGuiItemAtSlot(int slot,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
         setGuiItemAtSlot(slot,new GuiItem(item,action));
@@ -163,7 +180,7 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
     }
 
     public void removeGuiItemAtSlot(int x,int y){
-        removeGuiItemAtSlot(y*9+x);
+        removeGuiItemAtSlot(y*this.guiWidth+x);
     }
     public abstract void removeGuiItemAtSlot(int slot);
     public void removeGuiItemAtIndex(int index){
@@ -171,7 +188,7 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
     }
 
     public@Nullable GuiItem getGuiItemAt(int x,int y){
-        return getGuiItemAt(y*9+x);
+        return getGuiItemAt(y*this.guiWidth+x);
     }
     public abstract GuiItem getGuiItemAt(int slot);
 
@@ -203,7 +220,7 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
         final List<Integer>slots=new ArrayList<>();
         for(int y=this.y1;y<=this.y2;y++)
             for(int x=this.x1;x<=this.x2;x++)
-                slots.add(y*9+x);
+                slots.add(y*this.guiWidth+x);
         this.slotsInPanel=slots;
     }
     public@NotNull List<@NotNull Integer>getSlotsInPanel(){
@@ -213,8 +230,8 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
     public@Nullable Integer getRelativeSlot(int slot) {
         if(!isWithin(slot))return null;
 
-        final int x=slot%9;
-        final int y=slot/9;
+        final int x=slot%this.guiWidth;
+        final int y=slot/this.guiWidth;
 
         final int relativeX=x-this.x1;
         final int relativeY=y-this.y1;
@@ -223,14 +240,14 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
     }
 
     public boolean isWithin(int slot){
-        return isWithin(slot%9,slot/9);
+        return isWithin(slot%this.guiWidth,slot/this.guiWidth);
     }
     public boolean isWithin(int x,int y){
         return x>=this.x1&&x<=this.x2&&y>=this.y1&&y<=this.y2;
     }
 
     public@Nullable Integer getGlobalIndex(int x,int y){
-        return getGlobalIndex(y*9+x);
+        return getGlobalIndex(y*this.guiWidth+x);
     }
     public abstract@Nullable Integer getGlobalIndex(int slot);
 

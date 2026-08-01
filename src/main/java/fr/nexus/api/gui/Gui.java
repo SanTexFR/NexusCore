@@ -30,6 +30,9 @@ import java.util.function.Consumer;
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public class Gui implements GuiBackground{
     //VARIABLES (INSTANCES)
+    protected final int width;
+    protected final int height;
+
     private final@NotNull Inventory inventory;
 
     private final@NotNull ConcurrentHashMap<@NotNull UUID,@NotNull Long>cooldowns=new ConcurrentHashMap<>();
@@ -65,8 +68,10 @@ public class Gui implements GuiBackground{
 
     public Gui(@Nullable InventoryHolder owner,int rows,@Nullable Component title){
         this.weakReference=new WeakReference<>(this);
+        this.width = 9;
+        this.height = Math.max(1,Math.min(6,rows));
 
-        final int size=Math.max(1,Math.min(6,rows))*9;
+        final int size=this.height*this.width;
         if(title==null)this.inventory=Bukkit.createInventory(null,size);
         else this.inventory=Bukkit.createInventory(owner,size,title);
 
@@ -76,8 +81,10 @@ public class Gui implements GuiBackground{
     }
     public Gui(int rows,@Nullable Component title){
         this.weakReference=new WeakReference<>(this);
+        this.width = 9;
+        this.height = Math.max(1,Math.min(6,rows));
 
-        final int size=Math.max(1,Math.min(6,rows))*9;
+        final int size=this.height*this.width;
         if(title==null)this.inventory=Bukkit.createInventory(null,size);
         else this.inventory=Bukkit.createInventory(null,size,title);
 
@@ -95,6 +102,8 @@ public class Gui implements GuiBackground{
 
     public Gui(@Nullable InventoryHolder owner,@NotNull InventoryType type,@Nullable Component title){
         this.weakReference=new WeakReference<>(this);
+        this.width = 9; // Valeur par défaut si appelé par l'ancien constructeur
+        this.height = Math.max(1, type.getDefaultSize() / 9);
 
         if(title==null)this.inventory=Bukkit.createInventory(null,type);
         else this.inventory=Bukkit.createInventory(owner,type,title);
@@ -105,6 +114,8 @@ public class Gui implements GuiBackground{
     }
     public Gui(@NotNull InventoryType type,@Nullable Component title){
         this.weakReference=new WeakReference<>(this);
+        this.width = 9;
+        this.height = Math.max(1, type.getDefaultSize() / 9);
 
         if(title==null)this.inventory=Bukkit.createInventory(null,type);
         else this.inventory=Bukkit.createInventory(null,type,title);
@@ -114,10 +125,23 @@ public class Gui implements GuiBackground{
         this.cleanable=Core.getCleaner().register(this,new Unload(this.globalGuiTickConsumer));
     }
 
+    // CONSTRUCTEUR PROTECTED POUR TES CLASSES SPECIFIQUES (FURNACE, HOPPER, ETC.)
+    protected Gui(@Nullable InventoryHolder owner, @NotNull InventoryType type, @Nullable Component title, int width, int height) {
+        this.weakReference = new WeakReference<>(this);
+        this.width = width;
+        this.height = height;
+
+        if (title == null) this.inventory = Bukkit.createInventory(owner, type);
+        else this.inventory = Bukkit.createInventory(owner, type, title);
+
+        GuiManager.addGui(this.inventory, this);
+
+        this.cleanable = Core.getCleaner().register(this, new Unload(this.globalGuiTickConsumer));
+    }
+
 
     //METHODS(STATICS)
     public static@NotNull CompletableFuture<@Nullable Gui>getIfCached(@NotNull GuiReuse reuse){
-
         final Gui gui=GuiManager.reuseGuis.get(reuse.key());
 
         if(gui==null||gui.getReuse()==null)
@@ -145,9 +169,7 @@ public class Gui implements GuiBackground{
     //REUSE
     public void setReuse(@NotNull GuiReuse reuse){
         if(this.reuse!=null)GuiManager.reuseGuis.get(this.reuse.key());
-
         this.reuse=reuse;
-
         GuiManager.reuseGuis.put(reuse.key(),this);
     }
     public@Nullable GuiReuse getReuse(){
@@ -175,13 +197,13 @@ public class Gui implements GuiBackground{
 
     //GUI-ITEMS
     public void addGuiItem(int x,int y,@NotNull GuiItem guiItem){
-        addGuiItem(x+y*9,guiItem);
+        addGuiItem(x+y*this.width,guiItem);
     }
     public void addGuiItem(int x,int y,@NotNull ItemStack item){
-        addGuiItem(x+y*9,new GuiItem(item));
+        addGuiItem(x+y*this.width,new GuiItem(item));
     }
     public void addGuiItem(int x,int y,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
-        addGuiItem(x+y*9,new GuiItem(item,action));
+        addGuiItem(x+y*this.width,new GuiItem(item,action));
     }
 
     public void addGuiItem(int slot,@NotNull GuiItem guiItem){
@@ -195,14 +217,14 @@ public class Gui implements GuiBackground{
     }
 
     public void removeGuiItem(int x,int y){
-        removeGuiItem(x+y*9);
+        removeGuiItem(x+y*this.width);
     }
     public void removeGuiItem(int slot){
         this.guiItems.remove(slot);
     }
 
     public@Nullable GuiItem getGuiItemAt(int x,int y){
-        return getGuiItemAt(x+y*9);
+        return getGuiItemAt(x+y*this.width);
     }
     public@Nullable GuiItem getGuiItemAt(int slot){
         if(slot<0||slot>=this.inventory.getSize())return null;
@@ -278,6 +300,7 @@ public class Gui implements GuiBackground{
     }
 
     public void addGuiPage(@NotNull String id,@NotNull GuiPage guiPage){
+        guiPage.setGuiWidth(this.width); // Transmission de la largeur dynamique
         this.guiPages.put(id,guiPage);
         guiPage.setInventory(this.inventory);
     }
@@ -295,6 +318,7 @@ public class Gui implements GuiBackground{
     }
 
     public void addGuiSlider(@NotNull String id,@NotNull GuiSlider guiSlider){
+        guiSlider.setGuiWidth(this.width); // Transmission de la largeur dynamique
         this.guiSliders.put(id,guiSlider);
         guiSlider.setInventory(this.inventory);
     }
