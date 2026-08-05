@@ -2,6 +2,7 @@ package fr.nexus.api.var.types.parents.normal.java;
 
 import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public final class IntArrayType extends InternalVarType<int[]>{
@@ -67,5 +68,9 @@ public final class IntArrayType extends InternalVarType<int[]>{
         }
 
         throw new IllegalArgumentException("VarInt invalide ou tronqué");
+    }
+
+    public boolean isDefaultOrEmpty(int@Nullable[] value) {
+        return value == null || value.length == 0;
     }
 }

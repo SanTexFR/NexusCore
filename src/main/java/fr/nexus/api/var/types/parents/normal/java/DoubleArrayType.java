@@ -2,6 +2,7 @@ package fr.nexus.api.var.types.parents.normal.java;
 
 import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -47,5 +48,9 @@ public final class DoubleArrayType extends InternalVarType<double[]> {
         }
 
         return result;
+    }
+
+    public boolean isDefaultOrEmpty(double@Nullable [] value) {
+        return value == null || value.length == 0;
     }
 }

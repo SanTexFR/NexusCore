@@ -6,6 +6,7 @@ import fr.nexus.api.var.types.parents.Vars;
 import fr.nexus.utils.CollectionUtils;
 import fr.nexus.api.var.types.parents.normal.java.IntegerType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -37,6 +38,9 @@ public class MapVarType<T,T2> extends VarVersion implements Vars, CollectionUtil
         return "M<" + this.varMapType.getStringType() + "¦" +
                 this.keyVarType.getStringType() + "¦" +
                 this.valueVarType.getStringType() + ">";
+    }
+    public boolean isDefaultOrEmpty(@Nullable Map<T,T2>map){
+        return map==null||map.isEmpty();
     }
 
     // ----------------------------

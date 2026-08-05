@@ -2,6 +2,7 @@ package fr.nexus.api.var.types.parents.normal.java;
 
 import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public final class ShortArrayType extends InternalVarType<short[]>{
@@ -52,5 +53,8 @@ public final class ShortArrayType extends InternalVarType<short[]>{
         }
 
         return result;
+    }
+    public boolean isDefaultOrEmpty(short@Nullable[] value) {
+        return value == null || value.length == 0;
     }
 }

@@ -2,6 +2,7 @@ package fr.nexus.api.var.types.parents.normal.java;
 
 import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
 
@@ -14,5 +15,8 @@ public final class StringType extends InternalVarType<String> {
     public@NotNull String deserializeSync(int version,byte[]bytes){
         if(version==1)return new String(bytes,StandardCharsets.UTF_8);
         else throw createUnsupportedVersionException(version);
+    }
+    public boolean isDefaultOrEmpty(@Nullable String value){
+        return value==null||value.isEmpty();
     }
 }

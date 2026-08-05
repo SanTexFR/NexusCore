@@ -2,6 +2,7 @@ package fr.nexus.api.var.types.parents.normal.java;
 
 import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class ByteArrayType extends InternalVarType<byte[]>{
@@ -12,5 +13,8 @@ public final class ByteArrayType extends InternalVarType<byte[]>{
     public byte@NotNull[]deserializeSync(int version,byte[]bytes){
         if(version==1)return bytes;
         else throw createUnsupportedVersionException(version);
+    }
+    public boolean isDefaultOrEmpty(byte@Nullable [] value){
+        return value==null||value.length==0;
     }
 }

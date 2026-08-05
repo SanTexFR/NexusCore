@@ -18,4 +18,8 @@ public interface VarSubType<V>extends Vars{
 
     @NotNull CompletableFuture<byte@NotNull[]>serializeAsync(@NotNull V value);
     @NotNull CompletableFuture<@Nullable V>deserializeAsync(byte@NotNull[]bytes);
+
+    default boolean isDefaultOrEmpty(@Nullable V value){
+        return value==null;
+    }
 }

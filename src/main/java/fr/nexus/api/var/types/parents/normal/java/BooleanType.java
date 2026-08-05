@@ -2,6 +2,7 @@ package fr.nexus.api.var.types.parents.normal.java;
 
 import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public final class BooleanType extends InternalVarType<Boolean>{
@@ -12,5 +13,8 @@ public final class BooleanType extends InternalVarType<Boolean>{
     public@NotNull Boolean deserializeSync(int version,byte[]bytes){
         if(version==1)return bytes[0]!=0;
         else throw createUnsupportedVersionException(version);
+    }
+    public boolean isDefaultOrEmpty(@Nullable Boolean value){
+        return value==null||!value;
     }
 }

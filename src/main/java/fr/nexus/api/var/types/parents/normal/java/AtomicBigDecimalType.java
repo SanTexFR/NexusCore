@@ -1,6 +1,5 @@
 package fr.nexus.api.var.types.parents.normal.java;
 
-import fr.nexus.api.var.types.VarTypes;
 import fr.nexus.api.var.types.parents.InternalVarType;
 import fr.nexus.api.var.types.parents.normal.big.BigDecimalType;
 import org.jetbrains.annotations.NotNull;

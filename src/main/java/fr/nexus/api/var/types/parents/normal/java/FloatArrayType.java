@@ -2,6 +2,7 @@ package fr.nexus.api.var.types.parents.normal.java;
 
 import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
 
@@ -53,5 +54,9 @@ public final class FloatArrayType extends InternalVarType<float[]> {
         }
 
         return result;
+    }
+
+    public boolean isDefaultOrEmpty(float@Nullable [] value) {
+        return value == null || value.length == 0;
     }
 }

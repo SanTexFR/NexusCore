@@ -3,6 +3,7 @@ package fr.nexus.api.var.types.parents.normal.java;
 import fr.nexus.api.var.types.VarTypes;
 import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 
@@ -16,5 +17,9 @@ public final class PathType extends InternalVarType<Path>{
     public@NotNull Path deserializeSync(int version,byte[]bytes){
         if(version==1)return Path.of(VarTypes.STRING.deserializeSync(bytes));
         else throw createUnsupportedVersionException(version);
+    }
+
+    public boolean isDefaultOrEmpty(@Nullable Path value) {
+        return value == null || value.toString().isEmpty();
     }
 }

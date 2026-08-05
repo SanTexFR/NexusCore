@@ -37,6 +37,7 @@ public final class Core extends JavaPlugin{
     private static long CLEANUP_INTERVAL;
     private static@Nullable TaskImplementation<?> cleanupTask;
     private static@NotNull UUID lastCleanupUUID=UUID.randomUUID();
+    private static boolean optimizeVarStorage=true;
 
     //VARIABLES (STATICS)
     private static Core instance;
@@ -154,6 +155,9 @@ public final class Core extends JavaPlugin{
     public static void setLastCleanupUUID(@NotNull UUID uuid){
         lastCleanupUUID=uuid;
     }
+    public static boolean isOptimizeVarStorage(){
+        return optimizeVarStorage;
+    }
 
     public static void reload(@Nullable String key,boolean safe){
         getInstance().reloadConfig();
@@ -169,6 +173,7 @@ public final class Core extends JavaPlugin{
     }
     private static void onCoreReload(CoreReloadEvent e){
         CLEANUP_INTERVAL=getInstance().getConfig().getLong("cache.cleanupInterval",6000);
+        optimizeVarStorage=getInstance().getConfig().getBoolean("var.optimize-storage",true);
 
         if(cleanupTask!=null)cleanupTask.cancel();
         cleanupTask=Core.getServerImplementation().global().runAtFixedRate(()->{

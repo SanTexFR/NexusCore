@@ -3,6 +3,7 @@ package fr.nexus.api.var.types.parents.normal.java;
 import fr.nexus.api.var.types.VarTypes;
 import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -14,5 +15,8 @@ public final class AtomicBooleanType extends InternalVarType<AtomicBoolean>{
     }
     public@NotNull AtomicBoolean deserializeSync(int version,byte[]bytes){
         return new AtomicBoolean(VarTypes.BOOLEAN.deserializeSync(version,bytes));
+    }
+    public boolean isDefaultOrEmpty(@Nullable AtomicBoolean value){
+        return value==null||!value.get();
     }
 }

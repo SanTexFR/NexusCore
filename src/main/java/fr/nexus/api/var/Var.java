@@ -95,6 +95,16 @@ public abstract class Var{
         }
     }
 
+    private static boolean isDefaultOrEmpty(@Nullable Object value){
+        if(value==null)return true;
+        if(value instanceof Boolean b)return !b;
+        if(value instanceof java.util.Collection<?> c)return c.isEmpty();
+        if(value instanceof java.util.Map<?,?> m)return m.isEmpty();
+        if(value instanceof String s)return s.isEmpty();
+        if(value.getClass().isArray())return java.lang.reflect.Array.getLength(value)==0;
+        return false;
+    }
+
     //METHODS (INSTANCES)
 
     //UTILS
@@ -242,6 +252,7 @@ public abstract class Var{
         setValue(type,key,value,true);
     }
     public<V>void setValue(@NotNull VarSubType<V>type,@NotNull String key,@Nullable V value,boolean isPersistent){
+        if(Core.isOptimizeVarStorage()&&isDefaultOrEmpty(value))value=null;
         boolean changed=false;
 
         synchronized(this.data){
@@ -269,7 +280,10 @@ public abstract class Var{
         setDirty(true);
 
         if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.WRAPPER,key,value));
-        else Core.getServerImplementation().global().run(()->Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.WRAPPER,key,value)));
+        else{
+            final V finalValue=value;
+            Core.getServerImplementation().global().run(()->Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.WRAPPER,key,finalValue)));
+        }
     }
 
     /**
@@ -325,6 +339,7 @@ public abstract class Var{
         putMap(mapType,keyType,valueType,key,map,true);
     }
     public<T,T2,M extends Map<T,T2>>void putMap(@NotNull MapType<M> mapType,@NotNull VarSubType<T>keyType,@NotNull VarSubType<T2>valueType,@NotNull String key,@Nullable M map,boolean isPersistent){
+        if(Core.isOptimizeVarStorage()&&isDefaultOrEmpty(map))map=null;
         boolean changed=false;
 
         synchronized(this.data){
@@ -354,7 +369,10 @@ public abstract class Var{
         setDirty(true);
 
         if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.MAP,key,map));
-        else Core.getServerImplementation().global().run(()->Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.MAP,key,map)));
+        else{
+            final M finalMap=map;
+            Core.getServerImplementation().global().run(()->Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.MAP,key,finalMap)));
+        }
     }
 
     /**

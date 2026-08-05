@@ -159,6 +159,10 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
             return deserializeCollectionAsync(bytes,this.supplier.get(),VarType.this::deserializeAsync)
                     .thenApply(res->(C)res);
         }
+
+        public boolean isDefaultOrEmpty(@Nullable C coll){
+            return coll==null||coll.isEmpty();
+        }
     }
 
     //COLLECTIONS
@@ -220,6 +224,10 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
             return VarType.this.lists().deserializeAsync(bytes).thenApply(list->
                     list==null?null:list.toArray((T[])Array.newInstance(getTypeClazz(),list.size()))
             );
+        }
+
+        public boolean isDefaultOrEmpty(@Nullable T[] array){
+            return array==null||array.length == 0;
         }
     }
 }

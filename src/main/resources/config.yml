@@ -1,5 +1,9 @@
 generate-vartypes-file: false
 
+var:
+  # Si activé, supprime les valeurs inutiles/par défaut (false, listes vides, etc.) pour économiser de la place
+  optimize-storage: true
+
 # LIST OF DATABASES THAT VAR-SQL CAN USE
 # REMOVE THE "main" DATABASE IF YOU DON'T WANT A DEFAULT
 databases:
