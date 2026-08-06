@@ -3,6 +3,8 @@ package fr.nexus.api.itembuilder;
 import fr.nexus.Core;
 import fr.nexus.system.internal.performanceTracker.PerformanceTracker;
 import fr.nexus.utils.Utils;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.ItemLore;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
@@ -10,7 +12,6 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
@@ -19,7 +20,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.Consumer;
 
-@SuppressWarnings({"unused", "UnusedReturnValue", "deprecation"})
+@SuppressWarnings({"unused", "UnusedReturnValue", "deprecation","UnstableApiUsage"})
 public class ItemBuilder {
     // VARIABLES (STATICS)
     private static final @NotNull Random random = new Random();
@@ -59,7 +60,7 @@ public class ItemBuilder {
         return builder;
     }
 
-    // HELPER PRIVATE (Pour éviter la duplication de code)
+    // HELPER PRIVATE (Pour éviter la duplication de code si besoin de l'ItemMeta)
     private void updateMeta(Consumer<ItemMeta> consumer) {
         ItemMeta meta = this.itemStack.getItemMeta();
         if (meta != null) {
@@ -68,7 +69,7 @@ public class ItemBuilder {
         }
     }
 
-    // NBT
+    // NBT / PDC (On garde le PDC pour les données custom du plugin)
     public static <T, Z> Z getNbt(@NotNull ItemStack item, @NotNull PersistentDataType<T, Z> dataType, @NotNull String key) {
         final long nanoTime = System.nanoTime();
         if (!item.hasItemMeta()) return null;
@@ -134,6 +135,7 @@ public class ItemBuilder {
         else removeNbt("CancelAnvilRename");
         return this;
     }
+
     public @NotNull ItemBuilder cancelAnvilUsage(boolean state) {
         if (state) addNbt(PersistentDataType.BOOLEAN, "CancelAnvilUsage", true);
         else removeNbt("CancelAnvilUsage");
@@ -152,7 +154,7 @@ public class ItemBuilder {
         return this;
     }
 
-    // OTHERS
+    // OTHERS (Optimized with Data Components)
     public @NotNull ItemBuilder applyTexture(@NotNull String texture) {
         final long nanoTime = System.nanoTime();
         Utils.applyHeadTexture(this.itemStack, texture);
@@ -185,11 +187,11 @@ public class ItemBuilder {
 
     public @NotNull ItemBuilder setDurability(int durability) {
         final long nanoTime = System.nanoTime();
-        updateMeta(meta -> {
-            if (meta instanceof Damageable damageable) {
-                damageable.setDamage(this.itemStack.getType().getMaxDurability() - durability);
-            }
-        });
+        Integer maxDamage = this.itemStack.getData(DataComponentTypes.MAX_DAMAGE);
+        if (maxDamage != null) {
+            int currentDamage = Math.max(0, maxDamage - durability);
+            this.itemStack.setData(DataComponentTypes.DAMAGE, currentDamage);
+        }
         PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER, "setDurability", System.nanoTime() - nanoTime);
         return this;
     }
@@ -203,42 +205,54 @@ public class ItemBuilder {
 
     public @NotNull ItemBuilder setLore(@Nullable String... lore) {
         final long nanoTime = System.nanoTime();
-        updateMeta(meta -> meta.setLore(lore == null ? null : Arrays.asList(lore)));
+        if (lore == null || lore.length == 0) {
+            this.itemStack.unsetData(DataComponentTypes.LORE);
+        } else {
+            ItemLore.Builder loreBuilder = ItemLore.lore();
+            for (String line : lore) {
+                loreBuilder.addLine(Component.text(line == null ? "" : line).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
+            }
+            this.itemStack.setData(DataComponentTypes.LORE, loreBuilder.build());
+        }
         PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER, "setLore", System.nanoTime() - nanoTime);
         return this;
     }
 
     public @NotNull ItemBuilder setLore(@Nullable Component... lore) {
         final long nanoTime = System.nanoTime();
-        updateMeta(meta -> {
-            if (lore == null) {
-                meta.lore(null);
-            } else {
-                List<Component> cleanedLore = Arrays.stream(lore)
-                        .map(line -> line == null ? Component.empty() :
-                                line.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE))
-                        .toList();
-                meta.lore(cleanedLore);
+        if (lore == null) {
+            this.itemStack.unsetData(DataComponentTypes.LORE);
+        } else {
+            ItemLore.Builder loreBuilder = ItemLore.lore();
+            for (Component line : lore) {
+                loreBuilder.addLine(line == null ? Component.empty() :
+                        line.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
             }
-        });
+            this.itemStack.setData(DataComponentTypes.LORE, loreBuilder.build());
+        }
         PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER, "setLore", System.nanoTime() - nanoTime);
         return this;
     }
 
     public @NotNull ItemBuilder addLore(@Nullable Component... lines) {
-        if (lines == null) return this;
+        if (lines == null || lines.length == 0) return this;
         final long nanoTime = System.nanoTime();
 
-        updateMeta(meta -> {
-            List<Component> currentLore = meta.lore();
-            currentLore = (currentLore == null) ? new ArrayList<>() : new ArrayList<>(currentLore);
+        ItemLore currentLoreComponent = this.itemStack.getData(DataComponentTypes.LORE);
+        ItemLore.Builder loreBuilder = ItemLore.lore();
 
-            for (Component line : lines) {
-                currentLore.add(line == null ? Component.empty() :
-                        line.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
-            }
-            meta.lore(currentLore);
-        });
+        // Si la lore existe déjà, on récupère et réinjecte les lignes existantes
+        if (currentLoreComponent != null) {
+            loreBuilder.lines(currentLoreComponent.lines());
+        }
+
+        // On ajoute les nouvelles lignes
+        for (Component line : lines) {
+            loreBuilder.addLine(line == null ? Component.empty() :
+                    line.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
+        }
+
+        this.itemStack.setData(DataComponentTypes.LORE, loreBuilder.build());
 
         PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER, "addLore", System.nanoTime() - nanoTime);
         return this;
@@ -249,7 +263,7 @@ public class ItemBuilder {
     }
 
     public @NotNull ItemBuilder clearLore() {
-        updateMeta(meta -> meta.lore(Collections.emptyList()));
+        this.itemStack.unsetData(DataComponentTypes.LORE);
         return this;
     }
 
@@ -269,10 +283,7 @@ public class ItemBuilder {
 
     public @NotNull ItemBuilder makeGlow() {
         final long nanoTime = System.nanoTime();
-        updateMeta(meta -> {
-            meta.addEnchant(Enchantment.LURE, 1, true);
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-        });
+        this.itemStack.setData(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
         PerformanceTracker.increment(PerformanceTracker.Types.ITEM_BUILDER, "makeGlow", System.nanoTime() - nanoTime);
         return this;
     }
@@ -298,7 +309,7 @@ public class ItemBuilder {
 
     // BUILD
     public @NotNull ItemStack build() {
-        return this.itemStack; // Déjà à jour
+        return this.itemStack;
     }
 
     // MATERIALS

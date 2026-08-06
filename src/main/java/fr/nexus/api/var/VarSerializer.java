@@ -194,7 +194,7 @@ public class VarSerializer {
             }
         }
 
-// PASS 2 : Batch Async Processing
+        // PASS 2 : Batch Async Processing
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         for (TypeContext ctx : signatureGroups.values()) {
@@ -264,12 +264,6 @@ public class VarSerializer {
         return compress(mainBuffer.buf, mainBuffer.count);
     }
 
-    // --- LOAD (Identique V5 car déjà très optimisé, juste check String) ---
-    // Je réutilise la méthode de V5 mais avec les helpers optimisés
-
-    // ... (Code deserialize V5 ici, il est déjà au top avec le Thread Confinement) ...
-    // ... Il faut juste s'assurer d'utiliser les méthodes readString optimisées ...
-
     public static void deserializeDataSync(byte[] serializedData, @NotNull Object2ObjectOpenHashMap<@NotNull String, @NotNull VarEntry<?>> data) {
         deserializeDataAsync(serializedData, data).join();
     }
@@ -291,22 +285,29 @@ public class VarSerializer {
                 List<CompletableFuture<Map.Entry<String, VarEntry<?>>>> asyncFutures = new ArrayList<>();
 
                 while (buffer.hasRemaining()) {
+
+                    // On déclare les variables de contexte ici pour pouvoir les utiliser dans le catch !
+                    String currentTypeStr = "inconnu";
+                    String currentKey = "inconnue";
+
                     try {
                         byte typeId = buffer.get();
                         Vars groupType;
 
                         if (typeId == 0) {
-                            String typeStr = readStringFast(buffer);
-                            groupType = VarType.getTypes().get(typeStr);
+                            currentTypeStr = readStringFast(buffer);
+                            groupType = VarType.getTypes().get(currentTypeStr);
                             if (groupType == null) {
-                                // LOG l'erreur au lieu de crash
-                                System.err.println("[NexusCore] Type inconnu trouvé dans le fichier : " + typeStr);
-                                continue; // Saute cette variable au lieu d'exploser
+                                System.err.println("[NexusCore] Type inconnu trouvé dans le fichier : " + currentTypeStr);
+                                continue;
                             }
                         } else {
                             String mapTypeStr = readStringFast(buffer);
                             String keyTypeStr = readStringFast(buffer);
                             String valueTypeStr = readStringFast(buffer);
+
+                            currentTypeStr = "Map<" + mapTypeStr + ", " + keyTypeStr + ", " + valueTypeStr + ">"; // Pour le debug
+
                             groupType = new MapVarType<>(MapType.getTypes().get(mapTypeStr),
                                     VarType.getTypes().get(keyTypeStr),
                                     VarType.getTypes().get(valueTypeStr));
@@ -317,7 +318,7 @@ public class VarSerializer {
                         boolean needAsync = groupType.needAsync();
 
                         for (int i = 0; i < count; i++) {
-                            String key = readStringFast(buffer);
+                            currentKey = readStringFast(buffer); // On sauvegarde la clé courante
                             byte[] valueByte = readByteArray(buffer);
 
                             if (!needAsync) {
@@ -326,28 +327,34 @@ public class VarSerializer {
                                         : ((MapVarType<Object, Object>) groupType).deserializeSync(valueByte);
 
                                 if (value != null) {
-                                    syncEntries.add(new AbstractMap.SimpleEntry<>(key, new VarEntry<>(value, groupType, true)));
+                                    syncEntries.add(new AbstractMap.SimpleEntry<>(currentKey, new VarEntry<>(value, groupType, true)));
                                 }
                             } else {
                                 final Vars finalType = groupType;
+                                final String finalKey = currentKey; // Nécessaire pour la lambda
                                 CompletableFuture<?> valFuture = isWrapper
                                         ? ((VarSubType<Object>) finalType).deserializeAsync(valueByte)
                                         : ((MapVarType<Object, Object>) finalType).deserializeAsync(valueByte);
 
                                 asyncFutures.add(valFuture.thenApply(val -> {
                                     if (val == null) return null;
-                                    return new AbstractMap.SimpleEntry<>(key, new VarEntry<>(val, finalType, true));
+                                    return new AbstractMap.SimpleEntry<>(finalKey, new VarEntry<>(val, finalType, true));
                                 }));
                             }
                         }
                     } catch (Exception e) {
-                        System.err.println("[NexusCore] Groupe de données corrompu, saut du groupe restant. "+e.getMessage());
+                        System.err.println("[NexusCore] 🚨 ERREUR CRITIQUE DE DESERIALISATION 🚨");
+                        System.err.println("[NexusCore] Type en cours : " + currentTypeStr);
+                        System.err.println("[NexusCore] Clé en cours (si planté dans la boucle) : " + currentKey);
+                        System.err.println("[NexusCore] Message : " + e.getMessage());
+
+                        // Affiche la ligne exacte du crash
+                        e.printStackTrace();
                         break;
                     }
-
                 }
 
-                // Insertion massive Sync (Trés rapide, pas de lock externe nécessaire si data est thread-confined ou synchro bloc unique)
+                // Insertion massive Sync
                 synchronized(data) {
                     for (var entry : syncEntries) data.put(entry.getKey(), entry.getValue());
                 }
@@ -368,7 +375,6 @@ public class VarSerializer {
             }
         }, LOOM_EXECUTOR);
     }
-
 
     // --- HELPERS & COMPRESSION ---
 
