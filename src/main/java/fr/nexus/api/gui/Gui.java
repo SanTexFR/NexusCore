@@ -34,6 +34,7 @@ public class Gui implements GuiBackground{
     protected final int height;
 
     private final@NotNull Inventory inventory;
+    private final@Nullable Component title;
 
     private final@NotNull ConcurrentHashMap<@NotNull UUID,@NotNull Long>cooldowns=new ConcurrentHashMap<>();
     private@Nullable Long effectiveCooldownMs;
@@ -70,9 +71,10 @@ public class Gui implements GuiBackground{
         this.weakReference=new WeakReference<>(this);
         this.width = 9;
         this.height = Math.max(1,Math.min(6,rows));
+        this.title = title;
 
         final int size=this.height*this.width;
-        if(title==null)this.inventory=Bukkit.createInventory(new GuiHolder(this),size);
+        if(title==null)this.inventory=Bukkit.createInventory(owner!=null?owner:new GuiHolder(this),size);
         else this.inventory=Bukkit.createInventory(owner!=null?owner:new GuiHolder(this),size,title);
 
         GuiManager.addGui(this.inventory,this);
@@ -83,6 +85,7 @@ public class Gui implements GuiBackground{
         this.weakReference=new WeakReference<>(this);
         this.width = 9;
         this.height = Math.max(1,Math.min(6,rows));
+        this.title = title;
 
         final int size=this.height*this.width;
         if(title==null)this.inventory=Bukkit.createInventory(new GuiHolder(this),size);
@@ -104,8 +107,9 @@ public class Gui implements GuiBackground{
         this.weakReference=new WeakReference<>(this);
         this.width = 9; // Valeur par défaut si appelé par l'ancien constructeur
         this.height = Math.max(1, type.getDefaultSize() / 9);
+        this.title = title;
 
-        if(title==null)this.inventory=Bukkit.createInventory(new GuiHolder(this),type);
+        if(title==null)this.inventory=Bukkit.createInventory(owner!=null?owner:new GuiHolder(this),type);
         else this.inventory=Bukkit.createInventory(owner!=null?owner:new GuiHolder(this),type,title);
 
         GuiManager.addGui(this.inventory,this);
@@ -116,6 +120,7 @@ public class Gui implements GuiBackground{
         this.weakReference=new WeakReference<>(this);
         this.width = 9;
         this.height = Math.max(1, type.getDefaultSize() / 9);
+        this.title = title;
 
         if(title==null)this.inventory=Bukkit.createInventory(new GuiHolder(this),type);
         else this.inventory=Bukkit.createInventory(new GuiHolder(this),type,title);
@@ -130,6 +135,7 @@ public class Gui implements GuiBackground{
         this.weakReference = new WeakReference<>(this);
         this.width = width;
         this.height = height;
+        this.title = title;
 
         if (title == null) this.inventory = Bukkit.createInventory(owner!=null?owner:new GuiHolder(this), type);
         else this.inventory = Bukkit.createInventory(owner!=null?owner:new GuiHolder(this), type, title);
@@ -155,6 +161,10 @@ public class Gui implements GuiBackground{
 
 
     //METHODS (INSTANCES)
+
+    public @Nullable Component getTitle(){
+        return this.title;
+    }
 
     //WEAK-REFERENCE
     public@NotNull WeakReference<Gui>getWeakReference(){

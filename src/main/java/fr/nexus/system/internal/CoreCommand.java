@@ -22,6 +22,7 @@ import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.WeakReference;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -54,11 +55,12 @@ public class CoreCommand {
                                     reloadConfiguration(c,args);
                                 }case"cachesize"->{
                                     if(args.length<2||!args[1].equalsIgnoreCase("listeners")&&!args[1].equalsIgnoreCase("var")&&!args[1].equalsIgnoreCase("gui")&&!args[1].equalsIgnoreCase("utils")){
-                                        c.sendMessage("§cVeuillez indiquez un argument valide. (/core cachesize <listeners, var, gui, utils>)");
+                                        c.sendMessage("§cVeuillez indiquez un argument valide. (/core cachesize <listeners, var, gui, utils> [normal, advanced])");
                                         return;
                                     }
-                                    
-                                    cacheSize(c,args[1]);
+
+                                    String mode = args.length > 2 ? args[2] : "normal";
+                                    cacheSize(c,args[1], mode);
                                 }case"mesh"->meshHandler(c,args);
                                 case"version"->version(c);
                                 case"cleanup"->cleanup(c);
@@ -88,14 +90,15 @@ public class CoreCommand {
                                     PerformanceTrackerGui.primaryGui(p);
                                 }case"cachesize"->{
                                     if(args.length<2||!args[1].equalsIgnoreCase("listeners")&&!args[1].equalsIgnoreCase("var")&&!args[1].equalsIgnoreCase("gui")&&!args[1].equalsIgnoreCase("utils")){
-                                        p.sendMessage("§cVeuillez indiquez un argument valide. (/core cachesize <listeners, var, gui, utils>)");
+                                        p.sendMessage("§cVeuillez indiquez un argument valide. (/core cachesize <listeners, var, gui, utils> [normal, advanced])");
                                         return;
                                     }
 
-                                    cacheSize(p,args[1]);
+                                    String mode = args.length > 2 ? args[2] : "normal";
+                                    cacheSize(p,args[1], mode);
                                 }case"mesh"->meshHandler(p,args);
                                 case"information"->
-                                    InformationGui.primaryGui(p);
+                                        InformationGui.primaryGui(p);
                                 case"version"->version(p);
                                 case"cleanup"->cleanup(p);
                                 default->p.sendMessage("§cCommande incorrecte. (/core <performance, config, cachesize, version, mesh, cleanup>)");
@@ -104,7 +107,7 @@ public class CoreCommand {
                 ).perform();
 
         TabCompleterHandler.create("core").addDisplay(sender->
-            ()->Set.of("performance","config","cachesize","version","information","mesh","cleanup")).perform();
+                ()->Set.of("performance","config","cachesize","version","information","mesh","cleanup")).perform();
 
         TabCompleterHandler.create("core").addArg(sender->()->"config").addDisplay(sender->
                 ()->Set.of("reload")).perform();
@@ -116,9 +119,16 @@ public class CoreCommand {
                 ()->Set.of("save")).perform();
         TabCompleterHandler.create("core").addArg(sender->()->"performance").addDisplay(sender->
                 ()->Set.of("gui")).perform();
+
+        // MODIFICATION DES TAB COMPLETERS POUR LE CACHESIZE AVANCÉ
         TabCompleterHandler.create("core").addArg(sender->()->"cachesize").addDisplay(sender->
                 ()->Set.of("listeners","var","gui","utils")).perform();
+        TabCompleterHandler.create("core").addArg(sender->()->"cachesize").addArg(sender->()->"gui").addDisplay(sender->
+                ()->Set.of("normal","advanced")).perform();
+        TabCompleterHandler.create("core").addArg(sender->()->"cachesize").addArg(sender->()->"var").addDisplay(sender->
+                ()->Set.of("normal","advanced")).perform();
     }
+
     private static void reloadConfiguration(@NotNull CommandSender sender,@NotNull String[]args){
         String key=args.length>2?args[2]:null;
         boolean nosafe=(args.length>3&&args[3].equalsIgnoreCase("nosafe"));
@@ -129,7 +139,10 @@ public class CoreCommand {
         if(nosafe)sender.sendMessage("§eConfiguration non sécurisée rechargée en "+(System.currentTimeMillis()-time)+"ms !");
         else sender.sendMessage("§eConfiguration sécurisée rechargée en "+(System.currentTimeMillis()-time)+"ms !");
     }
-    private static void cacheSize(@NotNull CommandSender s,@NotNull String arg){
+
+    private static void cacheSize(@NotNull CommandSender s,@NotNull String arg, @NotNull String mode){
+        boolean isAdvanced = mode.equalsIgnoreCase("advanced");
+
         switch(arg.toLowerCase()){
             case"listeners"->{
                 //SYNC
@@ -147,19 +160,51 @@ public class CoreCommand {
                 s.sendMessage("§e - SyncAmount: "+asyncAmount[0]);
             }
             case"var"->{
-                s.sendMessage("§e - Vars: "+Var.vars.size());
-                s.sendMessage("§e - AsyncLoads: "+Var.asyncLoads.size());
-            }case"gui"->{
-                s.sendMessage("§e - Guis: "+GuiManager.guis.size());
-                s.sendMessage("§e - GuiReferences: "+GuiManager.guiReferences.size());
-            }case"utils"->{
+                s.sendMessage("§e=== Cache VAR (" + (isAdvanced ? "Avancé" : "Normal") + ") ===");
+                s.sendMessage("§e - Vars enregistrées (WeakRef): " + Var.vars.size());
+                s.sendMessage("§e - Chargements Asynchrones (asyncLoads): " + Var.asyncLoads.size());
+                s.sendMessage("§e - Vars persistantes en mémoire: " + Var.shouldStayLoadedVars.size());
+
+                if (isAdvanced) {
+                    s.sendMessage("§6 --- DÉTAILS DES VARS RETENUES ---");
+                    long aliveVars = Var.vars.values().stream().map(WeakReference::get).filter(Objects::nonNull).count();
+                    s.sendMessage("§7 - Instances vivantes réelles (GC non collectées): §f" + aliveVars);
+
+                    if (!Var.asyncLoads.isEmpty()) {
+                        s.sendMessage("§c - Chargements bloqués/en cours:");
+                        Var.asyncLoads.keySet().forEach(key -> s.sendMessage("§7   • §f" + key));
+                    }
+                }
+            }
+            case"gui"->{
+                s.sendMessage("§e=== Cache GUI (" + (isAdvanced ? "Avancé" : "Normal") + ") ===");
+                s.sendMessage("§e - Inventaires actifs (WeakRef): " + GuiManager.guis.size());
+                s.sendMessage("§e - Références fortes (guiReferences): " + GuiManager.guiReferences.size());
+                s.sendMessage("§e - Réutilisables (reuseGuis): " + GuiManager.reuseGuis.size());
+                s.sendMessage("§e - Joueurs visionnant un GUI: " + GuiManager.getActiveViewersCount());
+
+                if (isAdvanced) {
+                    s.sendMessage("§6 --- DÉTAILS DES GUIS EN MÉMOIRE ---");
+                    Map<String, Long> grouped = GuiManager.getGuisGroupedByTitle();
+                    if (grouped.isEmpty()) {
+                        s.sendMessage("§7 Aucune instance enregistrée.");
+                    } else {
+                        grouped.forEach((title, count) ->
+                                s.sendMessage("§7 - §f" + title + " §7: §e" + count + " instance(s)")
+                        );
+                    }
+                }
+            }
+            case"utils"->{
                 s.sendMessage("§e - OnlinePlayerUUIDs: "+Utils.onlinePlayerNameCache.size());
                 s.sendMessage("§e - OnlinePlayerNames: "+Utils.onlinePlayerNameCache.size());
                 s.sendMessage("§e - OfflinePlayerUUIDs: "+Utils.offlinePlayerUUIDCache.size());
                 s.sendMessage("§e - OfflinePlayerNames: "+Utils.offlinePlayerNameCache.size());
-            }default->s.sendMessage("§cVeuillez indiquez un argument valide. (/core cachesize <var,gui,utils>)");
+            }
+            default->s.sendMessage("§cVeuillez indiquez un argument valide. (/core cachesize <listeners|var|gui|utils> [normal|advanced])");
         }
     }
+
     private static void version(@NotNull CommandSender s){
         s.sendMessage("Vérification de la version, veuillez patienter...");
         Core.getServerImplementation().async().runNow(()->{
@@ -188,11 +233,13 @@ public class CoreCommand {
             }
         });
     }
+
     private static void cleanup(@NotNull CommandSender c){
         final long time=System.currentTimeMillis();
         Bukkit.getPluginManager().callEvent(new CoreCleanupEvent());
         c.sendMessage("Temps de cleanup: "+(System.currentTimeMillis()-time)+" ms !");
     }
+
     private static void meshHandler(@NotNull CommandSender c,@NotNull String[]args){
         if(args.length<2||!args[1].equalsIgnoreCase("save")){
             c.sendMessage("§cVeuillez indiquez un argument valide. (/core mesh <save>)");

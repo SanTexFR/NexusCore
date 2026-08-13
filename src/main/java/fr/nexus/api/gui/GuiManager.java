@@ -2,6 +2,8 @@ package fr.nexus.api.gui;
 
 import fr.nexus.api.listeners.core.CoreCleanupEvent;
 import fr.nexus.api.listeners.Listeners;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.event.EventPriority;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
@@ -10,8 +12,11 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public class GuiManager{
@@ -19,6 +24,7 @@ public class GuiManager{
     public static final@NotNull ConcurrentHashMap<@NotNull String,@NotNull Gui>reuseGuis=new ConcurrentHashMap<>();
     public static final@NotNull Set<@NotNull Gui>guiReferences=new HashSet<>();
     public static final@NotNull ConcurrentHashMap<@NotNull Inventory,@NotNull WeakReference<Gui>>guis=new ConcurrentHashMap<>();
+
     static{
         Listeners.register(CoreCleanupEvent.class,GuiManager::onCoreCleanup,EventPriority.LOWEST);
     }
@@ -55,6 +61,26 @@ public class GuiManager{
     }
     static void removeReference(@NotNull Gui gui){
         guiReferences.remove(gui);
+    }
+
+    // INSPECTION MEMOIRE (AVANCÉE)
+    public static Map<String, Long> getGuisGroupedByTitle() {
+        return guis.values().stream()
+                .map(WeakReference::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.groupingBy(
+                        gui -> {
+                            Component title = gui.getTitle();
+                            return title != null ? PlainTextComponentSerializer.plainText().serialize(title) : "Sans Titre (" + gui.getInventory().getType() + ")";
+                        },
+                        Collectors.counting()
+                ));
+    }
+
+    public static long getActiveViewersCount() {
+        return guis.keySet().stream()
+                .mapToLong(inv -> inv.getViewers().size())
+                .sum();
     }
 
     //LISTENER
