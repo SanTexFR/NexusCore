@@ -96,27 +96,36 @@ class GuiListeners{
 
         PerformanceTracker.increment(PerformanceTracker.Types.GUI,"onInventoryDrag",System.nanoTime()-nanoTime);
     }
-    private static void onInventoryClose(InventoryCloseEvent e){
-        final long nanoTime=System.nanoTime();
+    // Dans GuiListeners.java
+    private static void onInventoryClose(InventoryCloseEvent e) {
+        final long nanoTime = System.nanoTime();
+        final Inventory inv = e.getInventory();
+        final Gui gui = GuiManager.getGui(inv);
 
-        final Inventory inv=e.getInventory();
+        if (gui != null) {
+            if (gui.getCloseEvent() != null) {
+                gui.getCloseEvent().accept(e);
+            }
+            gui.getCooldowns().remove(e.getPlayer().getUniqueId());
 
-        final Gui gui=GuiManager.getGui(inv);
-        if(gui!=null){
-            if(inv.getViewers().size()-1<=0){
+            // S'il n'y a plus aucun joueur sur l'inventaire
+            if (inv.getViewers().size() - 1 <= 0) {
                 GuiManager.removeReference(gui);
 
-                final GuiConsumer guiConsumer=gui.getActiveGuiTickConsumer();
-                if(guiConsumer!=null&&guiConsumer.getTask()!=null){
-                    guiConsumer.getTask().cancel();
-                    guiConsumer.setTask(null);
+                // Ne détruire le GUI que s'il n'est pas réutilisable (GuiReuse)
+                if (gui.getReuse() == null) {
+                    gui.destroy();
+                } else {
+                    final GuiConsumer guiConsumer = gui.getActiveGuiTickConsumer();
+                    if (guiConsumer != null && guiConsumer.getTask() != null) {
+                        guiConsumer.getTask().cancel();
+                        guiConsumer.setTask(null);
+                    }
                 }
             }
-            if(gui.getCloseEvent()!=null)gui.getCloseEvent().accept(e);
-            gui.getCooldowns().remove(e.getPlayer().getUniqueId());
         }
 
-        PerformanceTracker.increment(PerformanceTracker.Types.GUI,"onInventoryClose",System.nanoTime()-nanoTime);
+        PerformanceTracker.increment(PerformanceTracker.Types.GUI, "onInventoryClose", System.nanoTime() - nanoTime);
     }
     private static void onInventoryOpen(InventoryOpenEvent e){
         if(e.isCancelled())return;

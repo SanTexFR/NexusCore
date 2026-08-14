@@ -413,6 +413,28 @@ public class Gui implements GuiBackground{
         this.guiSliders.values().forEach(GuiPanel::update);
     }
 
+    public void destroy() {
+        // Annulation des tâches
+        if (this.globalGuiTickConsumer != null && this.globalGuiTickConsumer.getTask() != null) {
+            this.globalGuiTickConsumer.getTask().cancel();
+        }
+        if (this.activeGuiTickConsumer != null && this.activeGuiTickConsumer.getTask() != null) {
+            this.activeGuiTickConsumer.getTask().cancel();
+        }
+
+        // Effacement des callbacks qui capturent des références externes
+        this.globalClickEvent = null;
+        this.inventoryClickEvent = null;
+        this.dragEvent = null;
+        this.closeEvent = null;
+
+        // Purge des items et des panneaux
+        this.guiItems.clear();
+        this.guiPages.clear();
+        this.guiSliders.clear();
+        this.cooldowns.clear();
+    }
+
     //INNER CLASS
     private record Unload(@Nullable GuiConsumer consumer)implements Runnable{
         @Override
