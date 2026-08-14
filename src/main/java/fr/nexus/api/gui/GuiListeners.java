@@ -104,10 +104,12 @@ class GuiListeners{
 
         final Gui gui=GuiManager.getGui(inv);
         if(gui!=null){
+            if(gui.getCloseEvent()!=null)gui.getCloseEvent().accept(e);
+
             if(inv.getViewers().size()-1<=0){
                 GuiManager.removeReference(gui);
 
-                if(gui.getReuse()==null&&true){
+                if(gui.getReuse()==null&&gui.isDeleteOnClose()){
                     gui.destroy();
                 }else{
                     final GuiConsumer guiConsumer=gui.getActiveGuiTickConsumer();
@@ -117,7 +119,7 @@ class GuiListeners{
                     }
                 }
             }
-            if(gui.getCloseEvent()!=null)gui.getCloseEvent().accept(e);
+
             gui.getCooldowns().remove(e.getPlayer().getUniqueId());
         }
 
