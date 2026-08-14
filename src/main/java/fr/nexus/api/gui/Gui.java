@@ -43,6 +43,8 @@ public class Gui implements GuiBackground{
 
     private@Nullable GuiReuse reuse;
 
+    private boolean deleteOnClose=true;
+
     private final@NotNull WeakReference<Gui>weakReference;
 
     //ITEMS
@@ -184,6 +186,14 @@ public class Gui implements GuiBackground{
     }
     public@Nullable GuiReuse getReuse(){
         return this.reuse;
+    }
+
+    //DELETE
+    public boolean isDeleteOnClose(){
+        return this.deleteOnClose;
+    }
+    public void setDeleteOnClose(boolean deleteOnClose){
+        this.deleteOnClose=deleteOnClose;
     }
 
     //COOLDOWN
