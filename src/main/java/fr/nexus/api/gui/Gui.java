@@ -425,6 +425,8 @@ public class Gui implements GuiBackground{
 
     public void destroy() {
         // Annulation des tâches
+        GuiManager.removeGui(this.inventory);
+
         if (this.globalGuiTickConsumer != null && this.globalGuiTickConsumer.getTask() != null) {
             this.globalGuiTickConsumer.getTask().cancel();
         }
