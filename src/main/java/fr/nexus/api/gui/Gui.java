@@ -33,6 +33,8 @@ public class Gui implements GuiBackground{
     protected final int width;
     protected final int height;
 
+    private boolean isDestroyed=false;
+
     private final@NotNull Inventory inventory;
     private final@Nullable Component title;
 
@@ -359,6 +361,9 @@ public class Gui implements GuiBackground{
 
     //DISPLAY
     public void display(@NotNull Player... players) {
+        if(isDestroyed()){
+            throw new IllegalStateException("Gui has been destroyed");
+        }
         for (final Player p : players) {
             if (!p.isOnline()) continue;
 
@@ -423,27 +428,60 @@ public class Gui implements GuiBackground{
         this.guiSliders.values().forEach(GuiPanel::update);
     }
 
+    public boolean isDestroyed(){
+        return this.isDestroyed;
+    }
+
     public void destroy() {
-        // Annulation des tâches
+        // 1. Retirer du gestionnaire global de GUI
         GuiManager.removeGui(this.inventory);
+        GuiManager.removeReference(this);
 
-        if (this.globalGuiTickConsumer != null && this.globalGuiTickConsumer.getTask() != null) {
-            this.globalGuiTickConsumer.getTask().cancel();
-        }
-        if (this.activeGuiTickConsumer != null && this.activeGuiTickConsumer.getTask() != null) {
-            this.activeGuiTickConsumer.getTask().cancel();
+        isDestroyed=true;
+
+        // 2. Annuler et nettoyer proprement les ticks globaux et actifs
+        if (this.globalGuiTickConsumer != null) {
+            if (this.globalGuiTickConsumer.getTask() != null) {
+                this.globalGuiTickConsumer.getTask().cancel();
+                this.globalGuiTickConsumer.setTask(null);
+            }
+            this.globalGuiTickConsumer = null;
         }
 
-        // Effacement des callbacks qui capturent des références externes
+        if (this.activeGuiTickConsumer != null) {
+            if (this.activeGuiTickConsumer.getTask() != null) {
+                this.activeGuiTickConsumer.getTask().cancel();
+                this.activeGuiTickConsumer.setTask(null);
+            }
+            this.activeGuiTickConsumer = null;
+        }
+
+        // 3. Vider et détruire les items (ce qui supprime les lambdas et leurs captures)
+        this.guiItems.values().forEach(guiItem -> guiItem.setAction(null));
+        this.guiItems.clear();
+
+        // 4. Vider les panneaux (pages et sliders)
+        this.guiPages.values().forEach(page -> {
+            page.clear();
+            page.setInventory(null);
+        });
+        this.guiPages.clear();
+
+        this.guiSliders.values().forEach(slider -> {
+            slider.clear();
+            slider.setInventory(null);
+        });
+        this.guiSliders.clear();
+
+        // 5. Effacer tous les callbacks d'événements du GUI
         this.globalClickEvent = null;
         this.inventoryClickEvent = null;
         this.dragEvent = null;
         this.closeEvent = null;
+        this.background = null;
+        this.reuse = null;
 
-        // Purge des items et des panneaux
-        this.guiItems.clear();
-        this.guiPages.clear();
-        this.guiSliders.clear();
+        // 6. Nettoyer les cooldowns
         this.cooldowns.clear();
     }
 

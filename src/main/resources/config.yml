@@ -46,3 +46,5 @@ performanceTrackerGuiUpdateRate: 20
 
 # CAN CHANGE HOW MINECRAFT WILL REACT TO EVENTS
 enableCustomAsyncBukkitEventApi: false
+
+enableFallBackWorld: true

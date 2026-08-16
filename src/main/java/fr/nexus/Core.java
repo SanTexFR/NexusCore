@@ -46,6 +46,8 @@ public final class Core extends JavaPlugin{
 
     private static final@NotNull UUID sessionUUID=UUID.randomUUID();
 
+    public static boolean enableFallBackWorld=true;
+
     //METHODS (OVERRIDE)
     @Override
     public void onEnable(){
@@ -91,6 +93,8 @@ public final class Core extends JavaPlugin{
 //                throw new RuntimeException(e);
 //            }
 //        },20L);
+
+        enableFallBackWorld=Core.getInstance().getConfig().getBoolean("enableFallBackWorld",true);
     }
 
     private static void test(){

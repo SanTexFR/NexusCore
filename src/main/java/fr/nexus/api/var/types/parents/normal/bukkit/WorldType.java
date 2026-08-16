@@ -1,5 +1,6 @@
 package fr.nexus.api.var.types.parents.normal.bukkit;
 
+import fr.nexus.Core;
 import fr.nexus.api.var.types.VarTypes;
 import fr.nexus.api.var.types.parents.InternalVarType;
 import org.bukkit.Bukkit;
@@ -14,8 +15,16 @@ public final class WorldType extends InternalVarType<World> {
     }
     public@NotNull World deserializeSync(int version,byte[]bytes){
         if(version==1){
-            final World world=Bukkit.getWorld(VarTypes.STRING.deserializeSync(bytes));
-            if(world==null)throw new RuntimeException("Word doesn't exist: "+VarTypes.STRING.deserializeSync(bytes));
+            World world=Bukkit.getWorld(VarTypes.STRING.deserializeSync(bytes));
+            if(world==null){
+                world=Bukkit.getWorld("worlds_"+VarTypes.STRING.deserializeSync(bytes));
+                if(world==null){
+                    if(Core.enableFallBackWorld){
+                        world=Bukkit.getWorlds().getFirst();
+                        if(world==null)throw new RuntimeException("World doesn't exist: "+VarTypes.STRING.deserializeSync(bytes));
+                    }else throw new RuntimeException("World doesn't exist: "+VarTypes.STRING.deserializeSync(bytes));
+                }
+            }
             return world;
         } else throw createUnsupportedVersionException(version);
     }
