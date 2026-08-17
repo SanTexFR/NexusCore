@@ -20,7 +20,8 @@ public final class WorldType extends InternalVarType<World> {
                 world=Bukkit.getWorld("worlds_"+VarTypes.STRING.deserializeSync(bytes));
                 if(world==null){
                     if(Core.enableFallBackWorld){
-                        world=Bukkit.getWorlds().getFirst();
+                        world=Bukkit.getWorld("worlds_island_world");
+                        if(world==null)world=Bukkit.getWorlds().getFirst();
                         if(world==null)throw new RuntimeException("World doesn't exist: "+VarTypes.STRING.deserializeSync(bytes));
                     }else throw new RuntimeException("World doesn't exist: "+VarTypes.STRING.deserializeSync(bytes));
                 }

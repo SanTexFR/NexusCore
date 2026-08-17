@@ -140,43 +140,71 @@ public class CoreCommand {
         else sender.sendMessage("§eConfiguration sécurisée rechargée en "+(System.currentTimeMillis()-time)+"ms !");
     }
 
-    private static void cacheSize(@NotNull CommandSender s,@NotNull String arg, @NotNull String mode){
+    private static void cacheSize(@NotNull CommandSender s, @NotNull String arg, @NotNull String mode) {
         boolean isAdvanced = mode.equalsIgnoreCase("advanced");
 
-        switch(arg.toLowerCase()){
-            case"listeners"->{
+        switch (arg.toLowerCase()) {
+            case "listeners" -> {
                 //SYNC
-                s.sendMessage("§e - SyncTypeAmount: "+Listeners.syncEventsRegistered.size());
+                s.sendMessage("§e - SyncTypeAmount: " + Listeners.syncEventsRegistered.size());
 
-                final int[]syncAmount={0};
-                Listeners.syncEventsRegistered.forEach((key,value)->syncAmount[0]+=value.size());
-                s.sendMessage("§e - SyncAmount: "+syncAmount[0]);
+                final int[] syncAmount = {0};
+                Listeners.syncEventsRegistered.forEach((key, value) -> syncAmount[0] += value.size());
+                s.sendMessage("§e - SyncAmount: " + syncAmount[0]);
 
                 //ASYNC
-                s.sendMessage("§e - AsyncTypeAmount: "+Listeners.asyncEventsRegistered.size());
+                s.sendMessage("§e - AsyncTypeAmount: " + Listeners.asyncEventsRegistered.size());
 
-                final int[]asyncAmount={0};
-                Listeners.asyncEventsRegistered.forEach((key,value)->asyncAmount[0]+=value.size());
-                s.sendMessage("§e - SyncAmount: "+asyncAmount[0]);
+                final int[] asyncAmount = {0};
+                Listeners.asyncEventsRegistered.forEach((key, value) -> asyncAmount[0] += value.size());
+                s.sendMessage("§e - SyncAmount: " + asyncAmount[0]);
             }
-            case"var"->{
+            case "var" -> {
                 s.sendMessage("§e=== Cache VAR (" + (isAdvanced ? "Avancé" : "Normal") + ") ===");
                 s.sendMessage("§e - Vars enregistrées (WeakRef): " + Var.vars.size());
                 s.sendMessage("§e - Chargements Asynchrones (asyncLoads): " + Var.asyncLoads.size());
                 s.sendMessage("§e - Vars persistantes en mémoire: " + Var.shouldStayLoadedVars.size());
 
                 if (isAdvanced) {
-                    s.sendMessage("§6 --- DÉTAILS DES VARS RETENUES ---");
-                    long aliveVars = Var.vars.values().stream().map(WeakReference::get).filter(Objects::nonNull).count();
-                    s.sendMessage("§7 - Instances vivantes réelles (GC non collectées): §f" + aliveVars);
+                    s.sendMessage("§6 --- DÉTAILS DES VARS RETENUES (TRIÉES PAR CLÉ) ---");
+
+                    java.util.List<Map.Entry<String, Var>> activeVars;
+                    synchronized (Var.vars) {
+                        activeVars = Var.vars.entrySet().stream()
+                                .map(e -> Map.entry(e.getKey(), e.getValue().get()))
+                                .filter(e -> e.getValue() != null)
+                                .sorted(Map.Entry.comparingByKey())
+                                .toList();
+                    }
+
+                    s.sendMessage("§7 - Instances vivantes réelles: §f" + activeVars.size());
+
+                    if (activeVars.isEmpty()) {
+                        s.sendMessage("§7 Aucune instance Var vivante en mémoire.");
+                    } else {
+                        for (Map.Entry<String, Var> entry : activeVars) {
+                            String key = entry.getKey();
+                            Var varObj = entry.getValue();
+                            int keysCount = varObj.getKeys().size();
+                            boolean isPersistent = Var.shouldStayLoadedVars.contains(varObj);
+
+                            s.sendMessage("§7 - §f" + key
+                                    + " §7| Données: §e" + keysCount
+                                    + " §7| Persistant: §e" + (isPersistent ? "Oui" : "Non"));
+                        }
+                    }
 
                     if (!Var.asyncLoads.isEmpty()) {
-                        s.sendMessage("§c - Chargements bloqués/en cours:");
-                        Var.asyncLoads.keySet().forEach(key -> s.sendMessage("§7   • §f" + key));
+                        s.sendMessage("§c --- CHARGEMENTS ASYNCHRONES (TRIÉS) ---");
+                        synchronized (Var.asyncLoads) {
+                            Var.asyncLoads.keySet().stream()
+                                    .sorted()
+                                    .forEach(key -> s.sendMessage("§7   • §f" + key));
+                        }
                     }
                 }
             }
-            case"gui"->{
+            case "gui" -> {
                 s.sendMessage("§e=== Cache GUI (" + (isAdvanced ? "Avancé" : "Normal") + ") ===");
                 s.sendMessage("§e - Inventaires actifs (WeakRef): " + GuiManager.guis.size());
                 s.sendMessage("§e - Références fortes (guiReferences): " + GuiManager.guiReferences.size());
@@ -195,13 +223,13 @@ public class CoreCommand {
                     }
                 }
             }
-            case"utils"->{
-                s.sendMessage("§e - OnlinePlayerUUIDs: "+Utils.onlinePlayerNameCache.size());
-                s.sendMessage("§e - OnlinePlayerNames: "+Utils.onlinePlayerNameCache.size());
-                s.sendMessage("§e - OfflinePlayerUUIDs: "+Utils.offlinePlayerUUIDCache.size());
-                s.sendMessage("§e - OfflinePlayerNames: "+Utils.offlinePlayerNameCache.size());
+            case "utils" -> {
+                s.sendMessage("§e - OnlinePlayerUUIDs: " + Utils.onlinePlayerNameCache.size());
+                s.sendMessage("§e - OnlinePlayerNames: " + Utils.onlinePlayerNameCache.size());
+                s.sendMessage("§e - OfflinePlayerUUIDs: " + Utils.offlinePlayerUUIDCache.size());
+                s.sendMessage("§e - OfflinePlayerNameCache: " + Utils.offlinePlayerNameCache.size());
             }
-            default->s.sendMessage("§cVeuillez indiquez un argument valide. (/core cachesize <listeners|var|gui|utils> [normal|advanced])");
+            default -> s.sendMessage("§cVeuillez indiquez un argument valide. (/core cachesize <listeners|var|gui|utils> [normal|advanced])");
         }
     }
 
