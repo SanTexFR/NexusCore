@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -27,6 +28,7 @@ public abstract class VarObjectBackend<R>{
     private static final@NotNull Logger logger=new Logger(Core.getInstance(), VarObjectBackend.class);
     protected static final@NotNull ConcurrentHashMap<@NotNull String,@NotNull CompletableFuture<@NotNull VarObjectBackend<?>>>asyncLoads=new ConcurrentHashMap<>();
     public static final@NotNull ConcurrentHashMap<@NotNull String,@NotNull WeakReference<@NotNull VarObjectBackend<?>>>varObjects=new ConcurrentHashMap<>();
+    public static final @NotNull Set<VarObjectBackend<?>> shouldStayLoadedBackends = ConcurrentHashMap.newKeySet();
 
     private static TaskImplementation<?>saveTask;
     static{
@@ -42,15 +44,27 @@ public abstract class VarObjectBackend<R>{
     private final@NotNull Cleaner.Cleanable cleanable;
 
     //CONSTRUCTOR
-    protected<T extends VarObjectBackend<R>> VarObjectBackend(@NotNull Class<T>clazz, @NotNull R reference, @NotNull String completePath, @NotNull Var var){
-        //KEY
-        this.key=reference;
+    protected <T extends VarObjectBackend<R>> VarObjectBackend(@NotNull Class<T> clazz, @NotNull R reference, @NotNull String completePath, @NotNull Var var) {
+        this.key = reference;
+        this.var = var;
 
-        //VAR
-        this.var=var;
+        // Enregistrement du Cleaner
+        final Unload unload = new Unload(var, completePath, this.atomicBool);
+        cleanable = Core.getCleaner().register(this, unload);
 
-        //CLEANER
-        cleanable=Core.getCleaner().register(this,new Unload(var,completePath,this.atomicBool));
+        // ÉCOUTEUR AUTOMATIQUE : Garde le VarObjectBackend chargé si la Var doit rester chargée
+        final WeakReference<VarObjectBackend<R>> weakSelf = new WeakReference<>(this);
+
+        this.var.setOnShouldStayLoadedChanged(stayLoaded -> {
+            VarObjectBackend<R> self = weakSelf.get();
+            if (self != null) {
+                if (stayLoaded) {
+                    shouldStayLoadedBackends.add(self);
+                } else {
+                    shouldStayLoadedBackends.remove(self);
+                }
+            }
+        });
     }
 
 
@@ -76,7 +90,13 @@ public abstract class VarObjectBackend<R>{
         final CompletableFuture<T>future=factory.get();
 
         asyncLoads.put(completePath,future.thenApply(mesh->mesh));
-        future.thenAccept(res->varObjects.put(completePath,new WeakReference<>(res)));
+
+        future.whenComplete((res,ex)->{
+            asyncLoads.remove(completePath);
+            if(ex==null&&res!=null)
+                varObjects.put(completePath,new WeakReference<>(res));
+        });
+
         return future;
     }
     private static<T extends VarObjectBackend<?>>T getIfCached(@NotNull String completePath,@NotNull Class<T>clazz){
@@ -134,8 +154,25 @@ public abstract class VarObjectBackend<R>{
     }
 
     //LISTENERS
-    private static void onCoreCleanup(CoreCleanupEvent e){
-        final long startMillis=System.currentTimeMillis();
+    private static void onCoreCleanup(CoreCleanupEvent e) {
+        final long startMillis = System.currentTimeMillis();
+
+        // Re-vérification des backends maintenus en mémoire
+        if (!shouldStayLoadedBackends.isEmpty()) {
+            for (final VarObjectBackend<?> backend : new HashSet<>(shouldStayLoadedBackends)) {
+                final CompletableFuture<Boolean> completable = backend.getVar().shouldStayLoaded();
+                if (completable == null) {
+                    shouldStayLoadedBackends.remove(backend);
+                    continue;
+                }
+
+                completable.thenAccept(bool -> {
+                    if (!bool) {
+                        shouldStayLoadedBackends.remove(backend);
+                    }
+                });
+            }
+        }
 
         cleanVarObjectMap();
 
@@ -145,10 +182,10 @@ public abstract class VarObjectBackend<R>{
                         .filter(Objects::nonNull)
                         .map(varObject -> varObject.getVar().saveAsync())
                         .toArray(CompletableFuture[]::new)
-        ).thenRun(()->
-                logger.info("✅ Mesh saves "+(System.currentTimeMillis()-startMillis)+" ms !")
-        ).exceptionally(ex->{
-            logger.severe("❌ Mesh saves error: "+ex.getMessage());
+        ).thenRun(() ->
+                logger.info("✅ Mesh saves " + (System.currentTimeMillis() - startMillis) + " ms !")
+        ).exceptionally(ex -> {
+            logger.severe("❌ Mesh saves error: " + ex.getMessage());
             return null;
         });
     }

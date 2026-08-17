@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @SuppressWarnings({"unused","UnusedReturnValue","unchecked"})
@@ -40,6 +41,7 @@ public abstract class Var{
     private final@NotNull Path path;
     private boolean dirty;
     private @Nullable Supplier<CompletableFuture<Boolean>> shouldStayLoadedSupplier;
+    private @Nullable Consumer<Boolean> onShouldStayLoadedChanged;
 
     private final@NotNull Cleaner.Cleanable cleanable;
 
@@ -52,7 +54,7 @@ public abstract class Var{
         Core.getServerImplementation().global().runDelayed(()->{
             final CompletableFuture<Boolean>completable=shouldStayLoaded();
             if(completable!=null)completable.thenAccept(bool->{
-                if(!bool)shouldStayLoadedVars.add(this);
+                if(bool)shouldStayLoadedVars.add(this);
             });
         },1L);
     }
@@ -108,11 +110,29 @@ public abstract class Var{
     //METHODS (INSTANCES)
 
     //UTILS
-    public void setShouldStayLoadedSupplier(@Nullable Supplier<CompletableFuture<@NotNull Boolean>>supplier){
-        this.shouldStayLoadedSupplier=supplier;
+    public void setShouldStayLoadedSupplier(@Nullable Supplier<CompletableFuture<@NotNull Boolean>> supplier) {
+        this.shouldStayLoadedSupplier = supplier;
+        if (supplier != null) {
+            supplier.get().thenAccept(bool -> {
+                if (bool) {
+                    shouldStayLoadedVars.add(this);
+                } else {
+                    shouldStayLoadedVars.remove(this);
+                }
+
+                // Notification automatique du backend
+                if (this.onShouldStayLoadedChanged != null) {
+                    this.onShouldStayLoadedChanged.accept(bool);
+                }
+            });
+        }
     }
     public@Nullable CompletableFuture<@NotNull Boolean>shouldStayLoaded(){
         return this.shouldStayLoadedSupplier!=null?this.shouldStayLoadedSupplier.get():null;
+    }
+
+    public void setOnShouldStayLoadedChanged(@Nullable Consumer<Boolean> listener) {
+        this.onShouldStayLoadedChanged = listener;
     }
 
     //SAVE

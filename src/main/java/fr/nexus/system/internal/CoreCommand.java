@@ -188,9 +188,26 @@ public class CoreCommand {
                             int keysCount = varObj.getKeys().size();
                             boolean isPersistent = Var.shouldStayLoadedVars.contains(varObj);
 
+                            // --- ÉVALUATION DU SUPPLIER ---
+                            CompletableFuture<Boolean> future = varObj.shouldStayLoaded();
+                            String supplierStatus;
+                            if (future == null) {
+                                supplierStatus = "§7Aucun";
+                            } else if (future.isDone()) {
+                                try {
+                                    Boolean result = future.getNow(null);
+                                    supplierStatus = Boolean.TRUE.equals(result) ? "§aTrue" : "§cFalse";
+                                } catch (Exception ex) {
+                                    supplierStatus = "§cErreur";
+                                }
+                            } else {
+                                supplierStatus = "§eEn attente";
+                            }
+
                             s.sendMessage("§7 - §f" + key
                                     + " §7| Données: §e" + keysCount
-                                    + " §7| Persistant: §e" + (isPersistent ? "Oui" : "Non"));
+                                    + " §7| Persistant: §e" + (isPersistent ? "Oui" : "Non")
+                                    + " §7| Supplier: " + supplierStatus);
                         }
                     }
 
@@ -199,7 +216,7 @@ public class CoreCommand {
                         synchronized (Var.asyncLoads) {
                             Var.asyncLoads.keySet().stream()
                                     .sorted()
-                                    .forEach(key -> s.sendMessage("§7   • §f" + key));
+                                    .forEach(k -> s.sendMessage("§7   • §f" + k));
                         }
                     }
                 }
