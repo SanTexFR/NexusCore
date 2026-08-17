@@ -34,6 +34,9 @@ public abstract class VarObjectBackend<R>{
     static{
         Listeners.register(CoreCleanupEvent.class,VarObjectBackend::onCoreCleanup);
         Listeners.register(ServerStopEvent.class, VarObjectBackend::onServerStop,EventPriority.HIGHEST);
+        Core.getServerImplementation().async().runAtFixedRate(() -> {
+            saveAllVarObjectsAsync();
+        }, 300L, 300L, java.util.concurrent.TimeUnit.SECONDS);
     }
 
     //VARIABLES (INSTANCES)
@@ -69,6 +72,21 @@ public abstract class VarObjectBackend<R>{
 
 
     //METHODS (STATICS)
+
+    public static @NotNull CompletableFuture<Void> saveAllVarObjectsAsync() {
+        cleanVarObjectMap();
+
+        return CompletableFuture.allOf(
+                varObjects.values().stream()
+                        .map(WeakReference::get)
+                        .filter(Objects::nonNull)
+                        .map(varObject -> varObject.getVar().saveAsync())
+                        .toArray(CompletableFuture[]::new)
+        ).exceptionally(ex -> {
+            logger.severe("❌ Auto-save error: " + ex.getMessage());
+            return null;
+        });
+    }
 
     //LOAD
     protected static <T extends VarObjectBackend<?>> boolean isLoaded(@NotNull String completePath, @NotNull Class<T> clazz) {
