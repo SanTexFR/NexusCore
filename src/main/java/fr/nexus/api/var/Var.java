@@ -31,7 +31,7 @@ public abstract class Var{
     //VARIABLES (STATICS)
     public static final@NotNull Object2ObjectOpenHashMap<@NotNull String,CompletableFuture<Var>>asyncLoads=new Object2ObjectOpenHashMap<>();
     public static final@NotNull Object2ObjectOpenHashMap<@NotNull String,WeakReference<Var>>vars=new Object2ObjectOpenHashMap<>();
-    public static final@NotNull Set<@NotNull Var>shouldStayLoadedVars=new HashSet<>();
+    public static final@NotNull Set<@NotNull Var>shouldStayLoadedVars=ConcurrentHashMap.newKeySet();
     static{
         Listeners.register(CoreCleanupEvent.class,Var::onCoreCleanup);
     }
@@ -91,9 +91,27 @@ public abstract class Var{
      * Nettoie les références faibles de Vars inutilisées pour éviter les fuites mémoire.
      * Appelé périodiquement par un scheduler Bukkit.
      */
-    static void cleanupVars(){
-        synchronized(vars){
-            vars.entrySet().removeIf(entry->entry.getValue().get()==null);
+    static void cleanupVars() {
+        // 2. Nettoyer d'abord les Vars dont le supplier renvoie désormais false
+        if (!shouldStayLoadedVars.isEmpty()) {
+            for (final Var var : new HashSet<>(shouldStayLoadedVars)) {
+                final CompletableFuture<Boolean> completable = var.shouldStayLoaded();
+                if (completable == null) {
+                    shouldStayLoadedVars.remove(var);
+                    continue;
+                }
+
+                completable.whenComplete((shouldStay, ex) -> {
+                    if (ex != null || !Boolean.TRUE.equals(shouldStay)) {
+                        shouldStayLoadedVars.remove(var);
+                    }
+                });
+            }
+        }
+
+        // 3. Purger les WeakReferences mortes
+        synchronized (vars) {
+            vars.entrySet().removeIf(entry -> entry.getValue().get() == null);
         }
     }
 
@@ -167,6 +185,7 @@ public abstract class Var{
     public void unload(){
         final long nanoTime=System.nanoTime();
 
+        shouldStayLoadedVars.remove(this);
         synchronized(this.data){
             this.data.clear();
         }

@@ -95,6 +95,8 @@ public final class Core extends JavaPlugin{
 //        },20L);
 
         enableFallBackWorld=Core.getInstance().getConfig().getBoolean("enableFallBackWorld",true);
+
+        onCoreInitialize(null);
     }
 
     private static void test(){
