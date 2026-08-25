@@ -182,16 +182,35 @@ public abstract class Var{
      * Décharge les données de la RAM et libère la ressource (Cleaner).
      * Après appel, l'instance n'est plus utilisable.
      */
-    public void unload(){
-        final long nanoTime=System.nanoTime();
+    public void unload() {
+        final long nanoTime = System.nanoTime();
 
+        // 1. Retirer des ensembles statiques de maintien
         shouldStayLoadedVars.remove(this);
-        synchronized(this.data){
+
+        final String pathKey = getStringPath();
+
+        // 2. Retirer de la map des vars en cache
+        synchronized (vars) {
+            WeakReference<Var> ref = vars.get(pathKey);
+            if (ref != null && ref.get() == this) {
+                vars.remove(pathKey);
+            }
+        }
+
+        // 3. Retirer des chargements async en cours
+        synchronized (asyncLoads) {
+            asyncLoads.remove(pathKey);
+        }
+
+        // 4. Vider les données internes
+        synchronized (this.data) {
             this.data.clear();
         }
+
         this.cleanable.clean();
 
-        PerformanceTracker.increment(PerformanceTracker.Types.VAR,"unload",System.nanoTime()-nanoTime);
+        PerformanceTracker.increment(PerformanceTracker.Types.VAR, "unload", System.nanoTime() - nanoTime);
     }
 
     //ABSTRACT

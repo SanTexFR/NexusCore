@@ -3,28 +3,30 @@ package fr.nexus.api.var.types.parents.normal.java;
 import fr.nexus.api.var.types.parents.InternalVarType;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
-@SuppressWarnings({"unused","UnusedReturnValue"})
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public final class UUIDType extends InternalVarType<UUID> {
-    //METHODS
-    public byte@NotNull[]serializeSync(@NotNull UUID uuid){
-        final byte[]bytes=new byte[16];
-        final long most=uuid.getMostSignificantBits(),
-                least=uuid.getLeastSignificantBits();
 
-        for(int i=0;i<8;i++){
-            bytes[i]=(byte)(most>>>(8*(7-i)));
-            bytes[8+i]=(byte)(least>>>(8*(7-i)));
-        }return addVersionToBytes(bytes);
+    @Override
+    public byte @NotNull [] serializeSync(@NotNull UUID uuid) {
+        ByteBuffer buffer = ByteBuffer.allocate(16);
+        buffer.putLong(uuid.getMostSignificantBits());
+        buffer.putLong(uuid.getLeastSignificantBits());
+        return addVersionToBytes(buffer.array());
     }
-    public@NotNull UUID deserializeSync(int version,byte[]bytes){
-        if(version==1){
-            long most=0,least=0;
-            for(int i=0;i<8;i++){
-                most=(most<<8)|(bytes[i]&0xFF);
-                least=(least<<8)|(bytes[8+i]&0xFF);
-            }return new UUID(most,least);
-        }else throw createUnsupportedVersionException(version);
+
+    @Override
+    public @NotNull UUID deserializeSync(int version, byte[] bytes) {
+        if (version == 1) {
+            if (bytes.length < 16) {
+                throw new IllegalArgumentException("Buffer trop court pour un UUID (" + bytes.length + " octets)");
+            }
+            ByteBuffer buffer = ByteBuffer.wrap(bytes);
+            return new UUID(buffer.getLong(), buffer.getLong());
+        } else {
+            throw createUnsupportedVersionException(version);
+        }
     }
 }
