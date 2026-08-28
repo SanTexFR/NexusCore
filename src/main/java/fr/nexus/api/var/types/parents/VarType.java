@@ -41,23 +41,44 @@ public abstract class VarType<T>extends VarVersion implements VarSubType<T>,Vars
         super(version);
         init(handler,typeClazz);
     }
-    private void init(@NotNull Plugin handler,@NotNull Class<@NotNull T>typeClazz){
-        this.handler=handler;
-        this.typeClazz=typeClazz;
+    private void init(@NotNull Plugin handler, @NotNull Class<@NotNull T> typeClazz) {
+        this.handler = handler;
+        this.typeClazz = typeClazz;
 
-        types.put(getStringType(),this);
+        types.put(getStringType(), this);
 
-        final VarSubType<?>list=lists();
-        types.put(list.getStringType(),list);
+        final VarSubType<?> list = lists();
+        types.put(list.getStringType(), list);
 
-        final VarSubType<?>arrays=arrays();
-        types.put(arrays.getStringType(),arrays);
+        final VarSubType<?> arrays = arrays();
+        types.put(arrays.getStringType(), arrays);
 
-        final VarSubType<?>sets=sets();
-        types.put(sets.getStringType(),sets);
+        final VarSubType<?> sets = sets();
+        types.put(sets.getStringType(), sets);
 
-        final VarSubType<?>linked_sets=linked_sets();
-        types.put(linked_sets.getStringType(),linked_sets);
+        final VarSubType<?> linked_sets = linked_sets();
+        types.put(linked_sets.getStringType(), linked_sets);
+
+        final VarSubType<?> tree_sets = tree_sets();
+        types.put(tree_sets.getStringType(), tree_sets);
+
+        final VarSubType<?> concurrent_skip_list_sets = concurrent_skip_list_sets();
+        types.put(concurrent_skip_list_sets.getStringType(), concurrent_skip_list_sets);
+
+        final VarSubType<?> concurrent_sets = concurrent_sets();
+        types.put(concurrent_sets.getStringType(), concurrent_sets);
+
+        final VarSubType<?> priority_queues = priority_queues();
+        types.put(priority_queues.getStringType(), priority_queues);
+
+        final VarSubType<?> priority_blocking_queues = priority_blocking_queues();
+        types.put(priority_blocking_queues.getStringType(), priority_blocking_queues);
+
+        final VarSubType<?> array_deques = array_deques();
+        types.put(array_deques.getStringType(), array_deques);
+
+        final VarSubType<?> stacks = stacks();
+        types.put(stacks.getStringType(), stacks);
     }
 
 
