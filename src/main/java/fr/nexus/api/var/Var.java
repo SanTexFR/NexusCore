@@ -145,6 +145,23 @@ public abstract class Var{
             });
         }
     }
+
+    public void refreshStayLoadedState() {
+        if (this.shouldStayLoadedSupplier != null) {
+            this.shouldStayLoadedSupplier.get().thenAccept(bool -> {
+                if (bool) {
+                    shouldStayLoadedVars.add(this);
+                } else {
+                    shouldStayLoadedVars.remove(this);
+                }
+
+                if (this.onShouldStayLoadedChanged != null) {
+                    this.onShouldStayLoadedChanged.accept(bool);
+                }
+            });
+        }
+    }
+
     public@Nullable CompletableFuture<@NotNull Boolean>shouldStayLoaded(){
         return this.shouldStayLoadedSupplier!=null?this.shouldStayLoadedSupplier.get():null;
     }
