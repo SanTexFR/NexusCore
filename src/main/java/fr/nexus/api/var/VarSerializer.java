@@ -31,13 +31,31 @@ public class VarSerializer {
     public static final ExecutorService LOOM_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
     private static final String SIG_SEP = "§";
 
-    // --- FAST BUFFER V2 (String Optimized) ---
+    // Gestion de la RAM pour éviter les fuites sur les gros objets
+    private static final int INITIAL_BUFFER_CAPACITY = 4096;
+    private static final int MAX_POOLED_BUFFER_CAPACITY = 1024 * 1024; // 1 MB max conservé en idle
+
+    private static final ThreadLocal<FastBuffer> BUFFER_THREAD_LOCAL =
+            ThreadLocal.withInitial(() -> new FastBuffer(INITIAL_BUFFER_CAPACITY));
+
+    // --- FAST BUFFER V2 (String Optimized & Pooled) ---
     private static class FastBuffer extends OutputStream {
         byte[] buf;
         int count;
 
         public FastBuffer(int size) {
             this.buf = new byte[size];
+        }
+
+        public void reset() {
+            this.count = 0;
+            // CECI NE CRASH PAS LA SERIALISATION !
+            // C'est appelé UNIQUEMENT à la fin de l'opération (ou au début d'une nouvelle).
+            // Si le tableau précédent a grossi au-delà de 1 Mo (ex: gros inventaire sauvegardé),
+            // on libère cette énorme RAM pour ne pas la stocker indéfiniment.
+            if (this.buf.length > MAX_POOLED_BUFFER_CAPACITY) {
+                this.buf = new byte[INITIAL_BUFFER_CAPACITY];
+            }
         }
 
         @Override
@@ -53,19 +71,8 @@ public class VarSerializer {
             count += len;
         }
 
-        // OPTI 1: Écriture directe de String sans allocation intermédiaire (Zero-Copy)
-        // Gère l'UTF-8 basique (optimisé pour ASCII/Latin-1 qui couvre 99% des clés)
         public void writeStringFast(String s) {
             int len = s.length();
-            // Estimation pessimiste : 3 bytes par char max en UTF-8 standard
-            int maxByteLen = len * 3;
-
-            // On écrit la longueur (VarInt) "plus tard" ou on déplace les bytes ?
-            // Pour la vitesse, on écrit d'abord la taille en bytes.
-            // Problème : on ne connait pas la taille en bytes avant d'encoder.
-            // Solution "Speed" : Si ASCII pur, len == byteLen. Sinon on calcule.
-
-            // Check rapide isAscii (heuristique)
             boolean isAscii = true;
             for (int i = 0; i < len; i++) {
                 if (s.charAt(i) > 0x7F) {
@@ -75,32 +82,23 @@ public class VarSerializer {
             }
 
             if (isAscii) {
-                // Hot Path : ASCII
                 writeVarIntFast(len);
                 if (count + len > buf.length) grow(count + len);
-                // Unroll manuel ou getBytes deprecated (hibernation)
-                // Le plus rapide sur HotSpot moderne pour l'ASCII pur vers byte[] :
                 s.getBytes(0, len, buf, count);
                 count += len;
             } else {
-                // Slow Path : UTF-8 complexe (fallback)
                 byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
                 writeVarIntFast(bytes.length);
                 write(bytes, 0, bytes.length);
             }
         }
 
-        // OPTI 3: VarInt "Unrolled" pour les petites valeurs
         public void writeVarIntFast(int value) {
             if (count + 5 > buf.length) grow(count + 5);
-
-            // Hot Path : Valeur < 128 (1 byte)
             if ((value & 0xFFFFFF80) == 0) {
                 buf[count++] = (byte) value;
                 return;
             }
-
-            // Regular Path
             while ((value & 0xFFFFFF80) != 0) {
                 buf[count++] = (byte) ((value & 0x7F) | 0x80);
                 value >>>= 7;
@@ -120,17 +118,13 @@ public class VarSerializer {
         }
     }
 
-    // --- CONTEXTE ---
     private static class TypeContext {
         FastBuffer buffer;
         Vars sampleType;
         int count = 0;
-        // Pour le batch async
         List<Object> asyncValuesToProcess;
         List<String> asyncKeysToProcess;
     }
-
-    // --- SAVE OPTIMISÉ V6 (BATCHING) ---
 
     public static byte[] serializeDataSync(@NotNull Object2ObjectOpenHashMap<@NotNull String, @NotNull VarEntry<?>> data) {
         return serializeDataAsync(data).join();
@@ -138,18 +132,14 @@ public class VarSerializer {
 
     public static @NotNull CompletableFuture<byte[]> serializeDataAsync(
             @NotNull Object2ObjectOpenHashMap<@NotNull String, @NotNull VarEntry<?>> data) {
-
         if (data.isEmpty()) return CompletableFuture.completedFuture(new byte[0]);
-
         return CompletableFuture.supplyAsync(() -> serializeInternal(data), LOOM_EXECUTOR);
     }
 
     private static byte[] serializeInternal(Object2ObjectOpenHashMap<String, VarEntry<?>> data) {
-        // IdentityHashMap est essentiel ici pour la vitesse de lookup par référence
         final IdentityHashMap<Vars, TypeContext> contextCache = new IdentityHashMap<>(data.size());
-        final Map<String, TypeContext> signatureGroups = new HashMap<>(); // Standard Map pour les signatures string
+        final Map<String, TypeContext> signatureGroups = new HashMap<>();
 
-        // PASS 1 : Grouping & Sync Writing
         for (var entry : data.object2ObjectEntrySet()) {
             VarEntry<?> varEntry = entry.getValue();
             if (!varEntry.persistent()) continue;
@@ -162,7 +152,7 @@ public class VarSerializer {
                 ctx = signatureGroups.get(signature);
                 if (ctx == null) {
                     ctx = new TypeContext();
-                    ctx.buffer = new FastBuffer(4096); // Taille initiale modérée
+                    ctx.buffer = new FastBuffer(INITIAL_BUFFER_CAPACITY);
                     ctx.sampleType = type;
                     signatureGroups.put(signature, ctx);
                 }
@@ -170,11 +160,9 @@ public class VarSerializer {
             }
 
             if (!type.needAsync()) {
-                // SYNC : On écrit tout de suite
                 ctx.buffer.writeStringFast(entry.getKey());
 
                 byte[] valueBytes;
-                // Polymorphisme manuel pour éviter l'appel virtuel couteux si possible
                 if (type.isWrapper()) {
                     valueBytes = ((VarSubType<Object>) type).serializeSync(varEntry.value());
                 } else {
@@ -184,7 +172,6 @@ public class VarSerializer {
                 ctx.buffer.write(valueBytes, 0, valueBytes.length);
                 ctx.count++;
             } else {
-                // ASYNC : On ne lance PAS de Future ici. On stocke pour plus tard. (Batching)
                 if (ctx.asyncValuesToProcess == null) {
                     ctx.asyncValuesToProcess = new ArrayList<>();
                     ctx.asyncKeysToProcess = new ArrayList<>();
@@ -194,22 +181,19 @@ public class VarSerializer {
             }
         }
 
-        // PASS 2 : Batch Async Processing
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         for (TypeContext ctx : signatureGroups.values()) {
             if (ctx.asyncValuesToProcess != null && !ctx.asyncValuesToProcess.isEmpty()) {
                 final TypeContext targetCtx = ctx;
                 CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                    // On estime la taille : nombre d'items * 128 bytes
                     FastBuffer localBuf = new FastBuffer(targetCtx.asyncValuesToProcess.size() * 128);
                     Vars type = targetCtx.sampleType;
-
                     int size = targetCtx.asyncValuesToProcess.size();
+
                     for (int i = 0; i < size; i++) {
                         String key = targetCtx.asyncKeysToProcess.get(i);
                         Object val = targetCtx.asyncValuesToProcess.get(i);
-
                         localBuf.writeStringFast(key);
 
                         byte[] bytes;
@@ -223,11 +207,9 @@ public class VarSerializer {
                         localBuf.write(bytes, 0, bytes.length);
                     }
 
-                    // CORRECTION ICI : Utiliser un bloc synchronisé pour éviter tout problème si le design change,
-                    // et surtout on AJOUTE (append) au buffer et au compteur !
                     synchronized (targetCtx) {
                         targetCtx.buffer.write(localBuf.buf, 0, localBuf.count);
-                        targetCtx.count += size; // <-- CORRECTION : += au lieu de =
+                        targetCtx.count += size;
                     }
 
                 }, LOOM_EXECUTOR);
@@ -235,22 +217,16 @@ public class VarSerializer {
             }
         }
 
-        // Wait for all batches
         if (!futures.isEmpty()) {
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         }
 
-        // PASS 3 : Final Assembly (Zero-Copy Sizing)
-        int totalSize = 4; // Header LZ4
-        for (TypeContext ctx : signatureGroups.values()) {
-            totalSize += 100 + ctx.buffer.count;
-        }
-
-        FastBuffer mainBuffer = new FastBuffer(totalSize);
+        // On réutilise le buffer du thread courant sans allouer un nouveau byte[] énorme !
+        FastBuffer mainBuffer = BUFFER_THREAD_LOCAL.get();
+        mainBuffer.reset();
 
         try {
             for (TypeContext ctx : signatureGroups.values()) {
-                // On écrit le header du type uniquement si on a des éléments dedans
                 if (ctx.count > 0) {
                     writeTypeHeader(mainBuffer, ctx.sampleType);
                     mainBuffer.writeVarIntFast(ctx.count);
@@ -279,14 +255,10 @@ public class VarSerializer {
                 final byte[] newData = decompress(serializedData);
                 final ByteBuffer buffer = ByteBuffer.wrap(newData);
 
-                // Liste batchée pour éviter le lock contention sur data.put
-                // On utilise un simple ArrayList car on est thread-confined
                 ArrayList<Map.Entry<String, VarEntry<?>>> syncEntries = new ArrayList<>();
                 List<CompletableFuture<Map.Entry<String, VarEntry<?>>>> asyncFutures = new ArrayList<>();
 
                 while (buffer.hasRemaining()) {
-
-                    // On déclare les variables de contexte ici pour pouvoir les utiliser dans le catch !
                     String currentTypeStr = "inconnu";
                     String currentKey = "inconnue";
 
@@ -298,7 +270,7 @@ public class VarSerializer {
                             currentTypeStr = readStringFast(buffer);
                             groupType = VarType.getTypes().get(currentTypeStr);
                             if (groupType == null) {
-                                System.err.println("[NexusCore] Type inconnu trouvé dans le fichier : " + currentTypeStr);
+                                System.err.println("[NexusCore] Type inconnu trouvé : " + currentTypeStr);
                                 continue;
                             }
                         } else {
@@ -306,8 +278,7 @@ public class VarSerializer {
                             String keyTypeStr = readStringFast(buffer);
                             String valueTypeStr = readStringFast(buffer);
 
-                            currentTypeStr = "Map<" + mapTypeStr + ", " + keyTypeStr + ", " + valueTypeStr + ">"; // Pour le debug
-
+                            currentTypeStr = "Map<" + mapTypeStr + ", " + keyTypeStr + ", " + valueTypeStr + ">";
                             groupType = new MapVarType<>(MapType.getTypes().get(mapTypeStr),
                                     VarType.getTypes().get(keyTypeStr),
                                     VarType.getTypes().get(valueTypeStr));
@@ -318,20 +289,19 @@ public class VarSerializer {
                         boolean needAsync = groupType.needAsync();
 
                         for (int i = 0; i < count; i++) {
-                            currentKey = readStringFast(buffer); // On sauvegarde la clé courante
+                            currentKey = readStringFast(buffer);
                             byte[] valueByte = readByteArray(buffer);
 
                             if (!needAsync) {
                                 Object value = isWrapper
                                         ? ((VarSubType<Object>) groupType).deserializeSync(valueByte)
                                         : ((MapVarType<Object, Object>) groupType).deserializeSync(valueByte);
-
                                 if (value != null) {
                                     syncEntries.add(new AbstractMap.SimpleEntry<>(currentKey, new VarEntry<>(value, groupType, true)));
                                 }
                             } else {
                                 final Vars finalType = groupType;
-                                final String finalKey = currentKey; // Nécessaire pour la lambda
+                                final String finalKey = currentKey;
                                 CompletableFuture<?> valFuture = isWrapper
                                         ? ((VarSubType<Object>) finalType).deserializeAsync(valueByte)
                                         : ((MapVarType<Object, Object>) finalType).deserializeAsync(valueByte);
@@ -344,22 +314,15 @@ public class VarSerializer {
                         }
                     } catch (Exception e) {
                         System.err.println("[NexusCore] 🚨 ERREUR CRITIQUE DE DESERIALISATION 🚨");
-                        System.err.println("[NexusCore] Type en cours : " + currentTypeStr);
-                        System.err.println("[NexusCore] Clé en cours (si planté dans la boucle) : " + currentKey);
-                        System.err.println("[NexusCore] Message : " + e.getMessage());
-
-                        // Affiche la ligne exacte du crash
                         e.printStackTrace();
                         break;
                     }
                 }
 
-                // Insertion massive Sync
                 synchronized(data) {
                     for (var entry : syncEntries) data.put(entry.getKey(), entry.getValue());
                 }
 
-                // Wait Async
                 if (!asyncFutures.isEmpty()) {
                     CompletableFuture.allOf(asyncFutures.toArray(new CompletableFuture[0])).join();
                     synchronized(data) {
@@ -376,15 +339,11 @@ public class VarSerializer {
         }, LOOM_EXECUTOR);
     }
 
-    // --- HELPERS & COMPRESSION ---
-
     private static String getSignature(Vars type) {
         if (type.isWrapper()) {
             return "W" + SIG_SEP + type.getStringType();
         } else {
             MapVarType<?, ?> mapVar = (MapVarType<?, ?>) type;
-            // Optimisation : String concat est convertie en StringBuilder par javac
-            // C'est suffisant ici car c'est du "Cold Path" (appelé 1 fois par type)
             return "M" + SIG_SEP + mapVar.getVarMapType().getStringType() + SIG_SEP
                     + mapVar.getKeyVarType().getStringType() + SIG_SEP
                     + mapVar.getValueVarType().getStringType();
@@ -403,11 +362,9 @@ public class VarSerializer {
         }
     }
 
-    // Lecture optimisée sans allocation byte[] si possible
     private static String readStringFast(ByteBuffer buffer) {
         int length = IntegerType.fromVarInt(buffer);
         if (buffer.hasArray()) {
-            // ZERO-COPY from buffer
             String s = new String(buffer.array(), buffer.arrayOffset() + buffer.position(), length, StandardCharsets.UTF_8);
             buffer.position(buffer.position() + length);
             return s;
@@ -419,21 +376,17 @@ public class VarSerializer {
 
     private static byte[] readByteArray(ByteBuffer buffer) {
         int length = IntegerType.fromVarInt(buffer);
-        if (length < 0 || length > buffer.remaining()) {
-            throw new RuntimeException("Taille invalide : " + length);
-        }
+        if (length < 0 || length > buffer.remaining()) throw new RuntimeException("Taille invalide : " + length);
         byte[] bytes = new byte[length];
         buffer.get(bytes);
         return bytes;
     }
+
     private static byte[] compress(byte[] input, int length) {
-        // LZ4 Compression avec zéro allocation superflue
         int maxCompressedLength = COMPRESSOR.maxCompressedLength(length);
         byte[] compressed = new byte[maxCompressedLength + 4];
         ByteBuffer.wrap(compressed).putInt(length);
         int compressedLength = COMPRESSOR.compress(input, 0, length, compressed, 4, maxCompressedLength);
-
-        // On retourne la taille exacte pour le réseau/disque
         return Arrays.copyOf(compressed, compressedLength + 4);
     }
 

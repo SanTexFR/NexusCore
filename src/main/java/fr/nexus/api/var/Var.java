@@ -27,72 +27,63 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @SuppressWarnings({"unused","UnusedReturnValue","unchecked"})
-public abstract class Var{
+public abstract class Var {
     //VARIABLES (STATICS)
-    public static final@NotNull Object2ObjectOpenHashMap<@NotNull String,CompletableFuture<Var>>asyncLoads=new Object2ObjectOpenHashMap<>();
-    public static final@NotNull Object2ObjectOpenHashMap<@NotNull String,WeakReference<Var>>vars=new Object2ObjectOpenHashMap<>();
-    public static final@NotNull Set<@NotNull Var>shouldStayLoadedVars=ConcurrentHashMap.newKeySet();
-    static{
-        Listeners.register(CoreCleanupEvent.class,Var::onCoreCleanup);
+    public static final @NotNull Object2ObjectOpenHashMap<@NotNull String, CompletableFuture<Var>> asyncLoads = new Object2ObjectOpenHashMap<>();
+    public static final @NotNull Object2ObjectOpenHashMap<@NotNull String, WeakReference<Var>> vars = new Object2ObjectOpenHashMap<>();
+    public static final @NotNull Set<@NotNull Var> shouldStayLoadedVars = ConcurrentHashMap.newKeySet();
+
+    static {
+        Listeners.register(CoreCleanupEvent.class, Var::onCoreCleanup);
     }
 
     //VARIABLES (INSTANCES)
-    protected final@NotNull Object2ObjectOpenHashMap<@NotNull String,@NotNull VarEntry<?>>data=new Object2ObjectOpenHashMap<>();
-    private final@NotNull Path path;
+    protected final @NotNull Object2ObjectOpenHashMap<@NotNull String, @NotNull VarEntry<?>> data = new Object2ObjectOpenHashMap<>();
+    private final @NotNull Path path;
     private boolean dirty;
     private @Nullable Supplier<CompletableFuture<Boolean>> shouldStayLoadedSupplier;
     private @Nullable Consumer<Boolean> onShouldStayLoadedChanged;
 
-    private final@NotNull Cleaner.Cleanable cleanable;
+    private final @NotNull Cleaner.Cleanable cleanable;
 
     //CONSTRUCTOR
-    protected Var(@NotNull Path path,@NotNull Runnable cleanupRunnable){
-        this.path=path;
+    protected Var(@NotNull Path path, @NotNull Runnable cleanupRunnable) {
+        this.path = path;
+        this.cleanable = Core.getCleaner().register(this, cleanupRunnable);
 
-        this.cleanable=Core.getCleaner().register(this,cleanupRunnable);
-
-        Core.getServerImplementation().global().runDelayed(()->{
-            final CompletableFuture<Boolean>completable=shouldStayLoaded();
-            if(completable!=null)completable.thenAccept(bool->{
-                if(bool)shouldStayLoadedVars.add(this);
+        Core.getServerImplementation().global().runDelayed(() -> {
+            final CompletableFuture<Boolean> completable = shouldStayLoaded();
+            if (completable != null) completable.thenAccept(bool -> {
+                if (bool) shouldStayLoadedVars.add(this);
             });
-        },1L);
+        }, 1L);
     }
 
-    //METHODS (STATICS)
-
     //LISTENERS
-    private static void onCoreCleanup(CoreCleanupEvent e){
-        if(shouldStayLoadedVars.isEmpty()){
+    private static void onCoreCleanup(CoreCleanupEvent e) {
+        if (shouldStayLoadedVars.isEmpty()) {
             cleanupVars();
             return;
         }
 
-        final AtomicInteger remaining=new AtomicInteger(shouldStayLoadedVars.size());
-        for(final Var var:new HashSet<>(shouldStayLoadedVars)){
-            final CompletableFuture<Boolean>completable=var.shouldStayLoaded();
-            if(completable==null){
-                if(remaining.decrementAndGet()==0)cleanupVars();
+        final AtomicInteger remaining = new AtomicInteger(shouldStayLoadedVars.size());
+        for (final Var var : new HashSet<>(shouldStayLoadedVars)) {
+            final CompletableFuture<Boolean> completable = var.shouldStayLoaded();
+            if (completable == null) {
+                if (remaining.decrementAndGet() == 0) cleanupVars();
                 continue;
             }
 
-            completable.thenAccept(bool->{
-                if(!bool)shouldStayLoadedVars.remove(var);
-
-                if(remaining.decrementAndGet()==0)cleanupVars();
+            completable.thenAccept(bool -> {
+                if (!bool) shouldStayLoadedVars.remove(var);
+                if (remaining.decrementAndGet() == 0) cleanupVars();
             });
         }
-
         cleanupVars();
     }
 
     //OTHERS
-    /**
-     * Nettoie les références faibles de Vars inutilisées pour éviter les fuites mémoire.
-     * Appelé périodiquement par un scheduler Bukkit.
-     */
     static void cleanupVars() {
-        // 2. Nettoyer d'abord les Vars dont le supplier renvoie désormais false
         if (!shouldStayLoadedVars.isEmpty()) {
             for (final Var var : new HashSet<>(shouldStayLoadedVars)) {
                 final CompletableFuture<Boolean> completable = var.shouldStayLoaded();
@@ -100,7 +91,6 @@ public abstract class Var{
                     shouldStayLoadedVars.remove(var);
                     continue;
                 }
-
                 completable.whenComplete((shouldStay, ex) -> {
                     if (ex != null || !Boolean.TRUE.equals(shouldStay)) {
                         shouldStayLoadedVars.remove(var);
@@ -108,37 +98,29 @@ public abstract class Var{
                 });
             }
         }
-
-        // 3. Purger les WeakReferences mortes
         synchronized (vars) {
             vars.entrySet().removeIf(entry -> entry.getValue().get() == null);
         }
     }
 
-    private static boolean isDefaultOrEmpty(@Nullable Object value){
-        if(value==null)return true;
-        if(value instanceof Boolean b)return !b;
-        if(value instanceof java.util.Collection<?> c)return c.isEmpty();
-        if(value instanceof java.util.Map<?,?> m)return m.isEmpty();
-        if(value instanceof String s)return s.isEmpty();
-        if(value.getClass().isArray())return java.lang.reflect.Array.getLength(value)==0;
+    private static boolean isDefaultOrEmpty(@Nullable Object value) {
+        if (value == null) return true;
+        if (value instanceof Boolean b) return !b;
+        if (value instanceof java.util.Collection<?> c) return c.isEmpty();
+        if (value instanceof java.util.Map<?, ?> m) return m.isEmpty();
+        if (value instanceof String s) return s.isEmpty();
+        if (value.getClass().isArray()) return java.lang.reflect.Array.getLength(value) == 0;
         return false;
     }
-
-    //METHODS (INSTANCES)
 
     //UTILS
     public void setShouldStayLoadedSupplier(@Nullable Supplier<CompletableFuture<@NotNull Boolean>> supplier) {
         this.shouldStayLoadedSupplier = supplier;
         if (supplier != null) {
             supplier.get().thenAccept(bool -> {
-                if (bool) {
-                    shouldStayLoadedVars.add(this);
-                } else {
-                    shouldStayLoadedVars.remove(this);
-                }
+                if (bool) shouldStayLoadedVars.add(this);
+                else shouldStayLoadedVars.remove(this);
 
-                // Notification automatique du backend
                 if (this.onShouldStayLoadedChanged != null) {
                     this.onShouldStayLoadedChanged.accept(bool);
                 }
@@ -149,11 +131,8 @@ public abstract class Var{
     public void refreshStayLoadedState() {
         if (this.shouldStayLoadedSupplier != null) {
             this.shouldStayLoadedSupplier.get().thenAccept(bool -> {
-                if (bool) {
-                    shouldStayLoadedVars.add(this);
-                } else {
-                    shouldStayLoadedVars.remove(this);
-                }
+                if (bool) shouldStayLoadedVars.add(this);
+                else shouldStayLoadedVars.remove(this);
 
                 if (this.onShouldStayLoadedChanged != null) {
                     this.onShouldStayLoadedChanged.accept(bool);
@@ -162,332 +141,197 @@ public abstract class Var{
         }
     }
 
-    public@Nullable CompletableFuture<@NotNull Boolean>shouldStayLoaded(){
-        return this.shouldStayLoadedSupplier!=null?this.shouldStayLoadedSupplier.get():null;
+    public @Nullable CompletableFuture<@NotNull Boolean> shouldStayLoaded() {
+        return this.shouldStayLoadedSupplier != null ? this.shouldStayLoadedSupplier.get() : null;
     }
 
     public void setOnShouldStayLoadedChanged(@Nullable Consumer<Boolean> listener) {
         this.onShouldStayLoadedChanged = listener;
     }
 
-    //SAVE
-    /**
-     * Retourne si des modifications ont été faites depuis le dernier save.
-     */
-    public boolean isDirty(){
+    public boolean isDirty() {
         return this.dirty;
     }
-    /**
-     * Définit l'état dirty de la variable.
-     *
-     * @param value true si l'objet doit être marqué comme modifié
-     */
-    public void setDirty(boolean value){
-        this.dirty =value;
+
+    public void setDirty(boolean value) {
+        this.dirty = value;
     }
 
-    //PATH
-    public@NotNull Path getPath(){
+    public @NotNull Path getPath() {
         return this.path;
     }
-    public@NotNull String getStringPath(){
+
+    public @NotNull String getStringPath() {
         return getPath().toString();
     }
 
-    //DATA
-    /**
-     * Décharge les données de la RAM et libère la ressource (Cleaner).
-     * Après appel, l'instance n'est plus utilisable.
-     */
     public void unload() {
         final long nanoTime = System.nanoTime();
-
-        // 1. Retirer des ensembles statiques de maintien
         shouldStayLoadedVars.remove(this);
-
         final String pathKey = getStringPath();
-
-        // 2. Retirer de la map des vars en cache
         synchronized (vars) {
             WeakReference<Var> ref = vars.get(pathKey);
-            if (ref != null && ref.get() == this) {
-                vars.remove(pathKey);
-            }
+            if (ref != null && ref.get() == this) vars.remove(pathKey);
         }
-
-        // 3. Retirer des chargements async en cours
         synchronized (asyncLoads) {
             asyncLoads.remove(pathKey);
         }
-
-        // 4. Vider les données internes
         synchronized (this.data) {
             this.data.clear();
         }
-
         this.cleanable.clean();
-
         PerformanceTracker.increment(PerformanceTracker.Types.VAR, "unload", System.nanoTime() - nanoTime);
     }
 
-    //ABSTRACT
-    /**
-     * Sauvegarde synchrone (bloquante). Dépréciée, car peut geler le serveur.
-     * <p>
-     * Note : cette méthode prend déjà en compte l'état {@link #isDirty()}.
-     * Si l'objet n'est pas dirty, aucun write n'est effectué.
-     */
+    //ABSTRACT SAVES
     public abstract void saveSync();
+
     /**
-     * Sauvegarde l'objet de manière asynchrone (non bloquante).
-     * L'implémentation concrète dépend de la sous-classe (ex : {@link VarFile}, {@link VarSql}).
-     * Retourne un {@link CompletableFuture} qui s'exécute en tâche de fond et
-     * permet d'ajouter un callback (thenRun, thenAccept, etc.).
-     * <p>
-     * Note : cette méthode prend déjà en compte l'état {@link #isDirty()}.
-     * Si l'objet n'est pas dirty, la sauvegarde est ignorée.
-     *
-     * @return un CompletableFuture terminé lorsque la sauvegarde est effectuée
+     * Sauvegarde asynchrone standard.
+     * Peut être mise en file d'attente ou optimisée par le backend.
      */
-    public abstract@NotNull CompletableFuture<@Nullable Void>saveAsync();
+    public abstract @NotNull CompletableFuture<@Nullable Void> saveAsync();
+
+    /**
+     * Force une sauvegarde asynchrone immédiate de CET objet précisément,
+     * sans passer par un système de batching global.
+     */
+    public abstract @NotNull CompletableFuture<@Nullable Void> forceSaveAsync();
 
     //VALUE
-    /**
-     * Retourne l'ensemble de toutes les clés actuellement présentes dans cette instance.
-     *
-     * @return un Set non nul des clés
-     */
-    public@NotNull Set<@NotNull String>getKeys(){
-        synchronized(this.data){
+    public @NotNull Set<@NotNull String> getKeys() {
+        synchronized (this.data) {
             return this.data.keySet();
         }
-
     }
 
-    public void clear(){
+    public void clear() {
         setDirty(true);
-
         this.data.clear();
     }
-    /**
-     * Vérifie si une clé donnée est présente dans cette instance.
-     *
-     * @param key la clé à tester
-     * @return true si la clé existe, false sinon
-     */
-    public boolean contains(@NotNull String key){
-        synchronized(this.data){
+
+    public boolean contains(@NotNull String key) {
+        synchronized (this.data) {
             return this.data.containsKey(key);
         }
     }
-    /**
-     * Supprime une clé et sa valeur associée.
-     *
-     * @param key la clé à supprimer
-     */
-    public void remove(@NotNull String key){
-        final long nanoTime=System.nanoTime();
+
+    public void remove(@NotNull String key) {
+        final long nanoTime = System.nanoTime();
         boolean changed;
-
-        synchronized(this.data){
-            changed=this.data.remove(key)!=null;
+        synchronized (this.data) {
+            changed = this.data.remove(key) != null;
         }
+        if (!changed) return;
 
-        if(!changed)return;
-
-        if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.NONE,key,null));
-        else Core.getServerImplementation().global().run(()->
-                Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.NONE,key,null)));
-
-        PerformanceTracker.increment(PerformanceTracker.Types.VAR,"remove",System.nanoTime()-nanoTime);
+        if (Bukkit.isPrimaryThread()) Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.NONE, key, null));
+        else Core.getServerImplementation().global().run(() ->
+                Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.NONE, key, null)));
+        PerformanceTracker.increment(PerformanceTracker.Types.VAR, "remove", System.nanoTime() - nanoTime);
     }
-    private void removeWithoutEvent(@NotNull String key){
-        final long nanoTime=System.nanoTime();
 
-        synchronized(this.data){
+    private void removeWithoutEvent(@NotNull String key) {
+        final long nanoTime = System.nanoTime();
+        synchronized (this.data) {
             this.data.remove(key);
         }
-        PerformanceTracker.increment(PerformanceTracker.Types.VAR,"removeWithoutEvent",System.nanoTime()-nanoTime);
+        PerformanceTracker.increment(PerformanceTracker.Types.VAR, "removeWithoutEvent", System.nanoTime() - nanoTime);
     }
 
-    /**
-     * Définit une valeur.
-     * Déclenche également un {@link DataSetEvent} pour notifier les listeners
-     * Bukkit d'un changement de valeur.
-     * - Si value != null : la valeur est stockée avec son type.
-     * - Si value == null : la clé est supprimée.
-     * Marque aussi l'objet comme "dirty" (à sauvegarder).
-     *
-     * @param type le type de la valeur (VarSubType)
-     * @param key la clé unique de la valeur
-     * @param value la valeur à stocker, ou null pour supprimer
-     * @param <V> le type de la valeur
-     */
-    public<V>void setValue(@NotNull VarSubType<V>type,@NotNull String key,@Nullable V value){
-        setValue(type,key,value,true);
+    public <V> void setValue(@NotNull VarSubType<V> type, @NotNull String key, @Nullable V value) {
+        setValue(type, key, value, true);
     }
-    public<V>void setValue(@NotNull VarSubType<V>type,@NotNull String key,@Nullable V value,boolean isPersistent){
-        if(Core.isOptimizeVarStorage()&&isDefaultOrEmpty(value))value=null;
-        boolean changed=false;
 
-        synchronized(this.data){
-            VarEntry<?>oldEntry=this.data.get(key);
+    public <V> void setValue(@NotNull VarSubType<V> type, @NotNull String key, @Nullable V value, boolean isPersistent) {
+        if (Core.isOptimizeVarStorage() && isDefaultOrEmpty(value)) value = null;
+        boolean changed = false;
 
-            if(value!=null){
+        synchronized (this.data) {
+            VarEntry<?> oldEntry = this.data.get(key);
+            if (value != null) {
                 if (oldEntry != null && oldEntry.type().equals(type)) {
-                    if (oldEntry.value() != value && Objects.equals(oldEntry.value(), value)) {
-                        return;
-                    }
+                    if (oldEntry.value() != value && Objects.equals(oldEntry.value(), value)) return;
                 }
-
-                this.data.put(key,new VarEntry<>(value,type,isPersistent));
-                changed=true;
-            }else{
-                if(oldEntry!=null){
+                this.data.put(key, new VarEntry<>(value, type, isPersistent));
+                changed = true;
+            } else {
+                if (oldEntry != null) {
                     this.data.remove(key);
-                    changed=true;
+                    changed = true;
                 }
             }
         }
 
-        if(!changed)return;
-
+        if (!changed) return;
         setDirty(true);
 
-        if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.WRAPPER,key,value));
-        else{
-            final V finalValue=value;
-            Core.getServerImplementation().global().run(()->Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.WRAPPER,key,finalValue)));
+        if (Bukkit.isPrimaryThread()) Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.WRAPPER, key, value));
+        else {
+            final V finalValue = value;
+            Core.getServerImplementation().global().run(() -> Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.WRAPPER, key, finalValue)));
         }
     }
 
-    /**
-     * Récupère une valeur typée stockée dans l'instance.
-     *
-     * @param type le type attendu (permet de vérifier la compatibilité).
-     * @param key la clé associée
-     * @param <T> le type de retour
-     * @return la valeur si présente et du bon type, sinon null
-     */
-    public@Nullable<T>T getValue(@NotNull VarSubType<@NotNull T>type,@NotNull String key){
-        final VarEntry<?>entry;
-        synchronized(this.data){
-            entry=this.data.get(key);
+    public @Nullable <T> T getValue(@NotNull VarSubType<@NotNull T> type, @NotNull String key) {
+        final VarEntry<?> entry;
+        synchronized (this.data) {
+            entry = this.data.get(key);
         }
-
-        if(entry==null||!entry.type().equals(type))return null;
-
-        return(T)entry.value();
-    }
-    /**
-     * Récupère une valeur typée stockée dans la variable.
-     * Si elle n'existe pas où est d'un autre type, retourne une valeur par défaut.
-     *
-     * @param type le type attendu
-     * @param key la clé associée
-     * @param def la valeur par défaut à retourner si absente
-     * @param <T> le type de retour
-     * @return la valeur stockée ou def si absente/invalide
-     */
-    public@NotNull<T>T getValue(@NotNull VarSubType<T>type,@NotNull String key,@NotNull T def){
-        return Objects.requireNonNullElse(getValue(type,key),def);
+        if (entry == null || !entry.type().equals(type)) return null;
+        return (T) entry.value();
     }
 
-    //VALUE-MAP
-    /**
-     * Définit une Map.
-     * Déclenche un {@link DataSetEvent}.
-     * - Si map != null : stocke la map avec ses types (clé/valeur).
-     * - Si map == null : supprime la clé.
-     * Marque l'objet comme "dirty".
-     *
-     * @param mapType type de map (HashMap, ConcurrentHashMap, etc.)
-     * @param keyType type des clés de la map
-     * @param valueType type des valeurs de la map
-     * @param key la clé associée
-     * @param map la map à stocker (ou null pour supprimer)
-     * @param <T> type des clés
-     * @param <T2> type des valeurs
-     * @param <M> type de la map
-     */
-    public<T,T2,M extends Map<T,T2>>void putMap(@NotNull MapType<M> mapType,@NotNull VarSubType<T>keyType,@NotNull VarSubType<T2>valueType,@NotNull String key,@Nullable M map){
-        putMap(mapType,keyType,valueType,key,map,true);
+    public @NotNull <T> T getValue(@NotNull VarSubType<T> type, @NotNull String key, @NotNull T def) {
+        return Objects.requireNonNullElse(getValue(type, key), def);
     }
-    public<T,T2,M extends Map<T,T2>>void putMap(@NotNull MapType<M> mapType,@NotNull VarSubType<T>keyType,@NotNull VarSubType<T2>valueType,@NotNull String key,@Nullable M map,boolean isPersistent){
-        if(Core.isOptimizeVarStorage()&&isDefaultOrEmpty(map))map=null;
-        boolean changed=false;
 
-        synchronized(this.data){
-            VarEntry<?>oldEntry=this.data.get(key);
+    public <T, T2, M extends Map<T, T2>> void putMap(@NotNull MapType<M> mapType, @NotNull VarSubType<T> keyType, @NotNull VarSubType<T2> valueType, @NotNull String key, @Nullable M map) {
+        putMap(mapType, keyType, valueType, key, map, true);
+    }
 
-            if(map!=null&&!map.isEmpty()){
-                final MapVarType<?,?>newType=new MapVarType<>(mapType,keyType,valueType);
+    public <T, T2, M extends Map<T, T2>> void putMap(@NotNull MapType<M> mapType, @NotNull VarSubType<T> keyType, @NotNull VarSubType<T2> valueType, @NotNull String key, @Nullable M map, boolean isPersistent) {
+        if (Core.isOptimizeVarStorage() && isDefaultOrEmpty(map)) map = null;
+        boolean changed = false;
 
+        synchronized (this.data) {
+            VarEntry<?> oldEntry = this.data.get(key);
+            if (map != null && !map.isEmpty()) {
+                final MapVarType<?, ?> newType = new MapVarType<>(mapType, keyType, valueType);
                 if (oldEntry != null && oldEntry.type().equals(newType)) {
-                    if (oldEntry.value() != map && Objects.equals(oldEntry.value(), map)) {
-                        return;
-                    }
+                    if (oldEntry.value() != map && Objects.equals(oldEntry.value(), map)) return;
                 }
-
-                this.data.put(key,new VarEntry<>(map,newType,isPersistent));
-                changed=true;
-            }else{
-                if(oldEntry!=null){
+                this.data.put(key, new VarEntry<>(map, newType, isPersistent));
+                changed = true;
+            } else {
+                if (oldEntry != null) {
                     this.data.remove(key);
-                    changed=true;
+                    changed = true;
                 }
             }
         }
 
-        if(!changed)return;
-
+        if (!changed) return;
         setDirty(true);
 
-        if(Bukkit.isPrimaryThread())Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.MAP,key,map));
-        else{
-            final M finalMap=map;
-            Core.getServerImplementation().global().run(()->Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.MAP,key,finalMap)));
+        if (Bukkit.isPrimaryThread()) Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.MAP, key, map));
+        else {
+            final M finalMap = map;
+            Core.getServerImplementation().global().run(() -> Bukkit.getPluginManager().callEvent(new DataSetEvent(DataSetEventType.MAP, key, finalMap)));
         }
     }
 
-    /**
-     * Récupère une Map stockée si elle correspond au type attendu.
-     *
-     * @param mapType type de map attendu
-     * @param keyType type attendu des clés
-     * @param valueType type attendu des valeurs
-     * @param key la clé associée
-     * @param <T> type des clés
-     * @param <T2> type des valeurs
-     * @param <M> type de la map
-     * @return la map si présente et valide, sinon null
-     */
-    public@Nullable<T,T2,M extends Map<T,T2>>M getMap(@NotNull MapType<M>mapType,@NotNull VarSubType<T>keyType,@NotNull VarSubType<T2>valueType,@NotNull String key){
-        final VarEntry<?>entry;
-        synchronized(this.data){
-            entry=this.data.get(key);
+    public @Nullable <T, T2, M extends Map<T, T2>> M getMap(@NotNull MapType<M> mapType, @NotNull VarSubType<T> keyType, @NotNull VarSubType<T2> valueType, @NotNull String key) {
+        final VarEntry<?> entry;
+        synchronized (this.data) {
+            entry = this.data.get(key);
         }
-
-        if(entry==null)return null;
-        final MapVarType<?,?>expectedType=new MapVarType<>(mapType,keyType,valueType);
-        if(!entry.type().equals(expectedType))return null;
-
-        return(M)entry.value();
+        if (entry == null) return null;
+        final MapVarType<?, ?> expectedType = new MapVarType<>(mapType, keyType, valueType);
+        if (!entry.type().equals(expectedType)) return null;
+        return (M) entry.value();
     }
-    /**
-     * Récupère une Map stockée ou retourne une valeur par défaut si absente.
-     *
-     * @param mapType type de map attendu
-     * @param keyType type attendu des clés
-     * @param valueType type attendu des valeurs
-     * @param key la clé associée
-     * @param def valeur par défaut à retourner si absente
-     * @param <T> type des clés
-     * @param <T2> type des valeurs
-     * @param <M> type de la map
-     * @return la map stockée ou def si absente/invalide
-     */
-    public@NotNull<T,T2,M extends Map<T,T2>>M getMap(@NotNull MapType<M>mapType,@NotNull VarSubType<T>keyType,@NotNull VarSubType<T2>valueType,@NotNull String key,@NotNull M def){
-        return Objects.requireNonNullElse(getMap(mapType,keyType,valueType,key),def);
+
+    public @NotNull <T, T2, M extends Map<T, T2>> M getMap(@NotNull MapType<M> mapType, @NotNull VarSubType<T> keyType, @NotNull VarSubType<T2> valueType, @NotNull String key, @NotNull M def) {
+        return Objects.requireNonNullElse(getMap(mapType, keyType, valueType, key), def);
     }
 }

@@ -101,11 +101,19 @@ public class VarFile extends Var{
         return plugin.getDataFolder().toPath().resolve("data").resolve(path+".var");
     }
 
-    //ABSTRACT
+    //ABSTRACT OVERRIDES
+    @Override
     public void saveSync(){
-        saveAsync().join();
+        forceSaveAsync().join();
     }
-    public @NotNull CompletableFuture<@Nullable Void>saveAsync() {
+
+    @Override
+    public @NotNull CompletableFuture<@Nullable Void> saveAsync() {
+        return forceSaveAsync();
+    }
+
+    @Override
+    public @NotNull CompletableFuture<@Nullable Void> forceSaveAsync() {
         if(!isDirty())return CompletableFuture.completedFuture(null);
 
         final Path path=super.getPath();
@@ -116,23 +124,22 @@ public class VarFile extends Var{
         }
 
         return VarSerializer.serializeDataAsync(snapshot).thenAcceptAsync(bytes->{
-            try{
-                if(bytes==null || bytes.length==0){
-                    Files.deleteIfExists(path);
-                }else{
-                    Files.createDirectories(path.getParent());
-                    Files.write(path,bytes);
-                }
+                    try{
+                        if(bytes==null || bytes.length==0){
+                            Files.deleteIfExists(path);
+                        }else{
+                            Files.createDirectories(path.getParent());
+                            Files.write(path,bytes);
+                        }
 
-                setDirty(false);
+                        setDirty(false);
 
-            }catch(Throwable t){
-                throw new CompletionException(t);
-            }
-        },VarSerializer.LOOM_EXECUTOR)
+                    }catch(Throwable t){
+                        throw new CompletionException(t);
+                    }
+                },VarSerializer.LOOM_EXECUTOR)
                 .exceptionally(ex -> {
                     ex.printStackTrace();
-
                     return null;
                 });
     }
