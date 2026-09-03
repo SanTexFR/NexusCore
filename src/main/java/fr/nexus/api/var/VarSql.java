@@ -21,7 +21,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-@SuppressWarnings({"unused","UnusedReturnValue","SqlResolve","SqlNoDataSourceInspection"})
+@SuppressWarnings({"unused","UnusedReturnValue","SqlResolve","SqlNoDataSourceInspection","unchecked"})
 public class VarSql extends Var {
     //VARIABLES (STATICS)
     private static final @NotNull Set<@NotNull String> verifiedTables = ConcurrentHashMap.newKeySet();
