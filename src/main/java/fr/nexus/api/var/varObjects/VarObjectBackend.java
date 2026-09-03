@@ -20,14 +20,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-@SuppressWarnings({"unused","UnusedReturnValue","unchecked"})
+@SuppressWarnings({"unused", "UnusedReturnValue", "unchecked"})
 public abstract class VarObjectBackend<R> {
-    //VARIABLES (STATICS)
+
     private static final @NotNull Logger logger = new Logger(Core.getInstance(), VarObjectBackend.class);
     protected static final @NotNull ConcurrentHashMap<@NotNull String, @NotNull CompletableFuture<@NotNull VarObjectBackend<?>>> asyncLoads = new ConcurrentHashMap<>();
     public static final @NotNull ConcurrentHashMap<@NotNull String, @NotNull WeakReference<@NotNull VarObjectBackend<?>>> varObjects = new ConcurrentHashMap<>();
 
-    // Garde une référence forte vers les Backends qui doivent rester en mémoire !
     public static final @NotNull Set<VarObjectBackend<?>> shouldStayLoadedBackends = ConcurrentHashMap.newKeySet();
 
     private static TaskImplementation<?> saveTask;
@@ -35,19 +34,18 @@ public abstract class VarObjectBackend<R> {
         Listeners.register(CoreCleanupEvent.class, VarObjectBackend::onCoreCleanup);
         Listeners.register(ServerStopEvent.class, VarObjectBackend::onServerStop, EventPriority.HIGHEST);
 
-        Core.getServerImplementation().async().runAtFixedRate(() -> {
-            saveAllVarObjectsAsync();
-        }, 300L, 300L, java.util.concurrent.TimeUnit.SECONDS);
+        Core.getServerImplementation().async().runAtFixedRate(
+                VarObjectBackend::saveAllVarObjectsAsync,
+                300L, 300L, java.util.concurrent.TimeUnit.SECONDS
+        );
     }
 
-    //VARIABLES (INSTANCES)
     private final @NotNull R key;
     private final @NotNull Var var;
 
     private final @NotNull AtomicBoolean atomicBool = new AtomicBoolean();
     private final @NotNull Cleaner.Cleanable cleanable;
 
-    //CONSTRUCTOR
     protected <T extends VarObjectBackend<R>> VarObjectBackend(@NotNull Class<T> clazz, @NotNull R reference, @NotNull String completePath, @NotNull Var var) {
         this.key = reference;
         this.var = var;
@@ -66,23 +64,21 @@ public abstract class VarObjectBackend<R> {
         });
     }
 
-    // METHODS BATCH
+    // Idée 4: Simplification du batching avec pattern matching Java 16+
     public static @NotNull CompletableFuture<Void> saveAllVarObjectsAsync() {
         cleanVarObjectMap();
 
         Set<VarSql> sqlVarsToBatch = new HashSet<>();
         List<CompletableFuture<Void>> otherSaves = new ArrayList<>();
 
-        // Tri intelligent : SQL vers le batch, le reste en standard
         for (WeakReference<VarObjectBackend<?>> ref : varObjects.values()) {
             VarObjectBackend<?> backend = ref.get();
             if (backend == null) continue;
 
-            Var var = backend.getVar();
-            if (var instanceof VarSql varSql) {
+            if (backend.getVar() instanceof VarSql varSql) {
                 sqlVarsToBatch.add(varSql);
             } else {
-                otherSaves.add(var.saveAsync());
+                otherSaves.add(backend.getVar().saveAsync());
             }
         }
 
@@ -95,7 +91,6 @@ public abstract class VarObjectBackend<R> {
         });
     }
 
-    //LOAD / GET / OTHERS
     protected static <T extends VarObjectBackend<?>> boolean isLoaded(@NotNull String completePath, @NotNull Class<T> clazz) {
         return getIfCached(completePath, clazz) != null;
     }
@@ -153,11 +148,9 @@ public abstract class VarObjectBackend<R> {
         varObjects.entrySet().removeIf(entry -> entry.getValue().get() == null);
     }
 
-    //METHODS (INSTANCES)
     public @NotNull R getKey() { return this.key; }
     public @NotNull Var getVar() { return this.var; }
 
-    //LISTENERS
     private static void onCoreCleanup(CoreCleanupEvent e) {
         final long startMillis = System.currentTimeMillis();
 
@@ -193,11 +186,10 @@ public abstract class VarObjectBackend<R> {
         });
     }
 
-    //INNER CLASS
     private record Unload(@NotNull Var var, @NotNull String path, @NotNull AtomicBoolean atomicBool) implements Runnable {
         @Override
         public void run() {
-            if (!atomicBool.get()) var.forceSaveAsync().thenAccept(v -> { // Appel au forceSave pour exécution rapide hors batch
+            if (!atomicBool.get()) var.forceSaveAsync().thenAccept(v -> {
                 var.unload();
                 varObjects.remove(path);
             });

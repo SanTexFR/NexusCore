@@ -21,9 +21,9 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-@SuppressWarnings({"unused","UnusedReturnValue","SqlResolve","SqlNoDataSourceInspection","unchecked"})
+@SuppressWarnings({"unused", "UnusedReturnValue", "SqlResolve", "SqlNoDataSourceInspection"})
 public class VarSql extends Var {
-    //VARIABLES (STATICS)
+
     private static final @NotNull Set<@NotNull String> verifiedTables = ConcurrentHashMap.newKeySet();
     private static final @NotNull Logger logger = new Logger(Core.getInstance(), VarSql.class);
     private static final @NotNull Object2ObjectOpenHashMap<@NotNull String, HikariDataSource> dataSources = new Object2ObjectOpenHashMap<>();
@@ -33,18 +33,16 @@ public class VarSql extends Var {
         initializeDatabases();
     }
 
-    //VARIABLES (INSTANCES)
     private final @NotNull String database, tableName, stringPath;
-    private final @NotNull SqlKeyType<Object> keyType;
+    private final @NotNull SqlKeyType keyType;
     private final @NotNull Object pathKey;
 
-    //CONSTRUCTOR
-    private <K> VarSql(@NotNull Path path, @NotNull String database, @NotNull String tableName, @NotNull String stringPath, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey, @NotNull Runnable cleanupRunnable, @Nullable Consumer<@NotNull Var> notCachedConsumer) {
+    private <K> VarSql(@NotNull Path path, @NotNull String database, @NotNull String tableName, @NotNull String stringPath, @NotNull SqlKeyType keyType, @NotNull K pathKey, @NotNull Runnable cleanupRunnable, @Nullable Consumer<@NotNull Var> notCachedConsumer) {
         super(path, cleanupRunnable);
         this.database = database;
         this.tableName = tableName;
         this.stringPath = stringPath;
-        this.keyType = (SqlKeyType<Object>) keyType;
+        this.keyType = keyType;
         this.pathKey = pathKey;
     }
 
@@ -57,14 +55,16 @@ public class VarSql extends Var {
     public static @NotNull VarSql getVarSync(@NotNull String database, @NotNull String tableName, @NotNull String path) {
         return getVarSync(database, tableName, SqlKeyType.STRING, path, null, null);
     }
-    public static <K> @NotNull VarSql getVarSync(@NotNull String database, @NotNull String tableName, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey, @Nullable Consumer<@NotNull Var> notCachedConsumer, @Nullable Runnable unloadRunnable) {
+
+    public static <K> @NotNull VarSql getVarSync(@NotNull String database, @NotNull String tableName, @NotNull SqlKeyType keyType, @NotNull K pathKey, @Nullable Consumer<@NotNull Var> notCachedConsumer, @Nullable Runnable unloadRunnable) {
         return getVarAsync(database, tableName, keyType, pathKey, notCachedConsumer, unloadRunnable).join();
     }
-    public static <K> @NotNull CompletableFuture<@NotNull VarSql> getVarAsync(@NotNull String database, @NotNull String tableName, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey) {
+
+    public static <K> @NotNull CompletableFuture<@NotNull VarSql> getVarAsync(@NotNull String database, @NotNull String tableName, @NotNull SqlKeyType keyType, @NotNull K pathKey) {
         return getVarAsync(database, tableName, keyType, pathKey, null, null);
     }
 
-    public static <K> @NotNull CompletableFuture<@NotNull VarSql> getVarAsync(@NotNull String database, @NotNull String tableName, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey, @Nullable Consumer<@NotNull Var> notCachedConsumer, @Nullable Runnable unloadRunnable) {
+    public static <K> @NotNull CompletableFuture<@NotNull VarSql> getVarAsync(@NotNull String database, @NotNull String tableName, @NotNull SqlKeyType keyType, @NotNull K pathKey, @Nullable Consumer<@NotNull Var> notCachedConsumer, @Nullable Runnable unloadRunnable) {
         final HikariDataSource hikari;
         synchronized (dataSources) {
             hikari = dataSources.get(database);
@@ -138,7 +138,6 @@ public class VarSql extends Var {
         return null;
     }
 
-    //ABSTRACT OVERRIDES
     @Override
     public void saveSync() {
         if (!isDirty()) return;
@@ -161,8 +160,6 @@ public class VarSql extends Var {
 
     @Override
     public @NotNull CompletableFuture<@Nullable Void> saveAsync() {
-        // Appelle la version force immédiate (comme demandé)
-        // ou pourrait être différé. On garde force par défaut.
         return forceSaveAsync();
     }
 
@@ -191,7 +188,6 @@ public class VarSql extends Var {
         }
     }
 
-    // BATCH SAVE POUR LE SAUVETAGE MASSIF
     public static @NotNull CompletableFuture<Void> saveAllSqlVarsAsync(@NotNull Set<VarSql> varsToSave) {
         if (varsToSave.isEmpty()) return CompletableFuture.completedFuture(null);
 
@@ -239,7 +235,6 @@ public class VarSql extends Var {
                                     stmt.addBatch();
                                     processedInBatch.add(varSql);
                                 } else {
-                                    // Cas où les données sont nulles -> DELETE différé géré hors batch ou dans un batch séparé
                                     try (PreparedStatement delStmt = conn.prepareStatement("DELETE FROM \"" + tableName + "\" WHERE path = ?")) {
                                         varSql.keyType.setParameter(delStmt, 1, varSql.pathKey);
                                         delStmt.executeUpdate();
@@ -261,7 +256,6 @@ public class VarSql extends Var {
         }, VarSerializer.LOOM_EXECUTOR);
     }
 
-    //INITIALIZER & UTILS SQL...
     private static void initializeDatabases() {
         ConfigurationSection dbSection = Core.getInstance().getConfig().getConfigurationSection("databases");
         if (dbSection == null) return;
@@ -323,7 +317,7 @@ public class VarSql extends Var {
         logger.info("Bases de données déconnectées.");
     }
 
-    private static <K> void checkOrCreateTable(@NotNull HikariDataSource dataSource, @NotNull String tableName, @NotNull SqlKeyType<K> keyType) throws SQLException {
+    private static void checkOrCreateTable(@NotNull HikariDataSource dataSource, @NotNull String tableName, @NotNull SqlKeyType keyType) throws SQLException {
         try (final Connection conn = dataSource.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(
@@ -351,29 +345,27 @@ public class VarSql extends Var {
         }
     }
 
+    // Idée 5: Implémentation épurée
     public static @NotNull CompletableFuture<Set<String>> getAllPathsAsync(@NotNull String database, @NotNull String tableName) {
-        final HikariDataSource hikari;
-        synchronized (dataSources) { hikari = dataSources.get(database); }
-
+        final HikariDataSource hikari = getDatabase(database);
         if (hikari == null) return CompletableFuture.failedFuture(new IllegalStateException("Unknown database: " + database));
-        final String finalTableName = tableName.toLowerCase();
 
         return CompletableFuture.supplyAsync(() -> {
-            Set<String> keys = new java.util.HashSet<>();
-            final String sql = "SELECT path FROM \"" + finalTableName + "\"";
+            Set<String> keys = new HashSet<>();
+            final String sql = "SELECT path FROM \"" + tableName.toLowerCase() + "\"";
 
             try (final Connection conn = hikari.getConnection();
                  final PreparedStatement stmt = conn.prepareStatement(sql);
                  final ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) keys.add(rs.getString("path"));
+                while (rs.next()) keys.add(rs.getString(1));
             } catch (SQLException e) {
-                throw new CompletionException("Erreur lors de la récupération des clés pour la table: " + finalTableName, e);
+                throw new CompletionException("Erreur lors de la récupération des clés pour la table: " + tableName, e);
             }
             return keys;
         }, VarSerializer.LOOM_EXECUTOR);
     }
 
-    private static <K> byte[] getValue(@NotNull HikariDataSource dataSource, @NotNull String tableName, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey) throws SQLException {
+    private static <K> byte[] getValue(@NotNull HikariDataSource dataSource, @NotNull String tableName, @NotNull SqlKeyType keyType, @NotNull K pathKey) throws SQLException {
         final String sql = "SELECT value FROM \"" + tableName + "\" WHERE path = ?";
         try (final Connection conn = dataSource.getConnection();
              final PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -385,7 +377,7 @@ public class VarSql extends Var {
         return new byte[]{};
     }
 
-    private static <K> void putValue(@NotNull HikariDataSource dataSource, @NotNull String tableName, @NotNull SqlKeyType<K> keyType, @NotNull K pathKey, byte[] value) throws SQLException {
+    private static <K> void putValue(@NotNull HikariDataSource dataSource, @NotNull String tableName, @NotNull SqlKeyType keyType, @NotNull K pathKey, byte[] value) throws SQLException {
         if (value == null || value.length == 0) {
             try (Connection conn = dataSource.getConnection();
                  PreparedStatement stmt = conn.prepareStatement("DELETE FROM \"" + tableName + "\" WHERE path = ?")) {

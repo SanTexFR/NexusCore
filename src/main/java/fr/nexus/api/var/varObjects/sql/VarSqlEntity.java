@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface VarSqlEntity {
-    String db() default "nexus_main";
+    String db();
     String table();
-    KeyType keyType() default KeyType.STRING;
+    SqlKeyType keyType() default SqlKeyType.STRING;
 }
