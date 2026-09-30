@@ -102,7 +102,15 @@ public abstract class VarObjectBackend<R> {
     protected static <R, T extends VarObjectBackend<R>> @NotNull CompletableFuture<T> getVarObjectAsyncInner(@NotNull String keyPrefix, @NotNull Class<T> clazz, @NotNull Supplier<CompletableFuture<T>> factory, @NotNull Object... keyArgs) {
         final String completePath = getKey(keyPrefix, clazz.getName(), stringify(keyArgs));
         final T cached = getIfCached(completePath, clazz);
-        if (cached != null) return CompletableFuture.completedFuture(cached);
+        if (cached != null) {
+            // 🚨 SÉCURITÉ : Si l'objet en cache a une Var vide alors qu'il est censé exister
+            if (cached.getVar().getKeys().isEmpty()) {
+                logger.warning("⚠️ [CACHE WARNING] Instance en cache trouvée avec 0 clé pour " + completePath + ". Forçage d'un rechargement complet.");
+                varObjects.remove(completePath); // On retire du cache corrompu
+            } else {
+                return CompletableFuture.completedFuture(cached);
+            }
+        }
 
         final CompletableFuture<VarObjectBackend<?>> existing = asyncLoads.get(completePath);
         if (existing != null) return existing.thenApply(varObject -> (T) varObject);

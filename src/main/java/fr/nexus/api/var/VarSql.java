@@ -167,6 +167,16 @@ public class VarSql extends Var {
     public @NotNull CompletableFuture<@Nullable Void> forceSaveAsync() {
         if (!isDirty()) return CompletableFuture.completedFuture(null);
 
+        // 🚨 SÉCURITÉ : Empecher l'effacement silencieux si data s'est fait emptied par un unload concurent
+        synchronized(super.data) {
+            if (super.data.isEmpty()) {
+                logger.severe("🚨 [CRITICAL ALERT] Tentative de sauvegarde d'une VarSql VIDE pour : " + this.stringPath);
+                logger.severe("🚨 La sauvegarde est ANNULÉE pour éviter un effacement en Base de Données !");
+                new Throwable("Stacktrace de la sauvegarde vide :").printStackTrace();
+                return CompletableFuture.completedFuture(null); // On annule l'écriture !
+            }
+        }
+
         final HikariDataSource hikari;
         synchronized(dataSources) { hikari = dataSources.get(this.database); }
         if (hikari == null) return CompletableFuture.failedFuture(new IllegalStateException("Unknown database: " + this.database));
@@ -177,11 +187,14 @@ public class VarSql extends Var {
                         try {
                             putValue(hikari, this.tableName, this.keyType, this.pathKey, serializedData);
                         } catch(SQLException e) {
+                            logger.severe("❌ [SQL ERROR] Échec de la sauvegarde SQL pour " + this.stringPath);
+                            e.printStackTrace();
                             throw new CompletionException("Failed to save data to DB: " + this.tableName, e);
                         }
                         setDirty(false);
                     }, VarSerializer.LOOM_EXECUTOR)
                     .exceptionally(ex -> {
+                        logger.severe("❌ [SERIALIZE ERROR] Erreur lors de la sérialisation/sauvegarde de " + this.stringPath);
                         ex.printStackTrace();
                         return null;
                     });
