@@ -99,35 +99,51 @@ public abstract class VarObjectBackend<R> {
         return getVarObjectAsyncInner(keyPrefix, clazz, () -> CompletableFuture.completedFuture(factory.get()), keyArgs).join();
     }
 
-    protected static <R, T extends VarObjectBackend<R>> @NotNull CompletableFuture<T> getVarObjectAsyncInner(@NotNull String keyPrefix, @NotNull Class<T> clazz, @NotNull Supplier<CompletableFuture<T>> factory, @NotNull Object... keyArgs) {
+    @SuppressWarnings("unchecked")
+    protected static <R, T extends VarObjectBackend<R>> @NotNull CompletableFuture<T> getVarObjectAsyncInner(
+            @NotNull String keyPrefix,
+            @NotNull Class<T> clazz,
+            @NotNull Supplier<CompletableFuture<T>> factory,
+            @NotNull Object... keyArgs) {
+
         final String completePath = getKey(keyPrefix, clazz.getName(), stringify(keyArgs));
+
+        // 1. Vérification du cache mémoire (Fast-Path)
         final T cached = getIfCached(completePath, clazz);
         if (cached != null) {
-            // 🚨 SÉCURITÉ : Si l'objet en cache a une Var vide alors qu'il est censé exister
+            // Sécurité : si la Var en cache est corrompue (vidée), on la purge du cache
             if (cached.getVar().getKeys().isEmpty()) {
-                logger.warning("⚠️ [CACHE WARNING] Instance en cache trouvée avec 0 clé pour " + completePath + ". Forçage d'un rechargement complet.");
-                varObjects.remove(completePath); // On retire du cache corrompu
+                logger.warning("⚠️ [CACHE CORRUPT] Instance en cache vidée détectée pour " + completePath + ". Purge du cache.");
+                varObjects.remove(completePath);
             } else {
                 return CompletableFuture.completedFuture(cached);
             }
         }
 
-        final CompletableFuture<VarObjectBackend<?>> existing = asyncLoads.get(completePath);
-        if (existing != null) return existing.thenApply(varObject -> (T) varObject);
+        // 2. Gestion atomique des appels simultanés (Thread-Safe)
+        // computeIfAbsent garantit qu'une seule factory.get() est exécutée pour une même clé
+        final CompletableFuture<VarObjectBackend<?>> loadFuture = asyncLoads.computeIfAbsent(
+                completePath,
+                k -> factory.get().thenApply(res -> (VarObjectBackend<?>) res)
+        );
 
-        final CompletableFuture<T> future = factory.get();
+        return loadFuture.thenCompose(res -> {
+            // 3. Validation après chargement BDD
+            if (res == null || res.getVar().getKeys().isEmpty()) {
+                logger.warning("⚠️️ [LOAD WARNING] Résultat vide ou invalide pour " + completePath + ". Annulation de la mise en cache.");
+                asyncLoads.remove(completePath);
+                // On retente un chargement direct sans polluer le cache
+                return factory.get();
+            }
 
-        asyncLoads.put(completePath, future.thenApply(mesh -> mesh));
-
-        future.whenComplete((res, ex) -> {
+            // Chargement réussi : mise en cache définitive
+            varObjects.put(completePath, new WeakReference<>(res));
+            return CompletableFuture.completedFuture((T) res);
+        }).whenComplete((res, ex) -> {
+            // Nettoyage systématique de la Map des chargements en cours
             asyncLoads.remove(completePath);
-            if (ex == null && res != null)
-                varObjects.put(completePath, new WeakReference<>(res));
         });
-
-        return future;
     }
-
     private static <T extends VarObjectBackend<?>> T getIfCached(@NotNull String completePath, @NotNull Class<T> clazz) {
         final WeakReference<?> weak = varObjects.get(completePath);
         if (weak == null) return null;

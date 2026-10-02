@@ -186,14 +186,25 @@ public class VarSerializer {
         for (TypeContext ctx : signatureGroups.values()) {
             if (ctx.asyncValuesToProcess != null && !ctx.asyncValuesToProcess.isEmpty()) {
                 final TypeContext targetCtx = ctx;
+
+                // --- CORRECTION DU CONCURRENCY BUG / INDEX OUT OF BOUNDS ---
+                // Création d'une copie locale figée (snapshots) sous verrouillage
+                // pour s'assurer que les listes ne bougent pas pendant le traitement asynchrone
+                final Object[] valuesSnapshot;
+                final String[] keysSnapshot;
+                synchronized (targetCtx) {
+                    valuesSnapshot = targetCtx.asyncValuesToProcess.toArray();
+                    keysSnapshot = targetCtx.asyncKeysToProcess.toArray(new String[0]);
+                }
+
                 CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                    FastBuffer localBuf = new FastBuffer(targetCtx.asyncValuesToProcess.size() * 128);
+                    FastBuffer localBuf = new FastBuffer(valuesSnapshot.length * 128);
                     Vars type = targetCtx.sampleType;
-                    int size = targetCtx.asyncValuesToProcess.size();
+                    int size = valuesSnapshot.length;
 
                     for (int i = 0; i < size; i++) {
-                        String key = targetCtx.asyncKeysToProcess.get(i);
-                        Object val = targetCtx.asyncValuesToProcess.get(i);
+                        String key = keysSnapshot[i];
+                        Object val = valuesSnapshot[i];
                         localBuf.writeStringFast(key);
 
                         byte[] bytes;
@@ -239,7 +250,6 @@ public class VarSerializer {
 
         return compress(mainBuffer.buf, mainBuffer.count);
     }
-
     public static void deserializeDataSync(byte[] serializedData, @NotNull Object2ObjectOpenHashMap<@NotNull String, @NotNull VarEntry<?>> data) {
         deserializeDataAsync(serializedData, data).join();
     }
