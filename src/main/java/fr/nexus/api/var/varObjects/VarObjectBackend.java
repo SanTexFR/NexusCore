@@ -129,7 +129,7 @@ public abstract class VarObjectBackend<R> {
 
         return loadFuture.thenCompose(res -> {
             // 3. Validation après chargement BDD
-            if (res == null || res.getVar().getKeys().isEmpty()) {
+            if (res == null) {
                 asyncLoads.remove(completePath);
                 // On retente un chargement direct sans polluer le cache
                 return factory.get();
