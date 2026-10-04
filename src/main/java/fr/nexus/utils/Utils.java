@@ -197,7 +197,7 @@ public class Utils{
     }
 
     //HEAD
-    private static final@NotNull UUID HEAD_UUID=UUID.randomUUID();
+    private static final@NotNull UUID HEAD_UUID=UUID.fromString("00000000-0000-0000-0000-000000000001");
     public static@NotNull ItemStack getHeadByTexture(@NotNull String textures){
         final ItemStack item=new ItemStack(Material.PLAYER_HEAD);
         return applyHeadTexture(item,textures);
