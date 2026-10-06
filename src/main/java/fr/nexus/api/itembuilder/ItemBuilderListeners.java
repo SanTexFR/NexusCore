@@ -54,8 +54,9 @@ public class ItemBuilderListeners{
         if(result==null||result.getType()==Material.AIR)return;
 
         final Boolean unenchantable=ItemBuilder.getNbt(result, PersistentDataType.BOOLEAN,"Undisenchantable");
-        if (unenchantable!=null&&unenchantable)
+        if (unenchantable!=null&&unenchantable){
             e.setCancelled(true);
+        }
     }
 
     private static void onPrepareCraft(PrepareItemCraftEvent e){

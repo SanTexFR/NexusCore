@@ -120,8 +120,9 @@ public class Listeners implements Listener{
             final List<ConsumerWrapper<CoreEvent<?>,Object>>consumers=asyncEventsRegistered.get(coreEvent.getClass().getName());
             if(consumers==null||consumers.isEmpty())return;
 
-            if(bukkitEvent instanceof Cancellable cancellable)
+            if(bukkitEvent instanceof Cancellable cancellable){
                 cancellable.setCancelled(true);
+            }
 
             callCoreEvent(coreEvent,consumers);
         },Core.getInstance(),false);

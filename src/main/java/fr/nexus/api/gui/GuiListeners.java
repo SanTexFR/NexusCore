@@ -6,6 +6,7 @@ import fr.nexus.system.internal.performanceTracker.PerformanceTracker;
 import fr.nexus.api.gui.panels.GuiPage;
 import fr.nexus.api.gui.panels.GuiSlider;
 import fr.nexus.api.listeners.Listeners;
+import org.bukkit.GameMode;
 import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
 
@@ -23,7 +24,9 @@ class GuiListeners{
 
     //METHODS (STATICS)
     private static void onInventoryClick(InventoryClickEvent e){
-        if(e.isCancelled())return;
+        if (e.isCancelled() && e.getWhoClicked().getGameMode() != GameMode.SPECTATOR) {
+            return;
+        }
 
         final long nanoTime=System.nanoTime();
 
@@ -31,8 +34,6 @@ class GuiListeners{
         if(gui==null)return;
 
         if(e.getInventory().equals(e.getClickedInventory())&&gui.getEffectiveCooldown()!=null){
-            if(e.isCancelled())return;
-
             final UUID uuid=e.getWhoClicked().getUniqueId();
             final long millis=System.currentTimeMillis();
             final Long pMillis=gui.getCooldowns().get(e.getWhoClicked().getUniqueId());
@@ -86,7 +87,9 @@ class GuiListeners{
         PerformanceTracker.increment(PerformanceTracker.Types.GUI,"onInventoryClick",System.nanoTime()-nanoTime);
     }
     private static void onInventoryDrag(InventoryDragEvent e){
-        if(e.isCancelled())return;
+        if (e.isCancelled() && e.getWhoClicked().getGameMode() != GameMode.SPECTATOR) {
+            return;
+        }
 
         final long nanoTime=System.nanoTime();
 
