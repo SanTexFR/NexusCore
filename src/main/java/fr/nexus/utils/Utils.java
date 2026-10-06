@@ -197,7 +197,6 @@ public class Utils{
     }
 
     //HEAD
-    private static final@NotNull UUID HEAD_UUID=UUID.fromString("00000000-0000-0000-0000-000000000001");
     public static@NotNull ItemStack getHeadByTexture(@NotNull String textures){
         final ItemStack item=new ItemStack(Material.PLAYER_HEAD);
         return applyHeadTexture(item,textures);
@@ -205,7 +204,7 @@ public class Utils{
     public static@NotNull ItemStack applyHeadTexture(@NotNull ItemStack item,@NotNull String textures){
         final SkullMeta itemMeta=(SkullMeta)item.getItemMeta();
 
-        final PlayerProfile profile=Bukkit.createProfileExact(HEAD_UUID,"noname");
+        final PlayerProfile profile=Bukkit.createProfileExact(UUID.nameUUIDFromBytes(textures.getBytes()),"noname");
         final Set<ProfileProperty>properties=profile.getProperties();
         properties.add(new ProfileProperty("textures",textures));
         itemMeta.setPlayerProfile(profile);
