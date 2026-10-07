@@ -49,7 +49,6 @@ public class MapVarType<T,T2> extends VarVersion implements Vars, CollectionUtil
 
     // SYNC
     public byte[] serializeSync(@NotNull Map<T, T2> map) {
-        int totalSize = IntegerType.toVarInt(map.size()).length; // taille mapVar
         List<byte[]> keyBytesList = new ArrayList<>(map.size());
         List<byte[]> valueBytesList = new ArrayList<>(map.size());
 
@@ -58,15 +57,22 @@ public class MapVarType<T,T2> extends VarVersion implements Vars, CollectionUtil
             byte[] vBytes = valueVarType.serializeSync(entry.getValue());
             keyBytesList.add(kBytes);
             valueBytesList.add(vBytes);
+        }
 
+        int entriesCount = keyBytesList.size();
+        int totalSize = IntegerType.toVarInt(entriesCount).length;
+
+        for (int i = 0; i < entriesCount; i++) {
+            byte[] kBytes = keyBytesList.get(i);
+            byte[] vBytes = valueBytesList.get(i);
             totalSize += IntegerType.toVarInt(kBytes.length).length + kBytes.length;
             totalSize += IntegerType.toVarInt(vBytes.length).length + vBytes.length;
         }
 
         ByteBuffer buffer = ByteBuffer.allocate(totalSize);
-        buffer.put(IntegerType.toVarInt(map.size()));
+        buffer.put(IntegerType.toVarInt(entriesCount));
 
-        for (int i = 0; i < map.size(); i++) {
+        for (int i = 0; i < entriesCount; i++) {
             byte[] kBytes = keyBytesList.get(i);
             byte[] vBytes = valueBytesList.get(i);
 
@@ -122,15 +128,16 @@ public class MapVarType<T,T2> extends VarVersion implements Vars, CollectionUtil
 
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                 .thenApply(v -> {
-                    int totalSize = IntegerType.toVarInt(map.size()).length;
-                    for (int i = 0; i < map.size(); i++) {
+                    int entriesCount = keyBytesList.size();
+                    int totalSize = IntegerType.toVarInt(entriesCount).length;
+                    for (int i = 0; i < entriesCount; i++) {
                         totalSize += IntegerType.toVarInt(keyBytesList.get(i).length).length + keyBytesList.get(i).length;
                         totalSize += IntegerType.toVarInt(valueBytesList.get(i).length).length + valueBytesList.get(i).length;
                     }
 
                     ByteBuffer buffer = ByteBuffer.allocate(totalSize);
-                    buffer.put(IntegerType.toVarInt(map.size()));
-                    for (int i = 0; i < map.size(); i++) {
+                    buffer.put(IntegerType.toVarInt(entriesCount));
+                    for (int i = 0; i < entriesCount; i++) {
                         buffer.put(IntegerType.toVarInt(keyBytesList.get(i).length));
                         buffer.put(keyBytesList.get(i));
 
