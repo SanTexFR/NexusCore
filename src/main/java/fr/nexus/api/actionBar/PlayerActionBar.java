@@ -57,48 +57,53 @@ public class PlayerActionBar {
     }
 
     private void startTickingIfNeeded() {
-        if (tickTask == null) {
+        if (tickTask == null || tickTask.isCancelled()) {
             tickTask = Core.getServerImplementation().entity(player).runAtFixedRate(this::tick, 1L, 1L);
         }
     }
 
     private void tick() {
-        if (!player.isOnline()) {
-            unload();
-            return;
-        }
-
-        // Si on a fini de lire le message actuel, on prend le plus prioritaire en attente
-        if (currentEntry == null) {
-            if (waitingEntries.isEmpty()) {
-                unload(); // Plus rien du tout, on éteint la tâche
+        try {
+            if (!player.isOnline()) {
+                unload();
                 return;
             }
 
-            // On récupère et supprime la plus petite clé (la plus haute priorité)
-            int highestPriority = waitingEntries.firstKey();
-            currentEntry = waitingEntries.remove(highestPriority);
-            tickCounter = 0;
-        }
+            if (currentEntry == null) {
+                if (waitingEntries.isEmpty()) {
+                    unload();
+                    return;
+                }
 
-        // Fin du message
-        if (currentEntry.getRemainingTicks() <= 0) {
-            currentEntry = null;
-            player.sendActionBar(Component.empty());
-            return; // On laisse le tick suivant prendre le prochain message
-        }
-
-        // Affichage selon le updateRate
-        if (tickCounter % currentEntry.getUpdateRateTicks() == 0) {
-            try {
-                player.sendActionBar(currentEntry.getTextSupplier().get());
-            } catch (Exception e) {
-                player.sendActionBar(Component.empty());
+                int highestPriority = waitingEntries.firstKey();
+                currentEntry = waitingEntries.remove(highestPriority);
+                tickCounter = 0;
             }
-        }
 
-        currentEntry.decrementTicks();
-        tickCounter++;
+            if (currentEntry.getRemainingTicks() <= 0) {
+                currentEntry = null;
+                player.sendActionBar(Component.empty());
+                return;
+            }
+
+            if (tickCounter % currentEntry.getUpdateRateTicks() == 0) {
+                try {
+                    Component text = currentEntry.getTextSupplier().get();
+                    player.sendActionBar(text != null ? text : Component.empty());
+                } catch (Throwable t) {
+                    // En cas d'erreur dans le supplier (ex: pendant le reload), on passe à l'entrée suivante
+                    currentEntry = null;
+                }
+            }
+
+            if (currentEntry != null) {
+                currentEntry.decrementTicks();
+            }
+            tickCounter++;
+        } catch (Throwable t) {
+            // Sécurité globale pour éviter de tuer le scheduler sans unload
+            unload();
+        }
     }
 
     public void skipCurrent() {
