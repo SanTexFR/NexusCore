@@ -1,8 +1,10 @@
 package fr.nexus.api.actionBar;
 
 import fr.nexus.api.listeners.Listeners;
+import fr.nexus.api.listeners.core.CoreReloadEvent;
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
 
@@ -16,6 +18,7 @@ public class ActionBarAPI {
 
     static {
         Listeners.register(PlayerQuitEvent.class, e -> remove(e.getPlayer()));
+        Listeners.register(CoreReloadEvent.class, e -> resetAll(), EventPriority.LOWEST);
     }
 
     @NotNull
@@ -39,6 +42,13 @@ public class ActionBarAPI {
 
     public static void removeSpecific(@NotNull Player p, @NotNull ActionBarPriority priority) {
         removeSpecific(p, priority.level());
+    }
+
+    public static void resetAll() {
+        for (PlayerActionBar bar : activeBars.values()) {
+            bar.clearAll();
+        }
+        activeBars.clear();
     }
 
     public static boolean exists(@NotNull Player p, int priority) {
