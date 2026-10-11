@@ -167,16 +167,6 @@ public class VarSql extends Var {
     public @NotNull CompletableFuture<@Nullable Void> forceSaveAsync() {
         if (!isDirty()) return CompletableFuture.completedFuture(null);
 
-        // 🚨 SÉCURITÉ : Empecher l'effacement silencieux si data s'est fait emptied par un unload concurent
-        synchronized(super.data) {
-            if (super.data.isEmpty()) {
-                logger.severe("🚨 [CRITICAL ALERT] Tentative de sauvegarde d'une VarSql VIDE pour : " + this.stringPath);
-                logger.severe("🚨 La sauvegarde est ANNULÉE pour éviter un effacement en Base de Données !");
-                new Throwable("Stacktrace de la sauvegarde vide :").printStackTrace();
-                return CompletableFuture.completedFuture(null); // On annule l'écriture !
-            }
-        }
-
         final HikariDataSource hikari;
         synchronized(dataSources) { hikari = dataSources.get(this.database); }
         if (hikari == null) return CompletableFuture.failedFuture(new IllegalStateException("Unknown database: " + this.database));
