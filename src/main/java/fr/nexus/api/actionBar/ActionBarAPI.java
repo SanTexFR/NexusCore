@@ -5,6 +5,7 @@ import fr.nexus.api.listeners.core.CoreReloadEvent;
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,6 +18,7 @@ public class ActionBarAPI {
     private static final Map<UUID, PlayerActionBar> activeBars = new ConcurrentHashMap<>();
 
     static {
+        Listeners.register(PlayerJoinEvent.class, e -> remove(e.getPlayer()));
         Listeners.register(PlayerQuitEvent.class, e -> remove(e.getPlayer()));
         Listeners.register(CoreReloadEvent.class, e -> resetAll(), EventPriority.LOWEST);
     }
