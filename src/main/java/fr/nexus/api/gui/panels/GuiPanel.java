@@ -2,6 +2,7 @@ package fr.nexus.api.gui.panels;
 
 import fr.nexus.api.gui.GuiItem;
 import fr.nexus.api.gui.modules.GuiBackground;
+import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -9,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,GuiSlider{
@@ -135,8 +136,8 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
     public void addGuiItem(@NotNull ItemStack item){
         this.guiItems.add(new GuiItem(item));
     }
-    public void addGuiItem(@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
-        this.guiItems.add(new GuiItem(item,action));
+    public void addGuiItem(@NotNull ItemStack item,@Nullable BiConsumer<@NotNull InventoryClickEvent,@NotNull Player> playerAction){
+        this.guiItems.add(new GuiItem(item,playerAction));
     }
 
     public void addGuiItemAtSlot(int x,int y,@NotNull GuiItem item){
@@ -145,11 +146,11 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
     public void addGuiItemAtSlot(int x,int y,@NotNull ItemStack item){
         addGuiItemAtSlot(y*this.guiWidth+x,new GuiItem(item));
     }
-    public void addGuiItemAtSlot(int x,int y,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
-        addGuiItemAtSlot(y*this.guiWidth+x,new GuiItem(item,action));
+    public void addGuiItemAtSlot(int x,int y,@NotNull ItemStack item,@Nullable BiConsumer<@NotNull InventoryClickEvent,@NotNull Player> playerAction){
+        addGuiItemAtSlot(y*this.guiWidth+x,new GuiItem(item,playerAction));
     }
-    public void addGuiItemAtSlot(int slot,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
-        addGuiItemAtSlot(slot,new GuiItem(item,action));
+    public void addGuiItemAtSlot(int slot,@NotNull ItemStack item,@Nullable BiConsumer<@NotNull InventoryClickEvent,@NotNull Player> playerAction){
+        addGuiItemAtSlot(slot,new GuiItem(item,playerAction));
     }
 
     public abstract void addGuiItemAtSlot(int slot,@NotNull GuiItem item);
@@ -160,11 +161,11 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
     public void setGuiItemAtSlot(int x,int y,@NotNull ItemStack item){
         setGuiItemAtSlot(y*this.guiWidth+x,new GuiItem(item));
     }
-    public void setGuiItemAtSlot(int x,int y,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
-        setGuiItemAtSlot(y*this.guiWidth+x,new GuiItem(item,action));
+    public void setGuiItemAtSlot(int x,int y,@NotNull ItemStack item,@Nullable BiConsumer<@NotNull InventoryClickEvent,@NotNull Player> playerAction){
+        setGuiItemAtSlot(y*this.guiWidth+x,new GuiItem(item,playerAction));
     }
-    public void setGuiItemAtSlot(int slot,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
-        setGuiItemAtSlot(slot,new GuiItem(item,action));
+    public void setGuiItemAtSlot(int slot,@NotNull ItemStack item,@Nullable BiConsumer<@NotNull InventoryClickEvent,@NotNull Player> playerAction){
+        setGuiItemAtSlot(slot,new GuiItem(item,playerAction));
     }
 
     public abstract void setGuiItemAtSlot(int slot,@NotNull GuiItem item);
@@ -175,8 +176,8 @@ public abstract sealed class GuiPanel implements GuiBackground permits GuiPage,G
     public void addGuiItemAtIndex(int index,@NotNull ItemStack item){
         this.guiItems.add(index,new GuiItem(item));
     }
-    public void addGuiItemAtIndex(int index,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
-        this.guiItems.add(index,new GuiItem(item,action));
+    public void addGuiItemAtIndex(int index,@NotNull ItemStack item,@Nullable BiConsumer<@NotNull InventoryClickEvent,@NotNull Player> playerAction){
+        this.guiItems.add(index,new GuiItem(item,playerAction));
     }
 
     public void removeGuiItemAtSlot(int x,int y){

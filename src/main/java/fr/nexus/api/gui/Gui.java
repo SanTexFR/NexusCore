@@ -25,6 +25,7 @@ import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
@@ -74,7 +75,7 @@ public class Gui implements GuiBackground{
     public Gui(@Nullable InventoryHolder owner,int rows,@Nullable Component title){
         this.weakReference=new WeakReference<>(this);
         this.width = 9;
-        this.height = Math.max(1,Math.min(6,rows));
+        this.height = Math.clamp(rows, 1, 6);
         this.title = title;
 
         final int size=this.height*this.width;
@@ -88,7 +89,7 @@ public class Gui implements GuiBackground{
     public Gui(int rows,@Nullable Component title){
         this.weakReference=new WeakReference<>(this);
         this.width = 9;
-        this.height = Math.max(1,Math.min(6,rows));
+        this.height = Math.clamp(rows, 1, 6);
         this.title = title;
 
         final int size=this.height*this.width;
@@ -224,8 +225,8 @@ public class Gui implements GuiBackground{
     public void addGuiItem(int x,int y,@NotNull ItemStack item){
         addGuiItem(x+y*this.width,new GuiItem(item));
     }
-    public void addGuiItem(int x,int y,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
-        addGuiItem(x+y*this.width,new GuiItem(item,action));
+    public void addGuiItem(int x,int y,@NotNull ItemStack item,@Nullable BiConsumer<@NotNull InventoryClickEvent,@NotNull Player> playerAction){
+        addGuiItem(x+y*this.width,new GuiItem(item,playerAction));
     }
 
     public void addGuiItem(int slot,@NotNull GuiItem guiItem){
@@ -234,8 +235,8 @@ public class Gui implements GuiBackground{
     public void addGuiItem(int slot,@NotNull ItemStack item){
         addGuiItem(slot,new GuiItem(item));
     }
-    public void addGuiItem(int slot,@NotNull ItemStack item,@Nullable Consumer<@NotNull InventoryClickEvent>action){
-        addGuiItem(slot,new GuiItem(item,action));
+    public void addGuiItem(int slot,@NotNull ItemStack item,@Nullable BiConsumer<@NotNull InventoryClickEvent,@NotNull Player>playerAction){
+        addGuiItem(slot,new GuiItem(item,playerAction));
     }
 
     public void removeGuiItem(int x,int y){
@@ -368,9 +369,7 @@ public class Gui implements GuiBackground{
             if (!p.isOnline()) continue;
 
             // On force l'exécution sur le scheduler propre de l'entité du joueur
-            p.getScheduler().run(Core.getInstance(), task -> {
-                p.openInventory(this.inventory);
-            }, null);
+            p.getScheduler().run(Core.getInstance(), task -> p.openInventory(this.inventory), null);
         }
     }
 
@@ -457,7 +456,7 @@ public class Gui implements GuiBackground{
         }
 
         // 3. Vider et détruire les items (ce qui supprime les lambdas et leurs captures)
-        this.guiItems.values().forEach(guiItem -> guiItem.setAction(null));
+        this.guiItems.values().forEach(guiItem -> guiItem.setPlayerAction(null));
         this.guiItems.clear();
 
         // 4. Vider les panneaux (pages et sliders)

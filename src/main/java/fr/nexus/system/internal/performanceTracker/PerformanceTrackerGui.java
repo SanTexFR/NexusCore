@@ -59,12 +59,12 @@ public class PerformanceTrackerGui{
         reloadPrimaryItems(weakGui,guiPage,p,actualisation);
 
         //GUI PAGE-ITEM
-        gui.addGuiItem(1,2,ItemBuilder.createItem(Material.ARROW).setDisplayName("←").build(),e2->{
+        gui.addGuiItem(1,2,ItemBuilder.createItem(Material.ARROW).setDisplayName("←").build(),(e2, player)->{
             if(e2.getClick().equals(ClickType.DOUBLE_CLICK))return;
             guiPage.previous();
             guiPage.update();
         });
-        gui.addGuiItem(7,2,ItemBuilder.createItem(Material.ARROW).setDisplayName("→").build(),e2->{
+        gui.addGuiItem(7,2,ItemBuilder.createItem(Material.ARROW).setDisplayName("→").build(),(e2, player)->{
             if(e2.getClick().equals(ClickType.DOUBLE_CLICK))return;
             guiPage.next();
             guiPage.update();
@@ -134,8 +134,8 @@ public class PerformanceTrackerGui{
             totalAsyncMillis+=asyncMillis;
             totalAsyncSeconds+=asyncSeconds;
 
-            guiPage.addGuiItem(itemBuilder.build(),e->
-                secondaryGui(gui,weakGui,type,p,actualisation));
+            guiPage.addGuiItem(itemBuilder.build(),(e, player)->
+                    secondaryGui(gui,weakGui,type,player,actualisation));
         }
 
         final ItemBuilder itemBuilder=ItemBuilder.createItem(Material.PAPER);
@@ -166,12 +166,12 @@ public class PerformanceTrackerGui{
         reloadSecondaryItems(weakGui,type,guiPage,p,actualisation);
 
         //GUI PAGE-ITEM
-        gui.addGuiItem(1,4,new GuiItem(ItemBuilder.createItem(Material.ARROW).setDisplayName("←").build(),e2->{
+        gui.addGuiItem(1,4,new GuiItem(ItemBuilder.createItem(Material.ARROW).setDisplayName("←").build(),(e2, player)->{
             if(e2.getClick().equals(ClickType.DOUBLE_CLICK))return;
             guiPage.previous();
             guiPage.update();
         }));
-        gui.addGuiItem(7,4,new GuiItem(ItemBuilder.createItem(Material.ARROW).setDisplayName("→").build(),e2->{
+        gui.addGuiItem(7,4,new GuiItem(ItemBuilder.createItem(Material.ARROW).setDisplayName("→").build(),(e2, player)->{
             if(e2.getClick().equals(ClickType.DOUBLE_CLICK))return;
             guiPage.next();
             guiPage.update();
@@ -189,19 +189,19 @@ public class PerformanceTrackerGui{
         //BACK
         final ItemBuilder itemBuilder=ItemBuilder.createItem(Material.SPRUCE_DOOR);
         itemBuilder.setDisplayName("§cRetour");
-        gui.addGuiItem(4,0,new GuiItem(itemBuilder.build(),e->{
+        gui.addGuiItem(4,0,new GuiItem(itemBuilder.build(),(e, player)->{
             final GuiPage mainGuiPage=mainGui.getGuiPage("pagination");
             if(mainGuiPage!=null){
                 if(actualisation.get()){
-                    reloadPrimaryItems(weakMainGui,mainGuiPage,p,actualisation);
+                    reloadPrimaryItems(weakMainGui,mainGuiPage,player,actualisation);
                     mainGui.setActiveGuiTickConsumer(UPDATE_INTERVAL,guiRef->{
-                        if(!guiRef.getInventory().getViewers().isEmpty())reloadPrimaryItems(weakMainGui,mainGuiPage,p,actualisation);
+                        if(!guiRef.getInventory().getViewers().isEmpty())reloadPrimaryItems(weakMainGui,mainGuiPage,player,actualisation);
                     });
                 }else mainGui.setActiveGuiTickConsumer(0,null);
             }
 
-            updateActualisationButton(weakMainGui,null,p,actualisation,2);
-            mainGui.display(p);
+            updateActualisationButton(weakMainGui,null,player,actualisation,2);
+            mainGui.display(player);
         }));
 
 
@@ -246,36 +246,36 @@ public class PerformanceTrackerGui{
         if(guiPage==null)return;
 
         if(actualisation.get()){
-            gui.addGuiItem(4,y,new GuiItem(ItemBuilder.createItem(Material.GREEN_DYE).setDisplayName("Actualisation activée").build(),e2->{
+            gui.addGuiItem(4,y,new GuiItem(ItemBuilder.createItem(Material.GREEN_DYE).setDisplayName("Actualisation activée").build(),(e2, player)->{
                 if(e2.getClick().equals(ClickType.DOUBLE_CLICK))return;
 
                 actualisation.set(false);
 
                 gui.setActiveGuiTickConsumer(0,null);
 
-                updateActualisationButton(weakGui,type,p,actualisation,y);
+                updateActualisationButton(weakGui,type,player,actualisation,y);
             }));
         }else{
-            gui.addGuiItem(4,y,new GuiItem(ItemBuilder.createItem(Material.RED_DYE).setDisplayName("Actualisation désactivée").build(),e2->{
+            gui.addGuiItem(4,y,new GuiItem(ItemBuilder.createItem(Material.RED_DYE).setDisplayName("Actualisation désactivée").build(),(e2, player)->{
                 if(e2.getClick().equals(ClickType.DOUBLE_CLICK))return;
 
                 actualisation.set(true);
 
                 if(y==2){
-                    reloadPrimaryItems(weakGui,guiPage,p,actualisation);
+                    reloadPrimaryItems(weakGui,guiPage,player,actualisation);
                     gui.setActiveGuiTickConsumer(UPDATE_INTERVAL,guiRef->{
-                        if(!guiRef.getInventory().getViewers().isEmpty())reloadPrimaryItems(weakGui,guiPage,p,actualisation);
+                        if(!guiRef.getInventory().getViewers().isEmpty())reloadPrimaryItems(weakGui,guiPage,player,actualisation);
                         else guiRef.setActiveGuiTickConsumer(0,null);
                     });
                 }else if(type!=null){
-                    reloadSecondaryItems(weakGui,type,guiPage,p,actualisation);
+                    reloadSecondaryItems(weakGui,type,guiPage,player,actualisation);
                     gui.setActiveGuiTickConsumer(UPDATE_INTERVAL,guiRef->{
-                        if(!guiRef.getInventory().getViewers().isEmpty())reloadSecondaryItems(weakGui,type,guiPage,p,actualisation);
+                        if(!guiRef.getInventory().getViewers().isEmpty())reloadSecondaryItems(weakGui,type,guiPage,player,actualisation);
                         else guiRef.setActiveGuiTickConsumer(0,null);
                     });
                 }
 
-                updateActualisationButton(weakGui,type,p,actualisation,y);
+                updateActualisationButton(weakGui,type,player,actualisation,y);
             }));
         }
 
