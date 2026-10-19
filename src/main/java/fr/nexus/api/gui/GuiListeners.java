@@ -12,6 +12,7 @@ import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
 
 import java.util.UUID;
+import java.util.function.BiConsumer;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 class GuiListeners{
@@ -56,10 +57,10 @@ class GuiListeners{
         //GUI-ITEM
         GuiItem guiItem=gui.getGuiItemAt(slot);
         if(guiItem!=null){
-            if(guiItem.getPlayerAction()!=null&&e.getWhoClicked() instanceof Player player){
-                final GuiItem finalGuiItem=guiItem;
+            final BiConsumer<InventoryClickEvent, Player> action = guiItem.getPlayerAction();
+            if(action != null && e.getWhoClicked() instanceof Player player){
                 fr.nexus.Core.getServerImplementation().entity(player).run(()->{
-                    if(player.isOnline()) finalGuiItem.getPlayerAction().accept(e,player);
+                    if(player.isOnline()) action.accept(e, player);
                 });
             }
 
@@ -71,10 +72,10 @@ class GuiListeners{
         for(final GuiPage guiPage:gui.getGuiPages().values()){
             guiItem=guiPage.getGuiItemAt(slot);
             if(guiItem!=null){
-                if(guiItem.getPlayerAction()!=null&&e.getWhoClicked() instanceof Player player){
-                    final GuiItem finalGuiItem=guiItem;
+                final BiConsumer<InventoryClickEvent, Player> action = guiItem.getPlayerAction();
+                if(action != null && e.getWhoClicked() instanceof Player player){
                     fr.nexus.Core.getServerImplementation().entity(player).run(()->{
-                        if(player.isOnline())finalGuiItem.getPlayerAction().accept(e,player);
+                        if(player.isOnline()) action.accept(e, player);
                     });
                 }
 
@@ -87,10 +88,10 @@ class GuiListeners{
         for(final GuiSlider guiSlider:gui.getGuiSliders().values()){
             guiItem=guiSlider.getGuiItemAt(slot);
             if(guiItem!=null){
-                if(guiItem.getPlayerAction()!=null&&e.getWhoClicked() instanceof Player player){
-                    final GuiItem finalGuiItem=guiItem;
+                final BiConsumer<InventoryClickEvent, Player> action = guiItem.getPlayerAction();
+                if(action != null && e.getWhoClicked() instanceof Player player){
                     fr.nexus.Core.getServerImplementation().entity(player).run(()->{
-                        if(player.isOnline())finalGuiItem.getPlayerAction().accept(e,player);
+                        if(player.isOnline()) action.accept(e, player);
                     });
                 }
 
@@ -101,7 +102,7 @@ class GuiListeners{
 
         PerformanceTracker.increment(PerformanceTracker.Types.GUI,"onInventoryClick",System.nanoTime()-nanoTime);
     }
-    
+
     private static void onInventoryDrag(InventoryDragEvent e){
         if (e.isCancelled()&&e.getWhoClicked().getGameMode() != GameMode.SPECTATOR) {
             return;
