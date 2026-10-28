@@ -12,11 +12,14 @@ import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
 
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
 class GuiListeners{
-    //VARIABLES (STATICS)
+    private static final ConcurrentHashMap<UUID, Long> CLOSE_PROTECTION_MAP = new ConcurrentHashMap<>();
+    private static final long PROTECTION_DURATION_MS = 150L;
+
     static{
         Listeners.register(InventoryClickEvent.class,GuiListeners::onInventoryClick);
         Listeners.register(InventoryDragEvent.class,GuiListeners::onInventoryDrag);
@@ -26,18 +29,42 @@ class GuiListeners{
 
     //METHODS (STATICS)
     private static void onInventoryClick(InventoryClickEvent e){
+        final UUID uuid = e.getWhoClicked().getUniqueId();
+        final long now = System.currentTimeMillis();
+
+        // SÉCURITÉ GLOBALE ANTI-DUPLI POST-FERMETURE : Annule tout clic pendant les ticks suivant une fermeture
+        final Long closeTime = CLOSE_PROTECTION_MAP.get(uuid);
+        if (closeTime != null) {
+            if (now - closeTime < PROTECTION_DURATION_MS) {
+                e.setCancelled(true);
+                if (e.getWhoClicked() instanceof Player pl) {
+                    pl.setItemOnCursor(org.bukkit.inventory.ItemStack.of(org.bukkit.Material.AIR));
+                    pl.updateInventory();
+                }
+                return;
+            } else {
+                CLOSE_PROTECTION_MAP.remove(uuid);
+            }
+        }
+
+        final Gui gui=GuiManager.getGui(e.getInventory());
+        if(gui!=null){
+            if(gui.isDestroyed()){
+                e.setCancelled(true);
+                return;
+            }
+        }
+
         if(e.isCancelled()&&e.getWhoClicked().getGameMode()!=GameMode.SPECTATOR)
             return;
 
         final long nanoTime=System.nanoTime();
 
-        final Gui gui=GuiManager.getGui(e.getInventory());
         if(gui==null)return;
 
         if(e.getInventory().equals(e.getClickedInventory())&&gui.getEffectiveCooldown()!=null){
-            final UUID uuid=e.getWhoClicked().getUniqueId();
             final long millis=System.currentTimeMillis();
-            final Long pMillis=gui.getCooldowns().get(e.getWhoClicked().getUniqueId());
+            final Long pMillis=gui.getCooldowns().get(uuid);
 
             if(pMillis==null)gui.getCooldowns().put(uuid,millis);
             else if(millis-pMillis<gui.getEffectiveCooldown()){
@@ -104,6 +131,12 @@ class GuiListeners{
     }
 
     private static void onInventoryDrag(InventoryDragEvent e){
+        final UUID uuid = e.getWhoClicked().getUniqueId();
+        if (CLOSE_PROTECTION_MAP.containsKey(uuid)) {
+            e.setCancelled(true);
+            return;
+        }
+
         if (e.isCancelled()&&e.getWhoClicked().getGameMode() != GameMode.SPECTATOR) {
             return;
         }
@@ -119,6 +152,13 @@ class GuiListeners{
 
     private static void onInventoryClose(InventoryCloseEvent e){
         final long nanoTime=System.nanoTime();
+
+        // Enregistre l'horodatage exact de la fermeture pour bloquer les clics suivants
+        if (e.getPlayer() instanceof Player pl) {
+            CLOSE_PROTECTION_MAP.put(pl.getUniqueId(), System.currentTimeMillis());
+            pl.setItemOnCursor(org.bukkit.inventory.ItemStack.of(org.bukkit.Material.AIR));
+            pl.updateInventory();
+        }
 
         final Inventory inv=e.getInventory();
 
