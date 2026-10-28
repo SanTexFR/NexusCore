@@ -179,16 +179,23 @@ class GuiListeners{
     private static void onInventoryClose(InventoryCloseEvent e){
         final long nanoTime=System.nanoTime();
 
-        if (e.getPlayer() instanceof Player pl) {
+        final Inventory inv=e.getInventory();
+        final Gui gui=GuiManager.getGui(inv);
+
+        if (gui != null && e.getPlayer() instanceof Player pl) {
             INSTANT_LOCK_MAP.remove(pl.getUniqueId());
             CLOSE_PROTECTION_MAP.put(pl.getUniqueId(), System.currentTimeMillis());
-            pl.setItemOnCursor(ItemStack.of(Material.AIR));
+
+            ItemStack cursorItem = pl.getItemOnCursor();
+            if (cursorItem.getType() != Material.AIR) {
+                pl.setItemOnCursor(ItemStack.of(Material.AIR));
+                pl.getInventory().addItem(cursorItem).values().forEach(leftover ->
+                        pl.getWorld().dropItem(pl.getLocation(), leftover)
+                );
+            }
             pl.updateInventory();
         }
 
-        final Inventory inv=e.getInventory();
-
-        final Gui gui=GuiManager.getGui(inv);
         if(gui!=null){
             if(gui.getCloseEvent()!=null)gui.getCloseEvent().accept(e);
 
