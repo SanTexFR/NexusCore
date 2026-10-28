@@ -10,6 +10,8 @@ import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.Material;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,7 +20,8 @@ import java.util.function.BiConsumer;
 @SuppressWarnings({"unused","UnusedReturnValue"})
 class GuiListeners{
     private static final ConcurrentHashMap<UUID, Long> CLOSE_PROTECTION_MAP = new ConcurrentHashMap<>();
-    private static final long PROTECTION_DURATION_MS = 150L;
+    private static final ConcurrentHashMap<UUID, Boolean> INSTANT_LOCK_MAP = new ConcurrentHashMap<>();
+    private static final long PROTECTION_DURATION_MS = 250L;
 
     static{
         Listeners.register(InventoryClickEvent.class,GuiListeners::onInventoryClick);
@@ -27,9 +30,32 @@ class GuiListeners{
         Listeners.register(InventoryOpenEvent.class,GuiListeners::onInventoryOpen);
     }
 
+    // MÉTHODE PUBLIQUE STATIQUE POUR VÉRROUILLER INSTANTANÉMENT UN JOUEUR (ex: fin d'animation Coinflip)
+    public static void lockPlayer(Player player) {
+        if(player != null) {
+            INSTANT_LOCK_MAP.put(player.getUniqueId(), true);
+        }
+    }
+
+    public static void unlockPlayer(Player player) {
+        if(player != null) {
+            INSTANT_LOCK_MAP.remove(player.getUniqueId());
+        }
+    }
+
     //METHODS (STATICS)
     private static void onInventoryClick(InventoryClickEvent e){
         final UUID uuid = e.getWhoClicked().getUniqueId();
+
+        if (INSTANT_LOCK_MAP.containsKey(uuid)) {
+            e.setCancelled(true);
+            if (e.getWhoClicked() instanceof Player pl) {
+                pl.setItemOnCursor(ItemStack.of(Material.AIR));
+                pl.updateInventory();
+            }
+            return;
+        }
+
         final long now = System.currentTimeMillis();
 
         // SÉCURITÉ GLOBALE ANTI-DUPLI POST-FERMETURE : Annule tout clic pendant les ticks suivant une fermeture
@@ -38,7 +64,7 @@ class GuiListeners{
             if (now - closeTime < PROTECTION_DURATION_MS) {
                 e.setCancelled(true);
                 if (e.getWhoClicked() instanceof Player pl) {
-                    pl.setItemOnCursor(org.bukkit.inventory.ItemStack.of(org.bukkit.Material.AIR));
+                    pl.setItemOnCursor(ItemStack.of(Material.AIR));
                     pl.updateInventory();
                 }
                 return;
@@ -132,7 +158,7 @@ class GuiListeners{
 
     private static void onInventoryDrag(InventoryDragEvent e){
         final UUID uuid = e.getWhoClicked().getUniqueId();
-        if (CLOSE_PROTECTION_MAP.containsKey(uuid)) {
+        if (INSTANT_LOCK_MAP.containsKey(uuid) || CLOSE_PROTECTION_MAP.containsKey(uuid)) {
             e.setCancelled(true);
             return;
         }
@@ -153,10 +179,10 @@ class GuiListeners{
     private static void onInventoryClose(InventoryCloseEvent e){
         final long nanoTime=System.nanoTime();
 
-        // Enregistre l'horodatage exact de la fermeture pour bloquer les clics suivants
         if (e.getPlayer() instanceof Player pl) {
+            INSTANT_LOCK_MAP.remove(pl.getUniqueId());
             CLOSE_PROTECTION_MAP.put(pl.getUniqueId(), System.currentTimeMillis());
-            pl.setItemOnCursor(org.bukkit.inventory.ItemStack.of(org.bukkit.Material.AIR));
+            pl.setItemOnCursor(ItemStack.of(Material.AIR));
             pl.updateInventory();
         }
 
