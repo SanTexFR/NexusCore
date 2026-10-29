@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 @SuppressWarnings({"unused","UnusedReturnValue"})
-class GuiListeners{
+public class GuiListeners{
     private static final ConcurrentHashMap<UUID, Long> CLOSE_PROTECTION_MAP = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<UUID, Boolean> INSTANT_LOCK_MAP = new ConcurrentHashMap<>();
     private static final long PROTECTION_DURATION_MS = 250L;
