@@ -112,9 +112,9 @@ public class GuiListeners{
         if(guiItem!=null){
             final BiConsumer<InventoryClickEvent, Player> action = guiItem.getPlayerAction();
             if(action != null && e.getWhoClicked() instanceof Player player){
-                fr.nexus.Core.getServerImplementation().entity(player).run(()->{
-                    if(player.isOnline()) action.accept(e, player);
-                });
+                if(player.isOnline()) {
+                    action.accept(e, player);
+                }
             }
 
             PerformanceTracker.increment(PerformanceTracker.Types.GUI,"onInventoryClick",System.nanoTime()-nanoTime);
@@ -127,9 +127,9 @@ public class GuiListeners{
             if(guiItem!=null){
                 final BiConsumer<InventoryClickEvent, Player> action = guiItem.getPlayerAction();
                 if(action != null && e.getWhoClicked() instanceof Player player){
-                    fr.nexus.Core.getServerImplementation().entity(player).run(()->{
-                        if(player.isOnline()) action.accept(e, player);
-                    });
+                    if(player.isOnline()) {
+                        action.accept(e, player);
+                    }
                 }
 
                 PerformanceTracker.increment(PerformanceTracker.Types.GUI,"onInventoryClick",System.nanoTime()-nanoTime);
@@ -143,9 +143,9 @@ public class GuiListeners{
             if(guiItem!=null){
                 final BiConsumer<InventoryClickEvent, Player> action = guiItem.getPlayerAction();
                 if(action != null && e.getWhoClicked() instanceof Player player){
-                    fr.nexus.Core.getServerImplementation().entity(player).run(()->{
-                        if(player.isOnline()) action.accept(e, player);
-                    });
+                    if(player.isOnline()) {
+                        action.accept(e, player);
+                    }
                 }
 
                 PerformanceTracker.increment(PerformanceTracker.Types.GUI,"onInventoryClick",System.nanoTime()-nanoTime);

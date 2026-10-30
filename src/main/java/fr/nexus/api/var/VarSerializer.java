@@ -1,7 +1,7 @@
+
 package fr.nexus.api.var;
 
 import fr.nexus.api.var.types.VarSubType;
-import fr.nexus.api.var.types.VarTypes;
 import fr.nexus.api.var.types.parents.Vars;
 import fr.nexus.api.var.types.parents.map.MapType;
 import fr.nexus.api.var.types.parents.map.MapVarType;
@@ -20,11 +20,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @SuppressWarnings({"unused", "UnusedReturnValue", "unchecked"})
 public class VarSerializer {
 
     // --- INSTANCES ---
+    private static final Logger LOGGER = Logger.getLogger(VarSerializer.class.getName());
+
     private static final LZ4Factory factory = LZ4Factory.fastestInstance();
     private static final LZ4Compressor COMPRESSOR = factory.fastCompressor();
     private static final LZ4FastDecompressor DECOMPRESSOR = factory.fastDecompressor();
@@ -33,7 +37,7 @@ public class VarSerializer {
 
     // Gestion de la RAM pour éviter les fuites sur les gros objets
     private static final int INITIAL_BUFFER_CAPACITY = 4096;
-    private static final int MAX_POOLED_BUFFER_CAPACITY = 1024 * 1024; // 1 MB max conservé en idle
+    private static final int MAX_POOLED_BUFFER_CAPACITY = 1024 * 1024;
 
     private static final ThreadLocal<FastBuffer> BUFFER_THREAD_LOCAL =
             ThreadLocal.withInitial(() -> new FastBuffer(INITIAL_BUFFER_CAPACITY));
@@ -49,10 +53,7 @@ public class VarSerializer {
 
         public void reset() {
             this.count = 0;
-            // CECI NE CRASH PAS LA SERIALISATION !
-            // C'est appelé UNIQUEMENT à la fin de l'opération (ou au début d'une nouvelle).
-            // Si le tableau précédent a grossi au-delà de 1 Mo (ex: gros inventaire sauvegardé),
-            // on libère cette énorme RAM pour ne pas la stocker indéfiniment.
+
             if (this.buf.length > MAX_POOLED_BUFFER_CAPACITY) {
                 this.buf = new byte[INITIAL_BUFFER_CAPACITY];
             }
@@ -74,6 +75,7 @@ public class VarSerializer {
         public void writeStringFast(String s) {
             int len = s.length();
             boolean isAscii = true;
+
             for (int i = 0; i < len; i++) {
                 if (s.charAt(i) > 0x7F) {
                     isAscii = false;
@@ -83,7 +85,9 @@ public class VarSerializer {
 
             if (isAscii) {
                 writeVarIntFast(len);
+
                 if (count + len > buf.length) grow(count + len);
+
                 s.getBytes(0, len, buf, count);
                 count += len;
             } else {
@@ -95,14 +99,17 @@ public class VarSerializer {
 
         public void writeVarIntFast(int value) {
             if (count + 5 > buf.length) grow(count + 5);
+
             if ((value & 0xFFFFFF80) == 0) {
                 buf[count++] = (byte) value;
                 return;
             }
+
             while ((value & 0xFFFFFF80) != 0) {
                 buf[count++] = (byte) ((value & 0x7F) | 0x80);
                 value >>>= 7;
             }
+
             buf[count++] = (byte) (value & 0x7F);
         }
 
@@ -113,7 +120,9 @@ public class VarSerializer {
         private void grow(int minCapacity) {
             int oldCapacity = buf.length;
             int newCapacity = oldCapacity << 1;
+
             if (newCapacity - minCapacity < 0) newCapacity = minCapacity;
+
             buf = Arrays.copyOf(buf, newCapacity);
         }
     }
@@ -132,7 +141,9 @@ public class VarSerializer {
 
     public static @NotNull CompletableFuture<byte[]> serializeDataAsync(
             @NotNull Object2ObjectOpenHashMap<@NotNull String, @NotNull VarEntry<?>> data) {
+
         if (data.isEmpty()) return CompletableFuture.completedFuture(new byte[0]);
+
         return CompletableFuture.supplyAsync(() -> serializeInternal(data), LOOM_EXECUTOR);
     }
 
@@ -150,12 +161,14 @@ public class VarSerializer {
             if (ctx == null) {
                 String signature = getSignature(type);
                 ctx = signatureGroups.get(signature);
+
                 if (ctx == null) {
                     ctx = new TypeContext();
                     ctx.buffer = new FastBuffer(INITIAL_BUFFER_CAPACITY);
                     ctx.sampleType = type;
                     signatureGroups.put(signature, ctx);
                 }
+
                 contextCache.put(type, ctx);
             }
 
@@ -163,11 +176,13 @@ public class VarSerializer {
                 ctx.buffer.writeStringFast(entry.getKey());
 
                 byte[] valueBytes;
+
                 if (type.isWrapper()) {
                     valueBytes = ((VarSubType<Object>) type).serializeSync(varEntry.value());
                 } else {
                     valueBytes = ((MapVarType<Object, Object>) type).serializeSync((Map<Object, Object>) varEntry.value());
                 }
+
                 ctx.buffer.writeVarIntFast(valueBytes.length);
                 ctx.buffer.write(valueBytes, 0, valueBytes.length);
                 ctx.count++;
@@ -176,6 +191,7 @@ public class VarSerializer {
                     ctx.asyncValuesToProcess = new ArrayList<>();
                     ctx.asyncKeysToProcess = new ArrayList<>();
                 }
+
                 ctx.asyncValuesToProcess.add(varEntry.value());
                 ctx.asyncKeysToProcess.add(entry.getKey());
             }
@@ -187,15 +203,8 @@ public class VarSerializer {
             if (ctx.asyncValuesToProcess != null && !ctx.asyncValuesToProcess.isEmpty()) {
                 final TypeContext targetCtx = ctx;
 
-                // --- CORRECTION DU CONCURRENCY BUG / INDEX OUT OF BOUNDS ---
-                // Création d'une copie locale figée (snapshots) sous verrouillage
-                // pour s'assurer que les listes ne bougent pas pendant le traitement asynchrone
-                final Object[] valuesSnapshot;
-                final String[] keysSnapshot;
-                synchronized (targetCtx) {
-                    valuesSnapshot = targetCtx.asyncValuesToProcess.toArray();
-                    keysSnapshot = targetCtx.asyncKeysToProcess.toArray(new String[0]);
-                }
+                final Object[] valuesSnapshot = targetCtx.asyncValuesToProcess.toArray();
+                final String[] keysSnapshot = targetCtx.asyncKeysToProcess.toArray(new String[0]);
 
                 CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
                     FastBuffer localBuf = new FastBuffer(valuesSnapshot.length * 128);
@@ -205,9 +214,11 @@ public class VarSerializer {
                     for (int i = 0; i < size; i++) {
                         String key = keysSnapshot[i];
                         Object val = valuesSnapshot[i];
+
                         localBuf.writeStringFast(key);
 
                         byte[] bytes;
+
                         if (type.isWrapper()) {
                             bytes = ((VarSubType<Object>) type).serializeAsync(val).join();
                         } else {
@@ -224,6 +235,7 @@ public class VarSerializer {
                     }
 
                 }, LOOM_EXECUTOR);
+
                 futures.add(future);
             }
         }
@@ -232,7 +244,6 @@ public class VarSerializer {
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         }
 
-        // On réutilise le buffer du thread courant sans allouer un nouveau byte[] énorme !
         FastBuffer mainBuffer = BUFFER_THREAD_LOCAL.get();
         mainBuffer.reset();
 
@@ -250,7 +261,11 @@ public class VarSerializer {
 
         return compress(mainBuffer.buf, mainBuffer.count);
     }
-    public static void deserializeDataSync(byte[] serializedData, @NotNull Object2ObjectOpenHashMap<@NotNull String, @NotNull VarEntry<?>> data) {
+
+    public static void deserializeDataSync(
+            byte[] serializedData,
+            @NotNull Object2ObjectOpenHashMap<@NotNull String, @NotNull VarEntry<?>> data) {
+
         deserializeDataAsync(serializedData, data).join();
     }
 
@@ -258,7 +273,9 @@ public class VarSerializer {
             byte[] serializedData,
             @NotNull Object2ObjectOpenHashMap<@NotNull String, @NotNull VarEntry<?>> data) {
 
-        if (serializedData == null || serializedData.length == 0) return CompletableFuture.completedFuture(null);
+        if (serializedData == null || serializedData.length == 0) {
+            return CompletableFuture.completedFuture(null);
+        }
 
         return CompletableFuture.runAsync(() -> {
             try {
@@ -266,79 +283,220 @@ public class VarSerializer {
                 final ByteBuffer buffer = ByteBuffer.wrap(newData);
 
                 ArrayList<Map.Entry<String, VarEntry<?>>> syncEntries = new ArrayList<>();
+
                 List<CompletableFuture<Map.Entry<String, VarEntry<?>>>> asyncFutures = new ArrayList<>();
 
+                /*
+                 * Lecture des groupes de types.
+                 */
+                reading:
                 while (buffer.hasRemaining()) {
                     String currentTypeStr = "inconnu";
-                    String currentKey = "inconnue";
+                    Vars groupType;
 
+                    /*
+                     * Lecture de l'en-tête du groupe.
+                     */
                     try {
                         byte typeId = buffer.get();
-                        Vars groupType;
 
                         if (typeId == 0) {
                             currentTypeStr = readStringFast(buffer);
                             groupType = VarType.getTypes().get(currentTypeStr);
-                            if (groupType == null) {
-                                System.err.println("[NexusCore] Type inconnu trouvé : " + currentTypeStr);
-                                continue;
-                            }
-                        } else {
+
+                        } else if (typeId == 1) {
                             String mapTypeStr = readStringFast(buffer);
                             String keyTypeStr = readStringFast(buffer);
                             String valueTypeStr = readStringFast(buffer);
 
                             currentTypeStr = "Map<" + mapTypeStr + ", " + keyTypeStr + ", " + valueTypeStr + ">";
-                            groupType = new MapVarType<>(MapType.getTypes().get(mapTypeStr),
+
+                            groupType = new MapVarType<>(
+                                    MapType.getTypes().get(mapTypeStr),
                                     VarType.getTypes().get(keyTypeStr),
-                                    VarType.getTypes().get(valueTypeStr));
+                                    VarType.getTypes().get(valueTypeStr)
+                            );
+
+                        } else {
+                            throw new IllegalArgumentException("Identifiant de type invalide : " + typeId);
                         }
 
-                        int count = IntegerType.fromVarInt(buffer);
-                        boolean isWrapper = groupType.isWrapper();
-                        boolean needAsync = groupType.needAsync();
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE,
+                                "[NexusCore] Impossible de lire l'en-tête du groupe de désérialisation.", e);
+                        break;
+                    }
 
-                        for (int i = 0; i < count; i++) {
+                    /*
+                     * Lecture du nombre de données.
+                     */
+                    int count;
+
+                    try {
+                        count = IntegerType.fromVarInt(buffer);
+
+                        if (count < 0) {
+                            throw new IllegalArgumentException("Nombre de données invalide : " + count);
+                        }
+
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE,
+                                "[NexusCore] Impossible de lire le nombre de données du type "
+                                        + currentTypeStr, e);
+                        break;
+                    }
+
+                    /*
+                     * Type inconnu :
+                     * On saute uniquement les données de ce groupe.
+                     */
+                    if (groupType == null) {
+                        LOGGER.warning("[NexusCore] Type inconnu trouvé : " + currentTypeStr
+                                + ". Ignorance de " + count + " donnée(s).");
+
+                        try {
+                            for (int i = 0; i < count; i++) {
+                                readStringFast(buffer);
+                                readByteArray(buffer);
+                            }
+                        } catch (Exception e) {
+                            LOGGER.log(Level.SEVERE,
+                                    "[NexusCore] Impossible de passer les données du type inconnu "
+                                            + currentTypeStr, e);
+                            break;
+                        }
+
+                        continue;
+                    }
+
+                    final boolean isWrapper = groupType.isWrapper();
+                    final boolean needAsync = groupType.needAsync();
+
+                    /*
+                     * Traitement individuel de chaque donnée.
+                     */
+                    for (int i = 0; i < count; i++) {
+                        String currentKey;
+                        byte[] valueByte;
+
+                        /*
+                         * Lecture de la clé et des octets.
+                         *
+                         * Si le framing est corrompu, il est impossible
+                         * de garantir la position de la donnée suivante.
+                         */
+                        try {
                             currentKey = readStringFast(buffer);
-                            byte[] valueByte = readByteArray(buffer);
+                            valueByte = readByteArray(buffer);
 
-                            if (!needAsync) {
+                        } catch (Exception e) {
+                            LOGGER.log(Level.SEVERE,
+                                    "[NexusCore] Impossible de lire les données du type "
+                                            + currentTypeStr + ". Arrêt de la lecture du buffer.", e);
+                            break reading;
+                        }
+
+                        /*
+                         * DÉSÉRIALISATION SYNCHRONE
+                         *
+                         * Une erreur ne concerne que la donnée actuelle.
+                         */
+                        if (!needAsync) {
+                            try {
                                 Object value = isWrapper
                                         ? ((VarSubType<Object>) groupType).deserializeSync(valueByte)
                                         : ((MapVarType<Object, Object>) groupType).deserializeSync(valueByte);
+
                                 if (value != null) {
-                                    syncEntries.add(new AbstractMap.SimpleEntry<>(currentKey, new VarEntry<>(value, groupType, true)));
+                                    syncEntries.add(new AbstractMap.SimpleEntry<>(
+                                            currentKey,
+                                            new VarEntry<>(value, groupType, true)
+                                    ));
                                 }
-                            } else {
+
+                            } catch (Exception e) {
+                                LOGGER.log(Level.WARNING,
+                                        "[NexusCore] Échec de désérialisation synchrone : clé='"
+                                                + currentKey + "', type='" + currentTypeStr
+                                                + "'. Donnée ignorée.", e);
+                            }
+
+                        } else {
+                            /*
+                             * DÉSÉRIALISATION ASYNCHRONE
+                             *
+                             * Chaque future est isolée individuellement.
+                             */
+                            try {
                                 final Vars finalType = groupType;
                                 final String finalKey = currentKey;
+                                final String finalTypeStr = currentTypeStr;
+
                                 CompletableFuture<?> valFuture = isWrapper
                                         ? ((VarSubType<Object>) finalType).deserializeAsync(valueByte)
                                         : ((MapVarType<Object, Object>) finalType).deserializeAsync(valueByte);
 
-                                asyncFutures.add(valFuture.thenApply(val -> {
-                                    if (val == null) return null;
-                                    return new AbstractMap.SimpleEntry<>(finalKey, new VarEntry<>(val, finalType, true));
-                                }));
+                                CompletableFuture<Map.Entry<String, VarEntry<?>>> safeFuture =
+                                        valFuture.handle((value, throwable) -> {
+
+                                            if (throwable != null) {
+                                                LOGGER.log(Level.WARNING,
+                                                        "[NexusCore] Échec de désérialisation asynchrone : clé='"
+                                                                + finalKey + "', type='" + finalTypeStr
+                                                                + "'. Donnée ignorée.",
+                                                        throwable);
+                                                return null;
+                                            }
+
+                                            if (value == null) {
+                                                return null;
+                                            }
+
+                                            return new AbstractMap.SimpleEntry<>(
+                                                    finalKey,
+                                                    new VarEntry<>(value, finalType, true)
+                                            );
+                                        });
+
+                                asyncFutures.add(safeFuture);
+
+                            } catch (Exception e) {
+                                LOGGER.log(Level.WARNING,
+                                        "[NexusCore] Impossible de lancer la désérialisation asynchrone : clé='"
+                                                + currentKey + "', type='" + currentTypeStr
+                                                + "'. Donnée ignorée.", e);
                             }
                         }
-                    } catch (Exception e) {
-                        System.err.println("[NexusCore] 🚨 ERREUR CRITIQUE DE DESERIALISATION 🚨");
-                        e.printStackTrace();
-                        break;
                     }
                 }
 
-                synchronized(data) {
-                    for (var entry : syncEntries) data.put(entry.getKey(), entry.getValue());
+                /*
+                 * Insertion des données synchrones valides.
+                 */
+                synchronized (data) {
+                    for (var entry : syncEntries) {
+                        data.put(entry.getKey(), entry.getValue());
+                    }
                 }
 
+                /*
+                 * Attente des désérialisations asynchrones.
+                 *
+                 * Les erreurs individuelles sont déjà absorbées
+                 * par handle(), elles ne bloquent donc pas allOf().
+                 */
                 if (!asyncFutures.isEmpty()) {
-                    CompletableFuture.allOf(asyncFutures.toArray(new CompletableFuture[0])).join();
-                    synchronized(data) {
+                    CompletableFuture.allOf(
+                            asyncFutures.toArray(new CompletableFuture[0])
+                    ).join();
+
+                    synchronized (data) {
                         for (var future : asyncFutures) {
                             var entry = future.getNow(null);
-                            if (entry != null) data.put(entry.getKey(), entry.getValue());
+
+                            if (entry != null) {
+                                data.put(entry.getKey(), entry.getValue());
+                            }
                         }
                     }
                 }
@@ -346,6 +504,7 @@ public class VarSerializer {
             } catch (Exception e) {
                 throw new CompletionException(e);
             }
+
         }, LOOM_EXECUTOR);
     }
 
@@ -354,7 +513,9 @@ public class VarSerializer {
             return "W" + SIG_SEP + type.getStringType();
         } else {
             MapVarType<?, ?> mapVar = (MapVarType<?, ?>) type;
-            return "M" + SIG_SEP + mapVar.getVarMapType().getStringType() + SIG_SEP
+
+            return "M" + SIG_SEP
+                    + mapVar.getVarMapType().getStringType() + SIG_SEP
                     + mapVar.getKeyVarType().getStringType() + SIG_SEP
                     + mapVar.getValueVarType().getStringType();
         }
@@ -362,10 +523,12 @@ public class VarSerializer {
 
     private static void writeTypeHeader(FastBuffer out, Vars type) throws IOException {
         out.write(type.isWrapper() ? 0 : 1);
+
         if (type.isWrapper()) {
             out.writeStringFast(type.getStringType());
         } else {
             MapVarType<?, ?> mapVar = (MapVarType<?, ?>) type;
+
             out.writeStringFast(mapVar.getVarMapType().getStringType());
             out.writeStringFast(mapVar.getKeyVarType().getStringType());
             out.writeStringFast(mapVar.getValueVarType().getStringType());
@@ -374,37 +537,73 @@ public class VarSerializer {
 
     private static String readStringFast(ByteBuffer buffer) {
         int length = IntegerType.fromVarInt(buffer);
+
+        if (length < 0 || length > buffer.remaining()) {
+            throw new IllegalArgumentException("Taille de String invalide : " + length);
+        }
+
         if (buffer.hasArray()) {
-            String s = new String(buffer.array(), buffer.arrayOffset() + buffer.position(), length, StandardCharsets.UTF_8);
+            String s = new String(
+                    buffer.array(),
+                    buffer.arrayOffset() + buffer.position(),
+                    length,
+                    StandardCharsets.UTF_8
+            );
+
             buffer.position(buffer.position() + length);
             return s;
         }
+
         byte[] bytes = new byte[length];
         buffer.get(bytes);
+
         return new String(bytes, StandardCharsets.UTF_8);
     }
 
     private static byte[] readByteArray(ByteBuffer buffer) {
         int length = IntegerType.fromVarInt(buffer);
-        if (length < 0 || length > buffer.remaining()) throw new RuntimeException("Taille invalide : " + length);
+
+        if (length < 0 || length > buffer.remaining()) {
+            throw new IllegalArgumentException("Taille invalide : " + length);
+        }
+
         byte[] bytes = new byte[length];
         buffer.get(bytes);
+
         return bytes;
     }
 
     private static byte[] compress(byte[] input, int length) {
         int maxCompressedLength = COMPRESSOR.maxCompressedLength(length);
+
         byte[] compressed = new byte[maxCompressedLength + 4];
+
         ByteBuffer.wrap(compressed).putInt(length);
-        int compressedLength = COMPRESSOR.compress(input, 0, length, compressed, 4, maxCompressedLength);
+
+        int compressedLength = COMPRESSOR.compress(
+                input, 0, length,
+                compressed, 4, maxCompressedLength
+        );
+
         return Arrays.copyOf(compressed, compressedLength + 4);
     }
 
     private static byte[] decompress(byte[] compressed) {
+        if (compressed.length < 4) {
+            throw new IllegalArgumentException("Données compressées trop courtes.");
+        }
+
         ByteBuffer buffer = ByteBuffer.wrap(compressed);
         int originalLength = buffer.getInt();
+
+        if (originalLength < 0) {
+            throw new IllegalArgumentException("Taille décompressée invalide : " + originalLength);
+        }
+
         byte[] restored = new byte[originalLength];
+
         DECOMPRESSOR.decompress(compressed, 4, restored, 0, originalLength);
+
         return restored;
     }
 }

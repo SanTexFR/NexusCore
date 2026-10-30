@@ -484,6 +484,44 @@ public class Gui implements GuiBackground{
         this.cooldowns.clear();
     }
 
+    public static void closeSecure(@NotNull Player... players) {
+        for (final Player p : players) {
+            p.closeInventory(InventoryCloseEvent.Reason.PLUGIN);
+//            if (!p.isOnline()) continue;
+//
+//            // 1. Verrouillage immédiat pour interdire tout clic supplémentaire sur le champ
+//            GuiListeners.lockPlayer(p);
+//
+//            // 2. Exécution sur le scheduler Folia du joueur
+//            p.getScheduler().run(Core.getInstance(), task -> {
+//                if (!p.isOnline()) {
+//                    GuiListeners.unlockPlayer(p);
+//                    return;
+//                }
+//
+//                // Sécurisation du curseur directement sur le thread de l'entité
+//                ItemStack cursorItem = p.getItemOnCursor();
+//                if (cursorItem.getType() != Material.AIR) {
+//                    p.setItemOnCursor(null);
+//                    p.getInventory().addItem(cursorItem).values().forEach(leftover ->
+//                            p.getWorld().dropItem(p.getLocation(), leftover)
+//                    );
+//                }
+//
+//                // Fermeture de l'inventaire
+//                p.closeInventory(InventoryCloseEvent.Reason.PLUGIN);
+//                p.updateInventory();
+//
+//                // 3. Petit délai de courtoisie (ex: 2 ticks ou 100ms) avant de déverrouiller
+//                // pour être sûr que les derniers paquets "spamclick" du client soient complètement purgés.
+//                p.getScheduler().runDelayed(Core.getInstance(), delayedTask -> {
+//                    GuiListeners.unlockPlayer(p);
+//                }, null, 2L); // 2 ticks de délai sur Folia
+//
+//            }, null);
+        }
+    }
+
     //INNER CLASS
     private record Unload(@Nullable GuiConsumer consumer)implements Runnable{
         @Override
